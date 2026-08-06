@@ -217,12 +217,10 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
 .herocard__nav button:hover{ color:#111 }
 .herocard__nav .flip{ transform:rotate(180deg) }
 
-.partners{ width:100%; max-width:24rem; --rv-from:translateY(14px); --rv-delay:550ms; --rv-dur:800ms }
-.partners__label{ margin-bottom:.75rem; font-size:.75rem; font-weight:500; color:rgba(17,17,17,.45); text-align:left }
-.partners__grid{ display:grid; grid-template-columns:repeat(4,1fr); column-gap:1rem; row-gap:.75rem }
-.partners__item{ display:inline-flex }
-.partners__item span{ display:inline-flex; align-items:center; gap:.375rem; font-size:.75rem; color:rgba(17,17,17,.7) }
-.partners__item .ic{ font-size:.875rem; color:rgba(17,17,17,.4) }
+.partners{ width:100%; max-width:24rem; border-top:1px solid rgba(17,17,17,.14); padding-top:1rem;
+  --rv-from:translateY(14px); --rv-delay:550ms; --rv-dur:800ms }
+.partners__label{ margin-bottom:.5rem; font-size:.75rem; font-weight:500; color:rgba(17,17,17,.45); text-align:left }
+.partners__note{ max-width:22ch; font-size:.75rem; line-height:1.6; color:rgba(17,17,17,.7); text-align:left }
 
 .hero__status{ position:relative; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:.75rem;
   border-top:1px solid rgba(17,17,17,.1); padding:1.25rem; font-size:.75rem; font-weight:500; text-transform:uppercase;
@@ -243,6 +241,7 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
   .herocard{ max-width:19rem }
   .partners{ max-width:19rem }
   .partners__label{ text-align:right }
+  .partners__note{ max-width:none; text-align:right }
 }
 
 /* ============================================================
@@ -397,6 +396,9 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
 .footer__legal{ display:flex; flex-direction:column; align-items:center; justify-content:space-between; gap:1rem;
   border-top:1px solid rgba(255,255,255,.1); padding-top:2rem; font-size:.75rem; color:rgba(255,255,255,.45) }
 .footer__legallinks{ display:flex; gap:1.5rem }
+.footer__author{ color:rgba(255,255,255,.8); text-decoration:underline; text-decoration-color:rgba(255,255,255,.28);
+  text-underline-offset:.22em; transition:color .25s ease, text-decoration-color .25s ease }
+.footer__author:hover{ color:#fff; text-decoration-color:rgba(255,255,255,.65) }
 .footer__wm{ position:absolute; inset-inline:0; bottom:-1.5rem; z-index:0; text-align:center; pointer-events:none;
   user-select:none; -webkit-user-select:none; font-weight:700; line-height:1; font-size:13rem; color:rgba(255,255,255,.05) }
 @media (min-width:640px){
@@ -491,6 +493,33 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
   .modal__panel{ padding:2rem }
   .modal__head h2{ font-size:1.875rem }
 }
+
+/* ============================================================
+   CORNER CTA — author handle
+   ============================================================ */
+.corner-cta{
+  position:fixed; right:1.25rem; bottom:1.25rem; z-index:99999;
+  opacity:0; transform:translateY(1rem); pointer-events:none;
+  transition:opacity 700ms cubic-bezier(.22,1,.36,1) var(--cta-delay,1100ms),
+             transform 700ms cubic-bezier(.22,1,.36,1) var(--cta-delay,1100ms);
+}
+.corner-cta.in{ opacity:1; transform:none; pointer-events:auto }
+.corner-cta__in{
+  display:inline-flex; align-items:center; gap:.625rem; line-height:1; white-space:nowrap;
+  border-radius:9999px; background:#0a0a0a; color:#fff;
+  padding:.375rem .375rem .375rem 1.125rem; font-size:.8125rem; font-weight:500;
+  box-shadow:0 .75rem 2rem -.5rem rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.16);
+}
+.corner-cta__q{ color:rgba(255,255,255,.5) }
+.corner-cta__b{ width:1.875rem; height:1.875rem; flex:none; display:grid; place-items:center;
+  border-radius:9999px; background:#fff; color:#0a0a0a; font-size:.8125rem }
+/* step aside while an overlay is open */
+body:has(#modal:not([hidden])) .corner-cta,
+body:has(#navmenu:not([hidden])) .corner-cta{ --cta-delay:0ms; opacity:0; pointer-events:none }
+@media (max-width:640px){
+  .corner-cta{ right:.875rem; bottom:.875rem }
+  .corner-cta__q{ display:none }
+}
 </style>
 </head>
 <body>
@@ -561,7 +590,7 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
   <!-- ===================== HERO ===================== -->
   <section id="home" class="hero">
     <div class="liquid" id="liquid">
-      <img id="heroBase" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/lumora-e8b711fc68/hero/after.jpg" alt="" fetchpriority="high" decoding="async">
+      <img id="heroBase" src="./assets/after.jpg" alt="" fetchpriority="high" decoding="async">
       <canvas id="liquidCanvas" aria-hidden="true"></canvas>
     </div>
     <div class="hero__vignette"></div>
@@ -579,9 +608,9 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
 
         <div class="hero__rating rv" data-gate="ready">
           <span class="hero__stars" aria-hidden="true">
-            <svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg>
+            <svg class="ic"><use href="#i-circle-dot"/></svg>
           </span>
-          <span class="t">200+ brands shipped</span>
+          <span class="t">Концепт-демо &middot; вымышленный бренд</span>
         </div>
 
         <div class="hero__ctas rv" data-gate="ready">
@@ -633,16 +662,8 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
         </div>
 
         <div class="partners rv" data-gate="ready">
-          <p class="partners__label">Trusted by</p>
-          <div class="partners__grid">
-            <span class="partners__item"><span class="hsp" data-hsp="y:0|-2;opacity:.7|1" data-cfg="320|20"><svg class="ic"><use href="#i-circle-dot"/></svg>Kaido</span></span>
-            <span class="partners__item"><span class="hsp" data-hsp="y:0|-2;opacity:.7|1" data-cfg="320|20"><svg class="ic"><use href="#i-circle-dot"/></svg>Northpeak</span></span>
-            <span class="partners__item"><span class="hsp" data-hsp="y:0|-2;opacity:.7|1" data-cfg="320|20"><svg class="ic"><use href="#i-circle-dot"/></svg>Vellum</span></span>
-            <span class="partners__item"><span class="hsp" data-hsp="y:0|-2;opacity:.7|1" data-cfg="320|20"><svg class="ic"><use href="#i-circle-dot"/></svg>Orbit</span></span>
-            <span class="partners__item"><span class="hsp" data-hsp="y:0|-2;opacity:.7|1" data-cfg="320|20"><svg class="ic"><use href="#i-circle-dot"/></svg>Brightline</span></span>
-            <span class="partners__item"><span class="hsp" data-hsp="y:0|-2;opacity:.7|1" data-cfg="320|20"><svg class="ic"><use href="#i-circle-dot"/></svg>Cobalt</span></span>
-            <span class="partners__item"><span class="hsp" data-hsp="y:0|-2;opacity:.7|1" data-cfg="320|20"><svg class="ic"><use href="#i-circle-dot"/></svg>Mesa</span></span>
-          </div>
+          <p class="partners__label">Дизайн-концепт</p>
+          <p class="partners__note">Бренд вымышленный. Вёрстка, анимации и интеракции — настоящие.</p>
         </div>
       </div>
     </div>
@@ -896,7 +917,7 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
     </div>
 
     <div class="footer__legal">
-      <span>&copy; 2025 Ferro Studio. All rights reserved.</span>
+      <span>&copy; 2026 &middot; концепт-демо &middot; <a class="footer__author" href="https://t.me/smirnovarturr" target="_blank" rel="noopener noreferrer">@smirnovarturr</a></span>
       <span class="footer__legallinks">
         <a class="alink" href="#privacy"><span class="hsp" data-hsp="x:0|3;opacity:.7|1" data-cfg="320|22">Privacy</span></a>
         <a class="alink" href="#terms"><span class="hsp" data-hsp="x:0|3;opacity:.7|1" data-cfg="320|22">Terms</span></a>
@@ -976,6 +997,18 @@ svg.ic{ width:1em; height:1em; display:inline-block; flex:none; vertical-align:m
     </div>
   </div>
 </div>
+
+<!-- ===================== CORNER CTA ===================== -->
+<a class="corner-cta" href="https://t.me/smirnovarturr" target="_blank" rel="noopener noreferrer"
+   data-gate="ready" aria-label="Хочешь такое? Написать @smirnovarturr в Telegram">
+  <span class="corner-cta__in hsp" data-hsp="scale:1|1.04" data-cfg="320|18" data-trigger=".corner-cta">
+    <span class="corner-cta__q" aria-hidden="true">Хочешь такое?</span>
+    <span class="corner-cta__h">@smirnovarturr</span>
+    <span class="corner-cta__b" aria-hidden="true">
+      <span class="hsp" style="display:grid;place-items:center" data-hsp="x:0|2;y:0|-2" data-cfg="320|18" data-trigger=".corner-cta"><svg class="ic"><use href="#i-arrow-ur"/></svg></span>
+    </span>
+  </span>
+</a>
 
 <script type="importmap">
 { "imports": { "lenis": "https://unpkg.com/lenis@1.3.23/dist/lenis.mjs" } }
@@ -1206,7 +1239,7 @@ function loaderExit(){
 /* ============================================================
    LIQUID REVEAL
    ============================================================ */
-const AFTER_SRC = 'https://api.getlayers.ai/storage/v1/object/public/public/assets/lumora-e8b711fc68/hero/before.jpg';
+const AFTER_SRC = './assets/before.jpg';
 (function initLiquid(){
   const wrap = document.getElementById('liquid');
   const canvas = document.getElementById('liquidCanvas');

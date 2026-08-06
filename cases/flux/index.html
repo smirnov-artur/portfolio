@@ -58,6 +58,20 @@
         .cursor-ring-outline.active { opacity: 1; }
         .cursor-ring-outline.expanded { border-color: rgba(255,255,255,0.15); }
 
+        /* 7. Author CTA — sits under the custom cursor layer on purpose */
+        .author-cta { position: fixed; bottom: 60px; right: 24px; z-index: 99990; display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1.15rem; border-radius: 9999px; text-decoration: none; background: rgba(0,0,0,0.72); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border: 1px solid rgba(22,224,255,0.28); box-shadow: 0 0 0 1px rgba(0,0,0,0.35), 0 8px 28px rgba(0,0,0,0.55), inset 0 1px 0 0 rgba(255,255,255,0.07); opacity: 0; transform: translateY(14px); filter: blur(10px); animation: cta-reveal 1.1s cubic-bezier(0.16,1,0.3,1) 1.5s forwards; transition: border-color 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s cubic-bezier(0.16,1,0.3,1), background 0.35s cubic-bezier(0.16,1,0.3,1); }
+        .author-cta__label { font-family: 'General Sans', -apple-system, sans-serif; font-size: 0.8rem; font-weight: 400; letter-spacing: 0.01em; color: rgba(255,255,255,0.62); white-space: nowrap; transition: color 0.35s ease; }
+        .author-cta__handle { font-family: 'General Sans', -apple-system, sans-serif; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.02em; color: #16E0FF; white-space: nowrap; text-shadow: 0 0 10px rgba(22,224,255,0.5); transition: text-shadow 0.35s ease; }
+        .author-cta__icon { flex: none; color: #16E0FF; opacity: 0.85; transform: translateX(0); transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.35s ease; filter: drop-shadow(0 0 5px rgba(22,224,255,0.55)); }
+        .author-cta:hover { border-color: rgba(22,224,255,0.65); background: rgba(0,0,0,0.82); box-shadow: 0 0 0 1px rgba(0,0,0,0.35), 0 8px 34px rgba(0,0,0,0.6), 0 0 24px rgba(22,224,255,0.22), inset 0 1px 0 0 rgba(255,255,255,0.1); }
+        .author-cta:hover .author-cta__label { color: rgba(255,255,255,0.9); }
+        .author-cta:hover .author-cta__handle { text-shadow: 0 0 16px rgba(22,224,255,0.85); }
+        .author-cta:hover .author-cta__icon { transform: translateX(3px); opacity: 1; }
+        .author-cta:focus-visible { outline: 2px solid #16E0FF; outline-offset: 3px; }
+        @keyframes cta-reveal { 0% { opacity: 0; transform: translateY(14px); filter: blur(10px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
+        @media (max-width: 640px) { .author-cta { bottom: 20px; right: 14px; padding: 0.6rem 0.95rem; gap: 0.45rem; } .author-cta__label, .author-cta__handle { font-size: 0.72rem; } }
+        @media (prefers-reduced-motion: reduce) { .author-cta { animation-duration: 0.01ms; animation-delay: 0ms; } }
+
         /* Entrance reveals */
         .hero-title .word-wrapper { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.15em; margin-bottom: -0.15em; }
         .hero-title .word-inner { display: inline-block; opacity: 0; transform: translateY(105%); filter: blur(20px); animation: word-reveal-mask 1.3s cubic-bezier(0.05,0.9,0.1,1) forwards; }
@@ -70,7 +84,7 @@
 </head>
 <body>
 
-    <img src="https://api.getlayers.ai/storage/v1/object/public/public/assets/loopstack-f8c64439bf/black_gradient.svg" alt="Top Gradient" id="top-gradient">
+    <img src="./assets/black_gradient.svg" alt="Top Gradient" id="top-gradient">
 
     <main class="hero-content">
         <h1 class="hero-title">Apply Now to be part <br> of the closed beta</h1>
@@ -93,7 +107,13 @@
 
     <div class="footer-logo-wrap"><h2 class="footer-logo-text">Fluxwave</h2></div>
 
-    <div class="video-container"><video autoplay muted playsinline loop id="bg-video"><source src="https://api.getlayers.ai/storage/v1/object/public/public/assets/loopstack-f8c64439bf/flower.mp4" type="video/mp4">Ваш браузер не поддерживает видео.</video></div>
+    <div class="video-container"><video autoplay muted playsinline loop id="bg-video"><source src="./assets/flower.mp4" type="video/mp4">Ваш браузер не поддерживает видео.</video></div>
+
+    <a class="author-cta" href="https://t.me/smirnovarturr" target="_blank" rel="noopener noreferrer" aria-label="Хочешь такое? Написать @smirnovarturr в Telegram">
+        <span class="author-cta__label">Хочешь такое?</span>
+        <span class="author-cta__handle">@smirnovarturr</span>
+        <svg class="author-cta__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"></path><path d="M12 5l7 7-7 7"></path></svg>
+    </a>
 
     <div id="cursor-ring" class="cursor-ring-outline"></div>
     <div id="glass-card" class="glass-cursor-card"><span class="cursor-card-text"><span class="text-white">Say</span> Hello!</span></div>
@@ -145,11 +165,10 @@
                 });
                 document.addEventListener('mouseleave', () => { targetScale = 0; });
                 document.addEventListener('mouseenter', () => { if (!isHoveringBtn) { targetScale = 1; } });
-                const heroBtn = document.querySelector('.hero-btn');
-                if (heroBtn) {
-                    heroBtn.addEventListener('mouseenter', () => { isHoveringBtn = true; targetScale = 0; cursorRing.classList.add('expanded'); });
-                    heroBtn.addEventListener('mouseleave', () => { isHoveringBtn = false; targetScale = 1; cursorRing.classList.remove('expanded'); });
-                }
+                document.querySelectorAll('.hero-btn, .author-cta').forEach(target => {
+                    target.addEventListener('mouseenter', () => { isHoveringBtn = true; targetScale = 0; cursorRing.classList.add('expanded'); });
+                    target.addEventListener('mouseleave', () => { isHoveringBtn = false; targetScale = 1; cursorRing.classList.remove('expanded'); });
+                });
                 const updatePhysics = () => {
                     cardX += (mouseX - cardX) * 0.08; cardY += (mouseY - cardY) * 0.08;
                     ringX = mouseX; ringY = mouseY;

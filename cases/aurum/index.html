@@ -227,6 +227,42 @@ body {
     background: rgba(255, 255, 255, 0.35);
     box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
 }
+
+/* ---------------- corner cta ---------------- */
+.corner-cta {
+    position: fixed;
+    bottom: 14px; right: 14px;
+    z-index: 99999;
+    pointer-events: auto;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 14px;
+    background: rgba(18, 12, 8, 0.55);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.62);
+    text-decoration: none;
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px; font-weight: 400; letter-spacing: 0.6px;
+    white-space: nowrap;
+    transition: color 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+}
+.corner-cta:hover {
+    color: #ffffff;
+    background: rgba(28, 18, 10, 0.72);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+.corner-cta .cta-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #ffbd5a;
+    box-shadow: 0 0 6px rgba(255, 189, 90, 0.7);
+    flex: none;
+}
+.corner-cta .cta-handle { color: rgba(255, 255, 255, 0.9); font-weight: 600; }
+@media (max-width: 600px) {
+    .corner-cta { font-size: 10px; padding: 6px 11px; bottom: 10px; right: 10px; }
+}
 </style>
 </head>
 <body>
@@ -278,7 +314,7 @@ body {
 </div>
 
 <div class="slide-image-mask" id="slide-2-img">
-    <img src="https://api.getlayers.ai/storage/v1/object/public/public/assets/laocoon-59f84455c6/1.png" alt="Editorial Concept">
+    <img src="./assets/1.png" alt="Editorial Concept">
 </div>
 
 <div class="grid-horizontal-line"></div>
@@ -301,6 +337,10 @@ body {
 
 <canvas id="webgl"></canvas>
 
+<a class="corner-cta" href="https://t.me/smirnovarturr" target="_blank" rel="noopener noreferrer">
+    <span class="cta-dot"></span>Хочешь такое? <span class="cta-handle">@smirnovarturr</span>
+</a>
+
 <script type="importmap">
 {
   "imports": {
@@ -314,7 +354,7 @@ body {
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-const ASSET_BASE_URL = "https://api.getlayers.ai/storage/v1/object/public/public/assets/laocoon-59f84455c6";
+const ASSET_BASE_URL = "./assets";
 
 /* ------------------------------------------------------------------ *
  *  state
