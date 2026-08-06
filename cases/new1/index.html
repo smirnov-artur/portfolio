@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<title>SIGNAL — parametric WebGL token hero</title>
+<style>
+:root{
+  --neon:#16E0FF;
+  --ink:#e9edf2;
+  --dim:rgba(233,237,242,.46);
+  --dimmer:rgba(233,237,242,.22);
+  --line:rgba(255,255,255,.10);
+  --glass:rgba(16,19,26,.55);
+  --sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+  width:100%;height:100%;
+  background:#000;
+  color:var(--ink);
+  font-family:var(--sans);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+}
+body{user-select:none}
+input{user-select:text}
+
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:1;outline:none}
+
+/* ---------- fallback poster (no WebGL2) ---------- */
+#fallback{
+  position:fixed;inset:0;z-index:2;display:none;
+  place-items:center;background:radial-gradient(120% 100% at 50% 40%,#0b1016 0%,#000 70%);
+}
+#fallback.on{display:grid}
+.fb-coin{
+  width:min(52vmin,320px);aspect-ratio:1;border-radius:50%;
+  background:conic-gradient(from 0deg,#16E0FF,#7a5cff,#ff5ca8,#ffd15c,#16E0FF);
+  filter:blur(.4px) saturate(1.1);
+  box-shadow:0 0 90px rgba(22,224,255,.28),inset 0 0 60px rgba(0,0,0,.65);
+  animation:fbspin 18s linear infinite;
+}
+@keyframes fbspin{to{transform:rotate(360deg)}}
+
+/* scrim: keeps the copy legible over the coin on narrow screens */
+.scrim{
+  position:fixed;left:0;right:0;bottom:0;height:64%;z-index:5;pointer-events:none;display:none;
+  background:linear-gradient(to top,#000 5%,rgba(0,0,0,.88) 32%,rgba(0,0,0,.46) 64%,transparent 100%);
+}
+
+/* ---------- UI layer ---------- */
+.ui{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
+.ui > *{pointer-events:none}
+.ui a,.ui button,.ui input,.ui .hit{pointer-events:auto}
+
+/* top bar */
+.top{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:22px clamp(16px,3.4vw,44px) 0;
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.dot{
+  width:7px;height:7px;border-radius:50%;background:var(--neon);
+  box-shadow:0 0 10px var(--neon),0 0 22px rgba(22,224,255,.55);
+  animation:blink 2.6s ease-in-out infinite;flex:none;
+}
+@keyframes blink{0%,72%,100%{opacity:1}80%,92%{opacity:.18}}
+.brand-name{font-size:12px;font-weight:700;letter-spacing:.42em;text-transform:uppercase}
+.brand-sub{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);
+  text-transform:uppercase;padding-left:10px;margin-left:2px;border-left:1px solid var(--line);
+  white-space:nowrap;
+}
+
+/* ticker input */
+.tickwrap{display:flex;align-items:center;gap:8px}
+.tick{
+  display:flex;align-items:center;gap:2px;
+  background:var(--glass);border:1px solid var(--line);border-radius:999px;
+  padding:9px 8px 9px 16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  transition:border-color .35s,box-shadow .35s;
+}
+.tick:focus-within{border-color:rgba(22,224,255,.55);box-shadow:0 0 0 1px rgba(22,224,255,.16),0 0 30px rgba(22,224,255,.12)}
+.tick-lab{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dimmer);text-transform:uppercase;margin-right:8px;white-space:nowrap}
+.tick-sig{font-family:var(--mono);font-size:15px;color:var(--neon);font-weight:600}
+#ticker{
+  width:104px;background:none;border:0;outline:none;color:var(--ink);
+  font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.10em;text-transform:uppercase;
+}
+#ticker::placeholder{color:rgba(233,237,242,.20)}
+.iconbtn{
+  width:32px;height:32px;flex:none;display:grid;place-items:center;
+  background:var(--glass);border:1px solid var(--line);border-radius:50%;
+  color:var(--dim);cursor:pointer;transition:.3s;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+.iconbtn:hover,.iconbtn:focus-visible{color:var(--neon);border-color:rgba(22,224,255,.45);transform:rotate(120deg)}
+.iconbtn svg{width:14px;height:14px;display:block}
+
+/* bottom block */
+.bottom{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:28px;
+  padding:0 clamp(16px,3.4vw,44px) clamp(74px,9vh,96px);
+}
+.lede{max-width:min(640px,52vw)}
+.eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--dimmer);margin-bottom:16px;
+}
+h1{
+  font-size:clamp(26px,3.5vw,52px);line-height:1.02;font-weight:700;letter-spacing:-.028em;
+  text-wrap:balance;
+}
+h1 em{font-style:normal;color:var(--neon);text-shadow:0 0 34px rgba(22,224,255,.42)}
+.sub{margin-top:14px;font-size:clamp(13px,1.1vw,15px);color:var(--dim);letter-spacing:.01em}
+.cta{
+  display:inline-flex;align-items:center;gap:10px;margin-top:26px;
+  padding:13px 22px;border-radius:999px;text-decoration:none;
+  color:#02121a;background:var(--neon);
+  font-size:13px;font-weight:700;letter-spacing:.02em;
+  box-shadow:0 0 0 0 rgba(22,224,255,.42);transition:.35s cubic-bezier(.2,.7,.3,1);
+}
+.cta:hover,.cta:focus-visible{transform:translateY(-2px);box-shadow:0 10px 34px -8px rgba(22,224,255,.65)}
+.cta span:last-child{transition:transform .35s}
+.cta:hover span:last-child{transform:translateX(4px)}
+
+/* readout panel */
+.panel{
+  width:236px;flex:none;
+  background:var(--glass);border:1px solid var(--line);border-radius:14px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  padding:14px 15px 12px;
+}
+.panel-h{
+  display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dimmer);padding-bottom:10px;margin-bottom:11px;border-bottom:1px solid var(--line);
+}
+.sw{display:flex;gap:6px;margin-bottom:12px}
+.sw i{flex:1;height:26px;border-radius:5px;display:block;transition:background .5s}
+.rows{display:grid;gap:7px}
+.row{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10.5px}
+.row b{color:var(--dimmer);font-weight:400;letter-spacing:.12em;text-transform:uppercase}
+.row span{color:var(--ink);letter-spacing:.02em}
+.copy{
+  width:100%;margin-top:12px;padding:8px;border-radius:8px;cursor:pointer;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);color:var(--dim);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;transition:.3s;
+}
+.copy:hover,.copy:focus-visible{color:var(--neon);border-color:rgba(22,224,255,.4);background:rgba(22,224,255,.06)}
+.copy.ok{color:var(--neon);border-color:rgba(22,224,255,.55)}
+
+/* glass cursor card (desktop only) */
+.ccard{
+  position:fixed;top:0;left:0;z-index:60;pointer-events:none;
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;border-radius:999px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(10px) saturate(1.4);-webkit-backdrop-filter:blur(10px) saturate(1.4);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);
+  white-space:nowrap;opacity:0;
+  transform:translate(-50%,-50%) scale(.4);
+  transition:opacity .3s,padding .35s cubic-bezier(.2,.7,.3,1),background .3s,border-color .3s;
+  will-change:transform;
+}
+.ccard.on{opacity:1}
+.ccard.mini{padding:0;width:9px;height:9px;background:rgba(255,255,255,.85);border-color:transparent}
+.ccard.mini .ccard-l{display:none}
+.ccard-d{width:5px;height:5px;border-radius:50%;background:var(--neon);flex:none;box-shadow:0 0 8px var(--neon)}
+.ccard.mini .ccard-d{display:none}
+body.cc,body.cc *{cursor:none !important}
+
+/* corner plate */
+.plate{
+  position:fixed;right:14px;bottom:14px;z-index:99999;
+  display:flex;align-items:center;gap:10px;max-width:min(340px,86vw);
+  padding:10px 14px;border-radius:12px;text-decoration:none;
+  background:rgba(10,12,16,.72);border:1px solid var(--line);
+  backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
+  transition:.35s cubic-bezier(.2,.7,.3,1);
+}
+.plate:hover,.plate:focus-visible{border-color:rgba(22,224,255,.5);transform:translateY(-2px);background:rgba(10,12,16,.86)}
+.plate-d{width:6px;height:6px;border-radius:50%;background:var(--neon);flex:none;box-shadow:0 0 9px var(--neon);animation:blink 2.6s ease-in-out infinite}
+.plate-t{font-size:10.5px;line-height:1.45;color:var(--dim);letter-spacing:.01em}
+.plate-t b{display:block;color:var(--ink);font-weight:600;letter-spacing:.02em}
+
+/* mobile */
+@media (max-width:860px){
+  .scrim{display:block}
+  .top{flex-direction:column;align-items:stretch;gap:14px;padding-top:calc(16px + env(safe-area-inset-top))}
+  .brand{justify-content:center}
+  .brand-sub{display:none}
+  .tickwrap{justify-content:center}
+  #ticker{width:88px;font-size:14px}
+  .bottom{flex-direction:column;align-items:stretch;gap:18px;padding-bottom:calc(86px + env(safe-area-inset-bottom))}
+  .lede{max-width:none}
+  .eyebrow{display:none}
+  h1{font-size:clamp(24px,7.4vw,34px)}
+  .cta{margin-top:18px;width:100%;justify-content:center}
+  .panel{width:100%;padding:11px 13px}
+  .panel-h{font-size:8.5px;padding-bottom:8px;margin-bottom:9px}
+  .sw{margin-bottom:10px}
+  .sw i{height:20px}
+  .rows{grid-template-columns:1fr 1fr;gap:5px 14px}
+  .row{font-size:9.5px;gap:6px;min-width:0}
+  .row b,.row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .copy{margin-top:10px;padding:9px}
+  .plate{left:14px;right:14px;max-width:none;bottom:calc(12px + env(safe-area-inset-bottom))}
+  .plate-t{font-size:10px}
+}
+@media (max-height:560px) and (orientation:landscape){
+  .bottom{padding-bottom:64px}
+  h1{font-size:clamp(20px,3.2vw,28px)}
+  .panel{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+</style>
+</head>
+<body>
+
+<canvas id="gl" aria-label="Interactive WebGL token hero"></canvas>
+
+<div id="fallback"><div class="fb-coin"></div></div>
+<div class="scrim"></div>
+
+<div class="ui">
+  <header class="top">
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="brand-name">Signal</span>
+      <span class="brand-sub">live shader · <span id="fps">–</span> fps</span>
+    </div>
+
+    <div class="tickwrap">
+      <label class="tick hit" data-cursor="type a ticker">
+        <span class="tick-lab">enter ticker</span>
+        <span class="tick-sig">$</span>
+        <input id="ticker" type="text" value="SIGNAL" maxlength="7" spellcheck="false"
+               autocomplete="off" autocapitalize="characters" placeholder="____"
+               aria-label="Token ticker">
+      </label>
+      <button class="iconbtn hit" id="rand" data-cursor="randomize" aria-label="Randomize ticker and palette" title="Randomize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="bottom">
+    <div class="lede">
+      <div class="eyebrow">Parametric WebGL hero · one file</div>
+      <h1>The 3D landing other devs quote <em>3 weeks</em> for. Shipped in 48h.</h1>
+      <p class="sub">Real WebGL. Not a template. Every ticker you type re-rolls the shader — geometry, palette and motion are derived from a hash, live.</p>
+      <a class="cta hit" href="https://t.me/smirnovarturr" target="_blank" rel="noopener" data-cursor="opens telegram">
+        <span>Get yours</span><span>&rarr;</span>
+      </a>
+    </div>
+
+    <aside class="panel hit" data-cursor="live uniforms">
+      <div class="panel-h"><span>shader uniforms</span><span id="uState">live</span></div>
+      <div class="sw"><i id="swA"></i><i id="swB"></i><i style="background:#16E0FF"></i></div>
+      <div class="rows">
+        <div class="row"><b>hash</b><span id="rHash">—</span></div>
+        <div class="row"><b>hue a</b><span id="rA">—</span></div>
+        <div class="row"><b>hue b</b><span id="rB">—</span></div>
+        <div class="row"><b>spin</b><span id="rS">—</span></div>
+        <div class="row"><b>ampl</b><span id="rAmp">—</span></div>
+        <div class="row"><b>knurl</b><span id="rK">—</span></div>
+      </div>
+      <button class="copy" id="copy" data-cursor="copy to clipboard">copy palette</button>
+    </aside>
+  </section>
+</div>
+
+<div class="ccard" id="ccard"><span class="ccard-d"></span><span class="ccard-l" id="ccardL">drag to tilt</span></div>
+
+<a class="plate" href="https://t.me/smirnovarturr" target="_blank" rel="noopener" data-cursor="telegram">
+  <span class="plate-d"></span>
+  <span class="plate-t">Concept / design demo — not a client project.<b>Want this? @smirnovarturr</b></span>
+</a>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   0. environment
+   ============================================================ */
+const TOUCH = matchMedia('(hover:none)').matches || matchMedia('(pointer:coarse)').matches;
+const RM    = matchMedia('(prefers-reduced-motion:reduce)').matches;
+const canvas = document.getElementById('gl');
+
+const gl = canvas.getContext('webgl2', {
+  alpha:false, antialias:false, depth:false, stencil:false,
+  premultipliedAlpha:false, preserveDrawingBuffer:false,
+  powerPreference:'high-performance'
+});
+
+if(!gl){ document.getElementById('fallback').classList.add('on'); return; }
+
+/* ============================================================
+   1. parametrization : ticker string -> uniforms
+   ============================================================ */
+function fnv1a(s){
+  let h = 0x811c9dc5>>>0;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,0x01000193)>>>0; }
+  return h>>>0;
+}
+function mulberry32(a){
+  return function(){
+    a = a+0x6D2B79F5|0;
+    let t = Math.imul(a^a>>>15, 1|a);
+    t = t+Math.imul(t^t>>>7, 61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function hsl2rgb(h,s,l){
+  const f = n=>{
+    const k=(n+h*12)%12, a=s*Math.min(l,1-l);
+    return l-a*Math.max(-1,Math.min(k-3,Math.min(9-k,1)));
+  };
+  return [f(0),f(8),f(4)];
+}
+const hex = c=>'#'+c.map(v=>('0'+Math.round(Math.max(0,Math.min(1,v))*255).toString(16)).slice(-2)).join('').toUpperCase();
+const toLin = c=>c.map(v=>Math.pow(v,2.2));
+
+const P = {};   // live shader parameters
+
+function derive(ticker){
+  const h = fnv1a(ticker.length? ticker : 'SIGNAL');
+  const r = mulberry32(h);
+  r();r();                              // warm up
+  const hA = r();
+  const hB = (hA + 0.16 + r()*0.48) % 1;
+  P.ticker = ticker;
+  P.hash   = h;
+  P.hashHex= '0x'+h.toString(16).padStart(8,'0').toUpperCase();
+  P.srgbA  = hsl2rgb(hA, 0.62+r()*0.34, 0.52+r()*0.16);
+  P.srgbB  = hsl2rgb(hB, 0.58+r()*0.38, 0.46+r()*0.20);
+  P.A      = toLin(P.srgbA);
+  P.B      = toLin(P.srgbB);
+  P.spin   = 0.16 + r()*0.62;           // idle rotation rate
+  P.amp    = 0.014 + r()*0.052;         // displacement amplitude
+  P.nfreq  = 1.9  + r()*3.4;            // noise frequency
+  P.ridges = Math.round(56 + r()*104);  // rim knurling count
+  P.iri    = 0.10 + r()*0.30;           // thin-film scale
+  P.iriPh  = r()*6.2832;
+  return P;
+}
+
+/* ---- readable readout ---- */
+const $ = id=>document.getElementById(id);
+function paintReadout(){
+  $('swA').style.background = hex(P.srgbA);
+  $('swB').style.background = hex(P.srgbB);
+  $('rHash').textContent = P.hashHex;
+  $('rA').textContent    = hex(P.srgbA);
+  $('rB').textContent    = hex(P.srgbB);
+  $('rS').textContent    = P.spin.toFixed(3);
+  $('rAmp').textContent  = P.amp.toFixed(4);
+  $('rK').textContent    = P.ridges;
+}
+
+/* ============================================================
+   2. coin face texture (procedural, canvas2d -> GL texture)
+   ============================================================ */
+const SANS = 'ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+const MONO = 'ui-monospace,"SF Mono","Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace';
+const TS = 768;
+const tc = document.createElement('canvas'); tc.width = tc.height = TS;
+const tx = tc.getContext('2d');
+const bc = document.createElement('canvas'); bc.width = bc.height = TS;
+const bx = bc.getContext('2d');
+
+function drawFace(ticker, hashHex){
+  const c = TS/2;
+  tx.fillStyle = '#000'; tx.fillRect(0,0,TS,TS);
+  tx.textAlign = 'center'; tx.textBaseline = 'middle';
+  tx.fillStyle = '#fff'; tx.strokeStyle = '#fff'; tx.lineCap = 'butt';
+
+  // outer + inner rings
+  tx.lineWidth = TS*0.013;
+  tx.beginPath(); tx.arc(c,c,TS*0.452,0,6.2832); tx.stroke();
+  tx.lineWidth = TS*0.005;
+  tx.beginPath(); tx.arc(c,c,TS*0.404,0,6.2832); tx.stroke();
+
+  // tick marks between the rings
+  tx.lineWidth = TS*0.006;
+  for(let i=0;i<80;i++){
+    const a = i/80*6.2832, long = (i%10===0);
+    const r0 = TS*(long?0.412:0.421), r1 = TS*0.444;
+    tx.beginPath();
+    tx.moveTo(c+Math.cos(a)*r0, c+Math.sin(a)*r0);
+    tx.lineTo(c+Math.cos(a)*r1, c+Math.sin(a)*r1);
+    tx.stroke();
+  }
+
+  // ticker, auto-fitted
+  const label = '$'+(ticker||'____');
+  if('letterSpacing' in tx) tx.letterSpacing = (TS*0.012)+'px';
+  let size = TS*0.30;
+  for(let i=0;i<24;i++){
+    tx.font = '800 '+size+'px '+SANS;
+    if(tx.measureText(label).width <= TS*0.60) break;
+    size *= 0.93;
+  }
+  tx.fillText(label, c, c - TS*0.012);
+  if('letterSpacing' in tx) tx.letterSpacing = '0px';
+
+  // minted hash + kicker
+  tx.font = '600 '+(TS*0.030)+'px '+MONO;
+  tx.globalAlpha = 0.85;
+  tx.fillText(hashHex, c, c + TS*0.175);
+  tx.font = '700 '+(TS*0.026)+'px '+SANS;
+  if('letterSpacing' in tx) tx.letterSpacing = (TS*0.020)+'px';
+  tx.fillText('PARAMETRIC', c, c - TS*0.205);
+  if('letterSpacing' in tx) tx.letterSpacing = '0px';
+  tx.globalAlpha = 1;
+
+  // soften: sharp SDF steps ruin the raymarch, so blur the height map
+  bx.clearRect(0,0,TS,TS);
+  bx.filter = 'blur('+(TS*0.0035)+'px)';
+  bx.drawImage(tc,0,0);
+  bx.filter = 'none';
+}
+
+/* ============================================================
+   3. minimal GL helpers
+   ============================================================ */
+function sh(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    console.error('shader:', gl.getShaderInfoLog(s), src.split('\n').map((l,i)=>(i+1)+' '+l).join('\n'));
+  return s;
+}
+function prog(vs, fs){
+  const p = gl.createProgram();
+  gl.attachShader(p, sh(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if(!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error('link:', gl.getProgramInfoLog(p));
+  p._u = {};
+  const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for(let i=0;i<n;i++){ const nm = gl.getActiveUniform(p,i).name.replace('[0]',''); p._u[nm] = gl.getUniformLocation(p,nm); }
+  return p;
+}
+function fbo(w,h){
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const f = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return {f:f, t:t, w:w, h:h};
+}
+function bind(target){
+  gl.bindFramebuffer(gl.FRAMEBUFFER, target? target.f : null);
+  gl.viewport(0,0, target? target.w : DW, target? target.h : DH);
+}
+
+/* attribute-less fullscreen triangle (gl_VertexID) */
+const VS_QUAD = `#version 300 es
+out vec2 vUv;
+void main(){
+  vec2 p = vec2(float((gl_VertexID<<1)&2), float(gl_VertexID&2));
+  vUv = p;
+  gl_Position = vec4(p*2.0-1.0, 0.0, 1.0);
+}`;
+
+/* ============================================================
+   4. shaders
+   ============================================================ */
+
+/* ---------- 4a. raymarched coin ---------- */
+const FS_COIN = `#version 300 es
+precision highp float;
+out vec4 O;
+
+uniform vec2  uRes;
+uniform float uTime;
+uniform float uCamZ;
+uniform float uFov;
+uniform vec2  uShift;        // screen offset of the coin (portrait framing)
+uniform mat3  uRot;          // world -> coin local
+uniform vec3  uA;            // accent A (linear)
+uniform vec3  uB;            // accent B (linear)
+uniform float uAmp;
+uniform float uNFreq;
+uniform float uRidges;
+uniform float uIri;
+uniform float uIriPh;
+uniform float uPulse;
+uniform float uSweep;
+uniform float uSweepX;
+uniform float uTextMix;
+uniform int   uSteps;
+uniform sampler2D uText;
+
+const float R  = 1.0;
+const float TH = 0.155;
+const vec3  NEON = vec3(0.0086, 0.7305, 1.0);   // #16E0FF, linearised
+
+/* --- cheap value noise --- */
+float h31(vec3 p){
+  p = fract(p*0.3183099 + vec3(0.11,0.27,0.53));
+  p *= 17.0;
+  return fract(p.x*p.y*p.z*(p.x+p.y+p.z));
+}
+float vn(vec3 x){
+  vec3 i = floor(x), f = fract(x);
+  f = f*f*(3.0-2.0*f);
+  return mix(mix(mix(h31(i+vec3(0,0,0)), h31(i+vec3(1,0,0)), f.x),
+                 mix(h31(i+vec3(0,1,0)), h31(i+vec3(1,1,0)), f.x), f.y),
+             mix(mix(h31(i+vec3(0,0,1)), h31(i+vec3(1,0,1)), f.x),
+                 mix(h31(i+vec3(0,1,1)), h31(i+vec3(1,1,1)), f.x), f.y), f.z);
+}
+float fbm(vec3 p){ return vn(p)*0.66 + vn(p*2.17+13.1)*0.34; }
+
+/* --- signed distance of the coin, in local space --- */
+float mapL(vec3 p){
+  float r = length(p.xy);
+  vec2 q = vec2(r - R + 0.05, abs(p.z) - TH + 0.05);
+  float d = min(max(q.x,q.y),0.0) + length(max(q,0.0)) - 0.05;
+
+  // liquid-metal displacement, heartbeat-modulated
+  float n = fbm(p*uNFreq + vec3(0.0,0.0,uTime*0.22)) - 0.5;
+  d -= n * uAmp * (0.55 + 0.8*uPulse);
+
+  // knurled rim
+  float kn = sin(atan(p.y,p.x)*uRidges)*0.5+0.5;
+  d -= kn * 0.010 * smoothstep(R*0.84, R*0.99, r);
+
+  float face = smoothstep(TH*0.40, TH*0.78, abs(p.z));
+  if(face > 0.002){
+    if(p.z > 0.0){
+      // front: extruded ticker text sampled from the height map
+      vec2 uv = p.xy/(2.0*R) + 0.5;
+      float t = textureLod(uText, uv, 0.0).r;
+      d -= t * 0.052 * uTextMix * face * (1.0 - smoothstep(R*0.90, R*1.0, r));
+    }else{
+      // back: minted seal
+      float rings  = sin(r*52.0)*0.5+0.5;
+      float seal   = rings * (1.0-smoothstep(R*0.80,R*0.92,r)) * smoothstep(R*0.10,R*0.22,r);
+      float radial = (sin(atan(p.y,p.x)*40.0)*0.5+0.5)
+                   * smoothstep(R*0.70,R*0.84,r) * (1.0-smoothstep(R*0.88,R*0.96,r));
+      d -= (seal*0.009 + radial*0.013) * face;
+    }
+  }
+  return d;
+}
+float map(vec3 pw){ return mapL(uRot*pw); }
+
+vec3 nrm(vec3 p){
+  vec2 e = vec2(1.0,-1.0)*0.0018;
+  return normalize(e.xyy*map(p+e.xyy) + e.yyx*map(p+e.yyx)
+                 + e.yxy*map(p+e.yxy) + e.xxx*map(p+e.xxx));
+}
+float ambOcc(vec3 p, vec3 n){
+  float o = 0.0, s = 1.0;
+  for(int i=1;i<=4;i++){
+    float h = 0.016*float(i)*float(i);
+    o += (h - map(p+n*h))*s;
+    s *= 0.72;
+  }
+  return clamp(1.0 - 2.4*o, 0.0, 1.0);
+}
+
+/* --- analytic studio environment (no cubemap, no fetches) --- */
+vec3 env(vec3 rd){
+  vec3 c = mix(vec3(0.014,0.017,0.026), vec3(0.048,0.055,0.076), rd.y*0.5+0.5);
+  // key + kicker
+  c += vec3(1.00,0.97,0.92) * pow(max(dot(rd, normalize(vec3(-0.45,0.72,0.52))),0.0), 18.0) * 1.35;
+  c += vec3(0.88,0.94,1.00) * pow(max(dot(rd, normalize(vec3( 0.72,0.38,0.55))),0.0), 40.0) * 1.10;
+  // broad frontal dome: keeps the coin face readable without blowing out
+  c += vec3(0.50,0.58,0.76) * pow(max(dot(rd, normalize(vec3(-0.22,0.42,0.88))),0.0), 3.0) * 0.34;
+  // hashed accents
+  c += uA * pow(max(dot(rd, normalize(vec3( 0.86,-0.44,0.25))),0.0),  5.0) * 0.85;
+  c += uB * pow(max(dot(rd, normalize(vec3(-0.58,-0.22,-0.78))),0.0), 4.0) * 0.72;
+  c += vec3(0.62,0.74,1.00) * pow(max(1.0-abs(rd.y*2.6-0.5),0.0), 10.0) * 0.20;
+  return c;
+}
+
+void main(){
+  vec2 uv = (gl_FragCoord.xy*2.0 - uRes)/min(uRes.x,uRes.y) - uShift;
+  vec3 ro = vec3(0.0,0.0,uCamZ);
+  vec3 rd = normalize(vec3(uv*uFov, -1.0));
+
+  vec3 accent = mix(uA,uB,0.5);
+
+  // volumetric-ish halo: exact distance from the ray to the coin centre
+  float dca  = length(cross(ro, rd));
+  float halo = exp(-max(dca-0.95,0.0)*8.5);
+  vec3  glow = accent*halo*0.10 + NEON*halo*halo*0.075;
+
+  // bounding sphere -> most pixels never enter the march
+  float bR = 1.30;
+  float b  = dot(ro,rd), cc = dot(ro,ro) - bR*bR;
+  float hh = b*b - cc;
+  if(hh < 0.0){ O = vec4(glow, 0.0); return; }
+  hh = sqrt(hh);
+  float t = max(-b-hh, 0.0), tMax = -b+hh;
+
+  float d = 1e9, dmin = 1e9;
+  bool hit = false;
+  for(int i=0;i<220;i++){
+    if(i >= uSteps) break;
+    d = map(ro + rd*t);
+    dmin = min(dmin, d);
+    if(d < 0.0012){ hit = true; break; }
+    t += d*0.62;
+    if(t > tMax) break;
+  }
+
+  if(!hit){
+    glow += accent * exp(-dmin*46.0) * 0.75;      // neon silhouette, doubles as edge AA
+    O = vec4(glow, 0.0);
+    return;
+  }
+
+  vec3 p  = ro + rd*t;
+  vec3 N  = nrm(p);
+  vec3 V  = -rd;
+  vec3 pl = uRot*p;
+
+  float ndv  = clamp(dot(N,V), 0.0, 1.0);
+  float fres = pow(1.0-ndv, 4.5);
+
+  // thin-film / oil-slick interference
+  float th   = 2.0 + 5.5*fbm(pl*3.2 + uTime*0.12) + 7.0*fres;
+  vec3  iriC = 0.5 + 0.5*cos(6.2831*(th*uIri) + uIriPh + vec3(0.0,2.094,4.188));
+
+  vec3 F0 = mix(uA, uB, clamp(fbm(pl*2.1 + uTime*0.08)*1.7 - 0.35, 0.0, 1.0));
+  F0 = mix(F0, iriC*0.9, 0.45);
+  vec3 F  = F0 + (1.0-F0)*fres;
+
+  // chromatic rim: split the reflection vector per channel
+  vec3  T1 = normalize(cross(N, vec3(0.0,1.0,0.31)));
+  float ca = 0.010 + 0.055*fres;
+  vec3  refl;
+  refl.r = env(reflect(-V, normalize(N + T1*ca))).r;
+  refl.g = env(reflect(-V, N)).g;
+  refl.b = env(reflect(-V, normalize(N - T1*ca))).b;
+
+  vec3 col = refl * F;
+  col *= mix(0.30, 1.0, ambOcc(p, N));
+
+  // neon rim light, used sparingly
+  col += NEON * pow(1.0-abs(dot(N,V)), 3.2) * 0.42;
+
+  // specular sweep — a narrow travelling highlight, not a flash
+  float sw = exp(-pow((pl.x - uSweepX)*6.5, 2.0)) * uSweep * smoothstep(0.0,0.45,ndv);
+  col += vec3(1.0,0.99,0.96) * sw * 0.30;
+
+  col += glow*0.35;
+  O = vec4(col, 1.0);   // premultiplied
+}`;
+
+/* ---------- 4b. converging particle field ---------- */
+const VS_PART = `#version 300 es
+in vec4 aSeed;
+uniform float uTime;
+uniform float uCamZ;
+uniform float uFov;
+uniform vec2  uFix;
+uniform vec2  uShift;
+uniform float uPx;
+uniform vec3  uA;
+uniform vec3  uB;
+out vec3  vCol;
+out float vA;
+
+void main(){
+  float sp   = 0.020 + aSeed.w*0.055;
+  float life = fract(aSeed.z + uTime*sp);
+  float th   = aSeed.x*6.2831;
+  float ph   = acos(clamp(aSeed.y*2.0-1.0, -1.0, 1.0));
+  vec3  dir  = vec3(sin(ph)*cos(th), cos(ph)*0.78, sin(ph)*sin(th));
+
+  float sw = life*1.35;                       // swirl as it falls in
+  float cs = cos(sw), sn = sin(sw);
+  dir.xz = mat2(cs,-sn,sn,cs)*dir.xz;
+
+  vec3 wp = dir * mix(5.2, 1.06, pow(life,0.82));
+  vec3 vp = wp - vec3(0.0,0.0,uCamZ);
+  float w = -vp.z;
+  if(w < 0.12){ gl_Position = vec4(2.0,2.0,2.0,1.0); gl_PointSize = 0.0; vA = 0.0; return; }
+
+  gl_Position  = vec4((vp.xy/uFov + uShift*w)*uFix, 0.0, w);
+  gl_PointSize = max(1.0, uPx*(2.3 + 1.6*(1.0-life))/w);
+
+  vCol = mix(uA, uB, aSeed.z);
+  vA   = smoothstep(0.0,0.12,life) * (1.0-smoothstep(0.66,0.99,life)) * (0.34 + aSeed.w*0.66);
+}`;
+
+const FS_PART = `#version 300 es
+precision mediump float;
+in vec3 vCol; in float vA;
+out vec4 O;
+void main(){
+  float d = length(gl_PointCoord - 0.5);
+  float a = exp(-d*d*15.0) * vA;
+  O = vec4(vCol*a, a);
+}`;
+
+/* ---------- 4c. bloom + composite ---------- */
+const FS_THRESH = `#version 300 es
+precision mediump float;
+in vec2 vUv; out vec4 O;
+uniform sampler2D uT;
+void main(){
+  vec3 c = texture(uT, vUv).rgb;
+  float l = dot(c, vec3(0.2126,0.7152,0.0722));
+  O = vec4(c * smoothstep(0.52, 1.10, l), 1.0);
+}`;
+
+const FS_BLUR = `#version 300 es
+precision mediump float;
+in vec2 vUv; out vec4 O;
+uniform sampler2D uT;
+uniform vec2 uDir;
+void main(){
+  vec3 s = texture(uT, vUv).rgb*0.2270270;
+  s += (texture(uT, vUv+uDir*1.3846).rgb + texture(uT, vUv-uDir*1.3846).rgb)*0.3162162;
+  s += (texture(uT, vUv+uDir*3.2308).rgb + texture(uT, vUv-uDir*3.2308).rgb)*0.0702702;
+  O = vec4(s, 1.0);
+}`;
+
+const FS_FINAL = `#version 300 es
+precision mediump float;
+in vec2 vUv; out vec4 O;
+uniform sampler2D uScene;
+uniform sampler2D uBloom;
+uniform vec2  uRes;
+uniform float uTime;
+uniform float uBloomAmt;
+
+vec3 aces(vec3 x){
+  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0);
+}
+void main(){
+  vec2 uv = vUv;
+  vec2 d  = uv - 0.5;
+  float r2 = dot(d,d);
+
+  // faint lens chroma toward the edges
+  float k = 0.0016*r2;
+  vec3 c;
+  c.r = texture(uScene, uv + d*k).r;
+  c.g = texture(uScene, uv).g;
+  c.b = texture(uScene, uv - d*k).b;
+
+  c += texture(uBloom, uv).rgb * uBloomAmt;
+  c *= 1.0 - r2*0.62;                              // vignette
+  c = aces(c*1.05);
+  c = pow(c, vec3(0.4545));
+
+  // grain + dither (kills banding on the dark gradient)
+  float n = fract(sin(dot(gl_FragCoord.xy + uTime*60.0, vec2(12.9898,78.233)))*43758.5453);
+  c += (n-0.5)*0.020;
+  O = vec4(c, 1.0);
+}`;
+
+/* ============================================================
+   5. build resources
+   ============================================================ */
+const pCoin   = prog(VS_QUAD,  FS_COIN);
+const pPart   = prog(VS_PART,  FS_PART);
+const pThresh = prog(VS_QUAD,  FS_THRESH);
+const pBlur   = prog(VS_QUAD,  FS_BLUR);
+const pFinal  = prog(VS_QUAD,  FS_FINAL);
+
+const quadVao = gl.createVertexArray();
+
+/* particles */
+const PN = TOUCH ? 260 : 900;
+const seeds = new Float32Array(PN*4);
+for(let i=0;i<PN;i++){
+  seeds[i*4+0] = Math.random();
+  seeds[i*4+1] = Math.random();
+  seeds[i*4+2] = Math.random();
+  seeds[i*4+3] = Math.random();
+}
+const partVao = gl.createVertexArray();
+gl.bindVertexArray(partVao);
+const partBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, partBuf);
+gl.bufferData(gl.ARRAY_BUFFER, seeds, gl.STATIC_DRAW);
+const locSeed = gl.getAttribLocation(pPart, 'aSeed');
+gl.enableVertexAttribArray(locSeed);
+gl.vertexAttribPointer(locSeed, 4, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+
+/* coin face texture */
+const texFace = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, texFace);
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+function uploadFace(){
+  gl.bindTexture(gl.TEXTURE_2D, texFace);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bc);
+}
+
+/* ============================================================
+   6. sizing
+   ============================================================ */
+let DW = 1, DH = 1, RW = 1, RH = 1, DPR = 1;
+let fScene = null, fA = null, fB = null;
+const CAM_Z = 5.6;
+const STEPS = TOUCH ? 56 : 108;
+let FOV = 0.34, SHIFT = [0, 0];
+
+/* portrait: lift the coin out of the copy block and give it room */
+function frameFor(w,h){
+  const portrait = h/w > 1.15;
+  FOV   = portrait ? 0.400 : 0.34;
+  SHIFT = portrait ? [0, 0.95] : [0.10, 0.12];
+}
+
+function disposeTargets(){
+  [fScene,fA,fB].forEach(o=>{ if(o){ gl.deleteTexture(o.t); gl.deleteFramebuffer(o.f); } });
+}
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  DW = Math.max(1, Math.round(innerWidth  * DPR));
+  DH = Math.max(1, Math.round(innerHeight * DPR));
+  canvas.width = DW; canvas.height = DH;
+  canvas.style.width = innerWidth+'px'; canvas.style.height = innerHeight+'px';
+
+  const budget = TOUCH ? 0.52e6 : 1.45e6;
+  let s = Math.sqrt(budget/(DW*DH));
+  s = Math.min(1, Math.max(0.40, s));
+  RW = Math.max(320, Math.round(DW*s));
+  RH = Math.max(220, Math.round(DH*s));
+  frameFor(innerWidth, innerHeight);
+
+  disposeTargets();
+  fScene = fbo(RW, RH);
+  fA = fbo(Math.max(8, RW>>2), Math.max(8, RH>>2));
+  fB = fbo(Math.max(8, RW>>2), Math.max(8, RH>>2));
+  needsDraw = true;
+}
+
+/* ============================================================
+   7. input / interaction
+   ============================================================ */
+let tgtX = 0, tgtY = 0, curX = 0, curY = 0;   // -1..1 tilt
+let mx = innerWidth/2, my = innerHeight/2;
+let needsDraw = true;
+
+if(!TOUCH){
+  document.body.classList.add('cc');
+  addEventListener('pointermove', e=>{
+    mx = e.clientX; my = e.clientY;
+    tgtX = (e.clientX/innerWidth  - 0.5)*2;
+    tgtY = (e.clientY/innerHeight - 0.5)*2;
+    needsDraw = true;
+  }, {passive:true});
+}else{
+  // drag-to-tilt (never hijacks scroll: the page does not scroll)
+  let dragging = false, sx = 0, sy = 0, bx0 = 0, by0 = 0;
+  canvas.addEventListener('touchstart', e=>{
+    dragging = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; bx0 = tgtX; by0 = tgtY;
+  }, {passive:true});
+  canvas.addEventListener('touchmove', e=>{
+    if(!dragging) return;
+    tgtX = Math.max(-1, Math.min(1, bx0 + (e.touches[0].clientX - sx)/(innerWidth*0.5)));
+    tgtY = Math.max(-1, Math.min(1, by0 + (e.touches[0].clientY - sy)/(innerHeight*0.5)));
+    needsDraw = true;
+  }, {passive:true});
+  canvas.addEventListener('touchend', ()=>{ dragging = false; }, {passive:true});
+
+  // device orientation (iOS needs a gesture-triggered permission request)
+  function attachTilt(){
+    addEventListener('deviceorientation', e=>{
+      if(e.gamma == null) return;
+      tgtX = Math.max(-1, Math.min(1, e.gamma/38));
+      tgtY = Math.max(-1, Math.min(1, ((e.beta||0)-42)/38));
+      needsDraw = true;
+    }, {passive:true});
+  }
+  const DOE = window.DeviceOrientationEvent;
+  if(DOE && typeof DOE.requestPermission === 'function'){
+    const ask = ()=>{ DOE.requestPermission().then(r=>{ if(r === 'granted') attachTilt(); }).catch(()=>{});
+                      removeEventListener('touchend', ask); };
+    addEventListener('touchend', ask, {passive:true});
+  }else if(DOE){ attachTilt(); }
+}
+
+/* glass cursor card */
+const ccard = document.getElementById('ccard');
+const ccardL = document.getElementById('ccardL');
+let ccx = mx, ccy = my, ccLabel = '', ccW = 10, ccH = 10;
+function measureCard(){ ccW = ccard.offsetWidth; ccH = ccard.offsetHeight; }
+if(!TOUCH){
+  addEventListener('pointermove', e=>{
+    const el = e.target.closest && e.target.closest('[data-cursor]');
+    const lab = el ? el.getAttribute('data-cursor') : '';
+    if(lab !== ccLabel){
+      ccLabel = lab;
+      if(lab){ ccardL.textContent = lab; ccard.classList.remove('mini'); }
+      else   { ccard.classList.add('mini'); }
+      measureCard();
+      setTimeout(measureCard, 380);          // after the width transition settles
+    }
+    ccard.classList.add('on');
+  }, {passive:true});
+  addEventListener('pointerleave', ()=>ccard.classList.remove('on'), {passive:true});
+  ccard.classList.add('mini');
+  measureCard();
+}else{
+  ccard.remove();
+}
+
+/* ticker input */
+const input = document.getElementById('ticker');
+let textMix = 0, textMixTarget = 1;
+
+function setTicker(str, moveCaret){
+  const clean = (str||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,7);
+  if(moveCaret) input.value = clean;
+  derive(clean);
+  drawFace(clean, P.hashHex);
+  uploadFace();
+  paintReadout();
+  textMix = 0.0;               // re-emboss with a small fade
+  needsDraw = true;
+}
+input.addEventListener('input', ()=>{
+  const pos = input.selectionStart;
+  const clean = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,7);
+  if(clean !== input.value){ input.value = clean; input.setSelectionRange(pos-1, pos-1); }
+  setTicker(clean, false);
+});
+
+/* randomize */
+const CONS = 'BCDFGKLMNPRSTVXZ', VOW = 'AEIOU';
+document.getElementById('rand').addEventListener('click', ()=>{
+  const n = 3 + Math.floor(Math.random()*2);
+  let s = '';
+  for(let i=0;i<n;i++){
+    s += CONS[Math.floor(Math.random()*CONS.length)];
+    if(i < n-1 && Math.random() < 0.6) s += VOW[Math.floor(Math.random()*VOW.length)];
+  }
+  s = s.slice(0,6);
+  input.value = s;
+  setTicker(s, true);
+});
+
+/* copy palette */
+const copyBtn = document.getElementById('copy');
+copyBtn.addEventListener('click', ()=>{
+  const txt = hex(P.srgbA)+'  '+hex(P.srgbB)+'  #16E0FF   /* '+(P.ticker||'SIGNAL')+' '+P.hashHex+' */';
+  const done = ()=>{
+    copyBtn.textContent = 'copied';
+    copyBtn.classList.add('ok');
+    setTimeout(()=>{ copyBtn.textContent = 'copy palette'; copyBtn.classList.remove('ok'); }, 1600);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>legacy(txt, done));
+  }else legacy(txt, done);
+});
+function legacy(txt, done){
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){}
+  ta.remove();
+}
+
+/* ============================================================
+   8. render loop
+   ============================================================ */
+const rot = new Float32Array(9);
+function setRotInv(yaw, pitch, roll){
+  // world -> local  ==  transpose( Ry(yaw) * Rx(pitch) * Rz(roll) )
+  const cy = Math.cos(yaw),   sy = Math.sin(yaw);
+  const cx = Math.cos(pitch), sx = Math.sin(pitch);
+  const cz = Math.cos(roll),  sz = Math.sin(roll);
+  // M = Ry * Rx * Rz  (column-major rows below are M's rows)
+  const m00 = cy*cz + sy*sx*sz, m01 = -cy*sz + sy*sx*cz, m02 = sy*cx;
+  const m10 = cx*sz,            m11 = cx*cz,             m12 = -sx;
+  const m20 = -sy*cz + cy*sx*sz,m21 = sy*sz + cy*sx*cz,  m22 = cy*cx;
+  // transpose, stored column-major for GL
+  rot[0]=m00; rot[1]=m01; rot[2]=m02;
+  rot[3]=m10; rot[4]=m11; rot[5]=m12;
+  rot[6]=m20; rot[7]=m21; rot[8]=m22;
+}
+
+let t0 = performance.now(), tAcc = 0, last = t0;
+let frames = 0, fpsT = t0, running = true;
+const fpsEl = document.getElementById('fps');
+
+function frame(now){
+  if(!running) return;
+  requestAnimationFrame(frame);
+
+  let dt = (now - last)/1000; last = now;
+  dt = Math.min(dt, 0.05);
+  if(!RM) tAcc += dt; else tAcc = 6.2;      // frozen, still interactive
+  const T = tAcc;
+
+  if(RM && !needsDraw) return;
+  needsDraw = false;
+
+  // fps meter
+  frames++;
+  if(now - fpsT > 700){
+    fpsEl.textContent = Math.round(frames*1000/(now-fpsT));
+    frames = 0; fpsT = now;
+  }
+
+  // eased tilt
+  const k = 1 - Math.pow(0.0016, dt);
+  curX += (tgtX - curX)*k;
+  curY += (tgtY - curY)*k;
+
+  // idle bob + hash-driven oscillation (keeps the face readable)
+  const sp = P.spin;
+  const yaw   =  0.20 + curX*0.42 + Math.sin(T*sp*0.9)*0.34;
+  const pitch = -0.09 - curY*0.28 + Math.sin(T*sp*0.63 + 1.1)*0.15;
+  const roll  =  Math.sin(T*sp*0.41 + 2.2)*0.07;
+  setRotInv(yaw, pitch, roll);
+
+  // heartbeat + specular sweep
+  const ph = (T/1.6) % 1;
+  const pulse = RM ? 0.25 :
+      Math.exp(-Math.pow((ph-0.06)*13.0,2)) + 0.55*Math.exp(-Math.pow((ph-0.24)*15.0,2));
+  const sp4 = (T % 4) / 4;
+  const sweep = RM ? 0 : Math.max(0, Math.sin(Math.min(sp4/0.3,1)*Math.PI));
+  const sweepX = -1.5 + Math.min(sp4/0.3,1)*3.0;
+
+  textMix += (textMixTarget - textMix)*Math.min(1, dt*5.0);
+
+  const fix = [Math.min(RW,RH)/RW, Math.min(RW,RH)/RH];
+
+  /* --- scene pass --- */
+  bind(fScene);
+  gl.clearColor(0,0,0,1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.BLEND);
+
+  // particles (additive, behind the coin)
+  gl.blendFunc(gl.ONE, gl.ONE);
+  gl.useProgram(pPart);
+  gl.uniform1f(pPart._u.uTime, T);
+  gl.uniform1f(pPart._u.uCamZ, CAM_Z);
+  gl.uniform1f(pPart._u.uFov,  FOV);
+  gl.uniform2f(pPart._u.uFix,  fix[0], fix[1]);
+  gl.uniform2f(pPart._u.uShift, SHIFT[0], SHIFT[1]);
+  gl.uniform1f(pPart._u.uPx,   Math.max(1, RH/900*2.2));
+  gl.uniform3fv(pPart._u.uA, P.A);
+  gl.uniform3fv(pPart._u.uB, P.B);
+  gl.bindVertexArray(partVao);
+  gl.drawArrays(gl.POINTS, 0, PN);
+
+  // coin (premultiplied over)
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.useProgram(pCoin);
+  gl.uniform2f(pCoin._u.uRes, RW, RH);
+  gl.uniform1f(pCoin._u.uTime, T);
+  gl.uniform1f(pCoin._u.uCamZ, CAM_Z);
+  gl.uniform1f(pCoin._u.uFov,  FOV);
+  gl.uniform2f(pCoin._u.uShift, SHIFT[0], SHIFT[1]);
+  gl.uniformMatrix3fv(pCoin._u.uRot, false, rot);
+  gl.uniform3fv(pCoin._u.uA, P.A);
+  gl.uniform3fv(pCoin._u.uB, P.B);
+  gl.uniform1f(pCoin._u.uAmp,    P.amp);
+  gl.uniform1f(pCoin._u.uNFreq,  P.nfreq);
+  gl.uniform1f(pCoin._u.uRidges, P.ridges);
+  gl.uniform1f(pCoin._u.uIri,    P.iri);
+  gl.uniform1f(pCoin._u.uIriPh,  P.iriPh);
+  gl.uniform1f(pCoin._u.uPulse,  pulse);
+  gl.uniform1f(pCoin._u.uSweep,  sweep);
+  gl.uniform1f(pCoin._u.uSweepX, sweepX);
+  gl.uniform1f(pCoin._u.uTextMix, textMix);
+  gl.uniform1i(pCoin._u.uSteps,  STEPS);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texFace);
+  gl.uniform1i(pCoin._u.uText, 0);
+  gl.bindVertexArray(quadVao);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  gl.disable(gl.BLEND);
+
+  /* --- bloom --- */
+  bind(fA);
+  gl.useProgram(pThresh);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fScene.t);
+  gl.uniform1i(pThresh._u.uT, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  gl.useProgram(pBlur);
+  bind(fB);
+  gl.bindTexture(gl.TEXTURE_2D, fA.t);
+  gl.uniform1i(pBlur._u.uT, 0);
+  gl.uniform2f(pBlur._u.uDir, 1/fA.w, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  bind(fA);
+  gl.bindTexture(gl.TEXTURE_2D, fB.t);
+  gl.uniform2f(pBlur._u.uDir, 0, 1/fB.h);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  /* --- final --- */
+  bind(null);
+  gl.useProgram(pFinal);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fScene.t);
+  gl.uniform1i(pFinal._u.uScene, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, fA.t);
+  gl.uniform1i(pFinal._u.uBloom, 1);
+  gl.uniform2f(pFinal._u.uRes, DW, DH);
+  gl.uniform1f(pFinal._u.uTime, T);
+  gl.uniform1f(pFinal._u.uBloomAmt, 0.72);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // cursor card follow (transform only -> no layout)
+  if(!TOUCH){
+    const hw = ccW/2, hh = ccH/2;
+    let gx = mx + 18 + hw, gy = my + 16 + hh;
+    if(gx + hw > innerWidth  - 10) gx = mx - 18 - hw;    // flip instead of clipping
+    if(gy + hh > innerHeight - 10) gy = my - 16 - hh;
+    gx = Math.max(hw + 10, Math.min(innerWidth  - hw - 10, gx));
+    gy = Math.max(hh + 10, Math.min(innerHeight - hh - 10, gy));
+    ccx += (gx - ccx)*Math.min(1, dt*13);
+    ccy += (gy - ccy)*Math.min(1, dt*13);
+    ccard.style.transform = 'translate(-50%,-50%) translate('+ccx.toFixed(1)+'px,'+ccy.toFixed(1)+'px)';
+  }
+}
+
+/* ============================================================
+   9. boot
+   ============================================================ */
+if(RM) document.querySelector('.brand-sub').textContent = 'static · reduced motion';
+derive('SIGNAL');
+drawFace('SIGNAL', P.hashHex);
+uploadFace();
+paintReadout();
+resize();
+textMix = RM ? 1 : 0;
+requestAnimationFrame(frame);
+
+let rt;
+addEventListener('resize', ()=>{ clearTimeout(rt); rt = setTimeout(resize, 140); }, {passive:true});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ running = false; }
+  else if(!running){ running = true; last = performance.now(); needsDraw = true; requestAnimationFrame(frame); }
+});
+canvas.addEventListener('webglcontextlost', e=>{ e.preventDefault(); running = false; }, false);
+canvas.addEventListener('webglcontextrestored', ()=>{ location.reload(); }, false);
+addEventListener('pagehide', ()=>{
+  running = false;
+  disposeTargets();
+  const ext = gl.getExtension('WEBGL_lose_context');
+  if(ext) ext.loseContext();
+}, {passive:true});
+
+})();
+</script>
+</body>
+</html>

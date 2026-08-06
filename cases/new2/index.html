@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>VAULT — Emission &amp; Vesting</title>
+<meta name="description" content="Live tokenomics model: emission curve, vesting schedule, treasury flow and a supply sphere bound to one reactive state object.">
+<style>
+/* ============================================================
+   VAULT — Emission & Vesting
+   Design direction: "instrument panel of a treasury vault".
+   Hairline seams instead of floating cards. Zero radius on
+   surfaces, radius only on interactive chips. All-mono UI with
+   exactly one sans display line. One accent (cyan) + four cohort
+   hues, three of them deliberately desaturated so cyan stays the
+   loudest thing on screen.
+   ============================================================ */
+
+:root{
+  --bg:            #06070a;
+  --panel:         #0a0b0f;
+  --panel-2:       #0c0e14;
+  --panel-hi:      #10131a;
+
+  --line:          rgba(255,255,255,.065);
+  --line-mid:      rgba(255,255,255,.11);
+  --line-hi:       rgba(255,255,255,.19);
+
+  --ink:           #e8eef6;
+  --ink-2:         #96a3b5;
+  --ink-3:         #59657a;
+  --ink-4:         #39424f;
+
+  --cyan:          #16e0ff;
+  --cyan-dim:      #0f9db5;
+  --mint:          #3fd9a8;
+  --slate:         #7c8ca8;
+  --ember:         #ff8a5b;
+  --violet:        #9b7bff;
+  --warn:          #ffc46b;
+  --bad:           #ff6b6b;
+
+  /* elevation hierarchy — three distinct steps, not one shadow */
+  --e1: inset 0 1px 0 rgba(255,255,255,.028);
+  --e2: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 26px -20px rgba(0,0,0,.95);
+  --e3: 0 22px 54px -14px rgba(0,0,0,.88), 0 0 0 1px rgba(255,255,255,.09), inset 0 1px 0 rgba(255,255,255,.07);
+
+  --mono: ui-monospace, "SFMono-Regular", "SF Mono", "Menlo", "Consolas", "Liberation Mono", "DejaVu Sans Mono", monospace;
+  --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --gut: 18px;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+html,body{ margin:0; padding:0; background:var(--bg); }
+
+body{
+  font-family:var(--mono);
+  font-size:13px;
+  line-height:1.5;
+  color:var(--ink-2);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  font-variant-numeric:tabular-nums;
+  overflow-x:hidden;
+  min-height:100vh;
+}
+
+/* page atmosphere: one faint cyan signal from above + a 1px lattice
+   + film grain. Used once each, never repeated per-panel. */
+body::before{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(120% 62% at 50% -14%, rgba(22,224,255,.075), transparent 62%),
+    radial-gradient(80% 44% at 88% 108%, rgba(155,123,255,.05), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 64px);
+}
+body::after{
+  content:"";
+  position:fixed; inset:-60px; pointer-events:none; z-index:1; opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+
+.app{
+  position:relative; z-index:2;
+  max-width:1420px; margin:0 auto;
+  border-left:1px solid var(--line);
+  border-right:1px solid var(--line);
+  min-height:100vh;
+  background:linear-gradient(180deg, rgba(255,255,255,.012), transparent 340px);
+}
+
+/* ---------- micro type scale ---------- */
+.micro{ font-size:9.5px; letter-spacing:.155em; text-transform:uppercase; color:var(--ink-3); }
+.num{ font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+
+/* ---------- topbar ---------- */
+.topbar{
+  display:flex; align-items:center; gap:var(--gut);
+  padding:14px var(--gut);
+  border-bottom:1px solid var(--line);
+}
+.brand{ display:flex; align-items:baseline; gap:10px; flex:none; }
+.brand-mark{
+  width:9px; height:9px; flex:none; align-self:center;
+  background:var(--cyan);
+  box-shadow:0 0 0 3px rgba(22,224,255,.13), 0 0 14px rgba(22,224,255,.55);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+}
+.brand-name{
+  font-size:15px; font-weight:700; letter-spacing:.24em;
+  color:var(--ink); text-transform:uppercase;
+}
+.brand-sub{ font-size:10px; letter-spacing:.14em; color:var(--ink-3); text-transform:uppercase; }
+.topbar-mid{ display:flex; gap:7px; flex:1 1 auto; }
+.topbar-right{ display:flex; align-items:center; gap:14px; flex:none; }
+
+.chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 9px; border-radius:2px;
+  border:1px solid var(--line-mid);
+  background:rgba(255,255,255,.022);
+  font-size:9.5px; letter-spacing:.135em; text-transform:uppercase; color:var(--ink-3);
+  white-space:nowrap;
+}
+.chip i{ width:4px; height:4px; border-radius:50%; background:var(--ink-4); flex:none; }
+.chip-live i{ background:var(--cyan); box-shadow:0 0 7px rgba(22,224,255,.8); animation:blip 2.4s ease-in-out infinite; }
+@keyframes blip{ 0%,100%{opacity:1} 50%{opacity:.25} }
+
+.tg-link{
+  color:var(--ink-2); text-decoration:none; font-size:11px; letter-spacing:.05em;
+  border-bottom:1px solid var(--line-mid); padding-bottom:1px;
+  transition:color .25s, border-color .25s;
+}
+.tg-link:hover{ color:var(--cyan); border-color:var(--cyan); }
+
+/* ---------- lede ---------- */
+.lede{ padding:44px var(--gut) 34px; border-bottom:1px solid var(--line); max-width:920px; }
+.lede h1{
+  font-family:var(--sans);
+  font-size:clamp(28px, 4.1vw, 50px);
+  line-height:1.02;
+  letter-spacing:-.035em;
+  font-weight:620;
+  color:var(--ink);
+  margin:0 0 18px;
+  text-wrap:balance;
+}
+.lede h1 em{
+  font-style:normal;
+  color:var(--cyan);
+  text-shadow:0 0 34px rgba(22,224,255,.35);
+}
+.lede p{ margin:0; max-width:66ch; font-size:12.5px; line-height:1.75; color:var(--ink-3); }
+.lede p b{ color:var(--ink-2); font-weight:400; }
+
+/* ---------- KPI strip ---------- */
+.kpis{
+  display:grid; grid-template-columns:repeat(5,1fr);
+  gap:1px; background:var(--line);
+  border-bottom:1px solid var(--line);
+}
+.kpi{ background:var(--panel); padding:16px var(--gut) 15px; box-shadow:var(--e1); position:relative; }
+.kpi .micro{ display:block; margin-bottom:9px; }
+.kpi-val{ font-size:26px; line-height:1; letter-spacing:-.03em; color:var(--ink); }
+.kpi-val small{ font-size:13px; color:var(--ink-3); letter-spacing:0; margin-left:2px; }
+.kpi-sub{ margin-top:7px; font-size:10px; letter-spacing:.05em; color:var(--ink-4); }
+.kpi[data-tone="cyan"] .kpi-val{ color:var(--cyan); }
+.kpi[data-tone="warn"] .kpi-val{ color:var(--warn); }
+
+/* ---------- sticky time head ---------- */
+.timebar{
+  position:sticky; top:0; z-index:40;
+  display:flex; align-items:center; gap:14px;
+  padding:11px var(--gut);
+  background:rgba(8,9,13,.86);
+  -webkit-backdrop-filter:blur(14px) saturate(1.2);
+  backdrop-filter:blur(14px) saturate(1.2);
+  border-bottom:1px solid var(--line-mid);
+  box-shadow:0 14px 26px -24px rgba(0,0,0,1);
+}
+.tb-btn{
+  width:30px; height:30px; flex:none;
+  display:grid; place-items:center;
+  border:1px solid var(--line-mid); border-radius:3px;
+  background:rgba(255,255,255,.03); color:var(--ink-2);
+  cursor:pointer; padding:0;
+  transition:color .2s, border-color .2s, background .2s;
+}
+.tb-btn:hover{ color:var(--cyan); border-color:rgba(22,224,255,.45); background:rgba(22,224,255,.07); }
+.tb-btn svg{ width:11px; height:11px; fill:currentColor; display:block; }
+.tb-month{ flex:none; font-size:11px; letter-spacing:.12em; color:var(--ink); min-width:74px; }
+.tb-month b{ color:var(--cyan); font-weight:600; }
+.tb-track{ flex:1 1 auto; min-width:90px; display:flex; align-items:center; }
+.tb-read{ display:flex; gap:18px; flex:none; }
+.tb-read div{ text-align:right; }
+.tb-read span{ display:block; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-4); }
+.tb-read b{ display:block; font-size:12.5px; font-weight:500; color:var(--ink); letter-spacing:-.01em; }
+
+/* ---------- range inputs (instrument tracks) ---------- */
+input[type=range]{
+  -webkit-appearance:none; appearance:none;
+  width:100%; height:22px; margin:0; background:transparent; cursor:ew-resize;
+}
+input[type=range]:focus{ outline:none; }
+input[type=range]:focus-visible::-webkit-slider-thumb{ box-shadow:0 0 0 4px rgba(22,224,255,.25); }
+input[type=range]::-webkit-slider-runnable-track{
+  height:2px; background:var(--line-hi); border-radius:0;
+}
+input[type=range]::-moz-range-track{ height:2px; background:var(--line-hi); }
+input[type=range]::-moz-range-progress{ height:2px; background:var(--cyan); }
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:3px; height:16px; margin-top:-7px;
+  background:var(--cyan); border:none; border-radius:1px;
+  box-shadow:0 0 12px rgba(22,224,255,.85);
+  transition:box-shadow .2s;
+}
+input[type=range]::-moz-range-thumb{
+  width:3px; height:16px; border:none; border-radius:1px;
+  background:var(--cyan); box-shadow:0 0 12px rgba(22,224,255,.85);
+}
+input[type=range]:hover::-webkit-slider-thumb{ box-shadow:0 0 18px rgba(22,224,255,1); }
+
+/* ---------- grid of panels ---------- */
+.grid{
+  display:grid; grid-template-columns:repeat(12,1fr);
+  gap:1px; background:var(--line);
+  border-bottom:1px solid var(--line);
+}
+.panel{
+  background:var(--panel); box-shadow:var(--e2);
+  padding:16px var(--gut) 18px;
+  min-width:0; position:relative;
+  display:flex; flex-direction:column;   /* charts absorb the row height */
+}
+.span-4{ grid-column:span 4; } .span-5{ grid-column:span 5; }
+.span-7{ grid-column:span 7; } .span-8{ grid-column:span 8; }
+.span-12{ grid-column:span 12; }
+
+.p-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; flex:none; }
+.p-title{ font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink); font-weight:600; }
+.p-note{ font-size:10px; letter-spacing:.05em; color:var(--ink-4); margin-left:auto; }
+.p-desc{ font-size:10.5px; color:var(--ink-4); margin:0 0 14px; letter-spacing:.02em; flex:none; }
+
+/* ---------- chart shells ---------- */
+.chart{ position:relative; width:100%; flex:1 1 auto; }
+.chart canvas{ display:block; width:100%; height:100%; }
+#emissionWrap{ min-height:296px; }
+#vestingWrap{ min-height:262px; }
+#flowWrap{ min-height:214px; }
+
+.tip{
+  position:absolute; z-index:60; pointer-events:none;
+  transform:translate(-50%,-100%);
+  padding:9px 11px; min-width:132px;
+  background:rgba(13,16,22,.94);
+  -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  border-radius:3px; box-shadow:var(--e3);
+  opacity:0; transition:opacity .14s;
+  font-size:10.5px; line-height:1.62; color:var(--ink-2);
+  white-space:nowrap;
+}
+.tip.on{ opacity:1; }
+.tip .tip-h{ font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-4); margin-bottom:5px; }
+.tip .tip-r{ display:flex; justify-content:space-between; gap:16px; }
+.tip .tip-r b{ color:var(--ink); font-weight:500; }
+.tip .tip-r i{ font-style:normal; display:inline-flex; align-items:center; gap:6px; }
+.tip .sw{ width:6px; height:6px; flex:none; }
+
+/* ---------- legend chips ---------- */
+.legend{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+.lg{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 8px; border-radius:2px;
+  border:1px solid var(--line); background:rgba(255,255,255,.016);
+  font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3);
+  cursor:pointer; user-select:none;
+  transition:color .2s, border-color .2s, background .2s;
+}
+.lg .sw{ width:7px; height:7px; flex:none; }
+.lg:hover,.lg.on{ color:var(--ink); border-color:var(--line-hi); background:rgba(255,255,255,.05); }
+.lg.on{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.05); }
+
+/* ---------- sphere ---------- */
+#sphereWrap{
+  position:relative; flex:1 1 auto; min-height:300px; margin:2px 0 12px;
+  background:radial-gradient(closest-side at 50% 50%, rgba(22,224,255,.055), rgba(22,224,255,.014) 62%, transparent 76%);
+}
+#sphereWrap canvas{ position:absolute; inset:0; display:block; width:100%; height:100%; touch-action:pan-y; cursor:grab; z-index:1; }
+#sphereWrap canvas[hidden]{ display:none; }
+#sphereWrap canvas:active{ cursor:grabbing; }
+.ring{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  height:82%; width:auto; max-width:92%; aspect-ratio:1/1; border-radius:50%;
+  border:1px solid rgba(255,255,255,.055); pointer-events:none; z-index:2;
+}
+.ring::before,.ring::after{
+  content:""; position:absolute; background:rgba(255,255,255,.11);
+}
+.ring::before{ left:-5px; top:50%; width:10px; height:1px; box-shadow:calc(100% + 5px) 0 rgba(255,255,255,.11); }
+.ring::after{ top:-5px; left:50%; width:1px; height:10px; box-shadow:0 calc(100% + 5px) rgba(255,255,255,.11); }
+
+.sphere-read{ display:flex; gap:1px; background:var(--line); border:1px solid var(--line); flex:none; }
+.sphere-read div{ flex:1; background:var(--panel-2); padding:9px 11px; }
+.sphere-read span{ display:block; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-4); margin-bottom:4px; }
+.sphere-read b{ font-size:14px; font-weight:500; color:var(--ink); letter-spacing:-.02em; }
+.sphere-read b.cy{ color:var(--cyan); }
+
+/* ---------- controls ---------- */
+.presets{ display:flex; gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:18px; }
+.preset{
+  flex:1; padding:9px 4px; border:0; background:var(--panel-2);
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); cursor:pointer;
+  transition:color .2s, background .2s;
+}
+.preset:hover{ color:var(--ink); background:var(--panel-hi); }
+.preset.on{ color:var(--bg); background:var(--cyan); font-weight:600; }
+
+.ctl{ margin-bottom:17px; }
+.ctl-top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:1px; }
+.ctl-label{ font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-2); }
+.ctl-val{ font-size:15px; color:var(--cyan); letter-spacing:-.02em; }
+.ctl-val small{ font-size:10px; color:var(--ink-3); margin-left:1px; }
+.ctl-hint{ font-size:9.5px; color:var(--ink-4); letter-spacing:.03em; margin-top:2px; }
+.ctl-scale{ display:flex; justify-content:space-between; font-size:9px; color:var(--ink-4); letter-spacing:.06em; margin-top:-2px; }
+
+.checks{ border-top:1px solid var(--line); padding-top:16px; margin-top:auto; flex:none; }
+.check{
+  display:flex; gap:9px; align-items:flex-start;
+  padding:7px 0; font-size:10.5px; line-height:1.55; color:var(--ink-3);
+  border-bottom:1px solid rgba(255,255,255,.035);
+}
+.check:last-child{ border-bottom:0; }
+.check i{ width:5px; height:5px; margin-top:6px; flex:none; background:var(--ink-4); }
+.check b{ color:var(--ink-2); font-weight:500; }
+.check[data-t="ok"] i{ background:var(--mint); box-shadow:0 0 8px rgba(63,217,168,.6); }
+.check[data-t="warn"] i{ background:var(--warn); box-shadow:0 0 8px rgba(255,196,107,.6); }
+.check[data-t="bad"] i{ background:var(--bad); box-shadow:0 0 8px rgba(255,107,107,.6); }
+.check[data-t="warn"] b{ color:var(--warn); }
+.check[data-t="bad"] b{ color:var(--bad); }
+
+/* ---------- allocation table ---------- */
+.tbl{ width:100%; border-collapse:collapse; font-size:11px; flex:none; }
+.tbl th{
+  text-align:right; padding:0 0 8px; font-weight:400;
+  font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-4);
+  border-bottom:1px solid var(--line-mid);
+}
+.tbl th:first-child{ text-align:left; }
+.tbl td{ padding:9px 0; border-bottom:1px solid rgba(255,255,255,.035); text-align:right; color:var(--ink-2); }
+.tbl td:first-child{ text-align:left; color:var(--ink); }
+.tbl tbody tr{ cursor:default; transition:background .18s; }
+.tbl tbody tr:hover{ background:rgba(255,255,255,.028); }
+.tbl tbody tr.dim{ opacity:.32; }
+.c-name{ display:flex; align-items:center; gap:9px; }
+.c-name .sw{ width:8px; height:8px; flex:none; }
+.bar{ display:block; width:100%; height:4px; background:rgba(255,255,255,.06); position:relative; overflow:hidden; }
+.bar i{ position:absolute; left:0; top:0; bottom:0; display:block; }
+.bar i.tge{ opacity:.42; }
+.col-bar{ width:22%; padding-left:16px !important; }
+.tbl tfoot td{ padding-top:11px; color:var(--ink-3); border-bottom:0; font-size:10.5px; }
+.tbl tfoot td:first-child{ color:var(--ink-3); letter-spacing:.05em; }
+
+/* ---------- footer ---------- */
+.foot{
+  padding:22px var(--gut) 64px;
+  display:flex; flex-wrap:wrap; gap:12px 26px; align-items:center;
+  font-size:10px; letter-spacing:.06em; color:var(--ink-4);
+}
+.foot b{ color:var(--ink-3); font-weight:400; }
+.foot .sep{ color:var(--ink-4); opacity:.5; }
+
+/* ---------- corner CTA ---------- */
+.corner-cta{
+  position:fixed; bottom:14px; right:14px; z-index:99999;
+  display:inline-flex; align-items:center; gap:7px;
+  padding:7px 14px;
+  background:rgba(10,12,17,.72);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:20px;
+  color:rgba(255,255,255,.62);
+  text-decoration:none;
+  font-family:var(--sans);
+  font-size:11px; font-weight:400; letter-spacing:.5px;
+  white-space:nowrap;
+  transition:color .3s, background .3s, border-color .3s;
+}
+.corner-cta:hover{ color:#fff; background:rgba(16,22,30,.86); border-color:rgba(22,224,255,.5); }
+.corner-cta .cta-dot{
+  width:5px; height:5px; border-radius:50%; flex:none;
+  background:var(--cyan); box-shadow:0 0 7px rgba(22,224,255,.85);
+}
+.corner-cta .cta-handle{ color:rgba(255,255,255,.92); font-weight:600; }
+
+/* ---------- entrance ---------- */
+.rise{ opacity:0; transform:translateY(14px); }
+.ready .rise{ animation:rise .68s cubic-bezier(.16,.84,.34,1) forwards; }
+@keyframes rise{ to{ opacity:1; transform:none; } }
+
+/* ---------- responsive ---------- */
+@media (max-width:1100px){
+  .kpis{ grid-template-columns:repeat(3,1fr); }
+  .kpi:nth-child(4),.kpi:nth-child(5){ grid-column:span 1; }
+  .span-8,.span-7{ grid-column:span 12; }
+  .span-4,.span-5{ grid-column:span 6; }
+}
+@media (max-width:860px){
+  :root{ --gut:14px; }
+  .app{ border-left:0; border-right:0; }
+  .topbar{ flex-wrap:wrap; gap:10px; }
+  .topbar-mid{ order:3; flex-basis:100%; }
+  .lede{ padding:32px var(--gut) 26px; }
+  .lede p{ font-size:11.5px; line-height:1.68; }
+  .kpis{ grid-template-columns:repeat(2,1fr); }
+  .kpi:nth-child(5){ grid-column:span 2; }
+  .span-4,.span-5,.span-7,.span-8{ grid-column:span 12; }
+  #emissionWrap{ height:236px; }
+  #vestingWrap{ height:214px; }
+  #flowWrap{ height:196px; }
+  #sphereWrap{ height:268px; }
+  .timebar{ flex-wrap:wrap; gap:9px 12px; padding:10px var(--gut); }
+  .tb-track{ order:3; flex-basis:100%; }
+  .tb-read{ margin-left:auto; gap:14px; }
+  .tb-read b{ font-size:11.5px; }
+  .col-bar{ display:none; }
+  .tbl th.col-bar{ display:none; }
+  .corner-cta{ font-size:10px; padding:6px 11px; bottom:10px; right:10px; }
+  .kpi-val{ font-size:22px; }
+}
+@media (max-width:430px){
+  .tb-read div:nth-child(3){ display:none; }
+  .tbl .col-vest{ display:none; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .ready .rise{ animation:none; opacity:1; transform:none; }
+  .chip-live i{ animation:none; }
+  *{ transition-duration:.01ms !important; }
+}
+
+@media print{
+  body::before,body::after,.corner-cta,.timebar,.presets{ display:none; }
+  .app{ max-width:none; }
+  .panel{ break-inside:avoid; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <span class="brand-name">Vault</span>
+      <span class="brand-sub">Emission &amp; Vesting</span>
+    </div>
+    <div class="topbar-mid">
+      <span class="chip chip-live"><i></i>model live</span>
+      <span class="chip">sample data</span>
+      <span class="chip">rev <span id="rev">0000</span></span>
+    </div>
+    <div class="topbar-right">
+      <a class="tg-link" href="https://t.me/smirnovarturr" target="_blank" rel="noopener noreferrer">@smirnovarturr</a>
+    </div>
+  </header>
+
+  <section class="lede rise" style="animation-delay:.04s">
+    <h1>Model your emission <em>before</em> you mint.</h1>
+    <p>Five allocations, their cliffs and their linear tails — solved from three parameters, every frame. The curve, the stacked schedule, the treasury flow and a <b>4,000-particle supply sphere</b> all read the same state object. Drag a slider: there is no canned frame underneath to fall back on.</p>
+  </section>
+
+  <section class="kpis">
+    <div class="kpi rise" style="animation-delay:.10s" data-tone="cyan">
+      <span class="micro">Float at TGE</span>
+      <div class="kpi-val num" id="kpiTge">—</div>
+      <div class="kpi-sub" id="kpiTgeSub">of total supply</div>
+    </div>
+    <div class="kpi rise" style="animation-delay:.14s">
+      <span class="micro">Float at M12</span>
+      <div class="kpi-val num" id="kpiM12">—</div>
+      <div class="kpi-sub" id="kpiM12Sub">tokens circulating</div>
+    </div>
+    <div class="kpi rise" style="animation-delay:.18s" id="kpiPeakCell">
+      <span class="micro">Peak monthly unlock</span>
+      <div class="kpi-val num" id="kpiPeak">—</div>
+      <div class="kpi-sub" id="kpiPeakSub">of float</div>
+    </div>
+    <div class="kpi rise" style="animation-delay:.22s">
+      <span class="micro">Fully diluted at</span>
+      <div class="kpi-val num" id="kpiFull">—</div>
+      <div class="kpi-sub" id="kpiFullSub">99.5% unlocked</div>
+    </div>
+    <div class="kpi rise" style="animation-delay:.26s">
+      <span class="micro">MC / FDV now</span>
+      <div class="kpi-val num" id="kpiRatio">—</div>
+      <div class="kpi-sub" id="kpiRatioSub">at $0.0420 sample price</div>
+    </div>
+  </section>
+
+  <div class="timebar">
+    <button class="tb-btn" id="playBtn" aria-label="Play timeline">
+      <svg id="playIcon" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 0.7 L11 6 L2 11.3 Z"/></svg>
+    </button>
+    <div class="tb-month">MONTH <b id="tbMonth">00</b></div>
+    <div class="tb-track">
+      <input type="range" id="timeRange" min="0" max="48" step="1" value="0" aria-label="Timeline month">
+    </div>
+    <div class="tb-read">
+      <div><span>Circulating</span><b class="num" id="tbCirc">—</b></div>
+      <div><span>Released</span><b class="num" id="tbUnlock">—</b></div>
+      <div><span>Market cap</span><b class="num" id="tbMc">—</b></div>
+    </div>
+  </div>
+
+  <main class="grid">
+
+    <!-- EMISSION -->
+    <section class="panel span-8 rise" style="animation-delay:.30s">
+      <div class="p-head">
+        <span class="p-title">Supply emission</span>
+        <span class="p-note">circulating vs total · 48 months</span>
+      </div>
+      <p class="p-desc">Solid line: circulating supply. Bars: tokens released that month. Scrub the plot for exact figures.</p>
+      <div class="chart" id="emissionWrap">
+        <canvas id="emission"></canvas>
+        <div class="tip" id="emissionTip"></div>
+      </div>
+    </section>
+
+    <!-- SUPPLY SPHERE -->
+    <section class="panel span-4 rise" style="animation-delay:.34s">
+      <div class="p-head">
+        <span class="p-title">Supply sphere</span>
+        <span class="p-note" id="sphereNote">4,000 pts</span>
+      </div>
+      <p class="p-desc">One particle = <span id="perPt">250,000</span> tokens. Lit when its unlock month has passed. Drag to rotate.</p>
+      <div id="sphereWrap">
+        <canvas id="sphere"></canvas>
+        <canvas id="sphere2d" hidden></canvas>
+        <div class="ring"></div>
+      </div>
+      <div class="sphere-read">
+        <div><span>Unlocked pts</span><b class="num cy" id="sphLit">—</b></div>
+        <div><span>Locked pts</span><b class="num" id="sphLock">—</b></div>
+      </div>
+    </section>
+
+    <!-- VESTING -->
+    <section class="panel span-7 rise" style="animation-delay:.38s">
+      <div class="p-head">
+        <span class="p-title">Vesting schedule</span>
+        <span class="p-note">stacked · cliffs + linear release</span>
+      </div>
+      <p class="p-desc">Hover a cohort to isolate it — the sphere and the table follow.</p>
+      <div class="legend" id="legend"></div>
+      <div class="chart" id="vestingWrap">
+        <canvas id="vesting"></canvas>
+        <div class="tip" id="vestingTip"></div>
+      </div>
+    </section>
+
+    <!-- CONTROLS -->
+    <section class="panel span-5 rise" style="animation-delay:.42s">
+      <div class="p-head">
+        <span class="p-title">Schedule parameters</span>
+        <span class="p-note">every chart recomputes</span>
+      </div>
+      <p class="p-desc">Each cohort scales these globals by its own multiplier, so character is preserved.</p>
+
+      <div class="presets" id="presets">
+        <button class="preset" data-p="conservative">Conservative</button>
+        <button class="preset on" data-p="standard">Standard</button>
+        <button class="preset" data-p="aggressive">Aggressive</button>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-top">
+          <span class="ctl-label">TGE unlock</span>
+          <span class="ctl-val num" id="vTge">12<small>%</small></span>
+        </div>
+        <input type="range" id="rTge" min="1" max="30" step="1" value="12" aria-label="TGE unlock percent">
+        <div class="ctl-scale"><span>1%</span><span>30%</span></div>
+        <div class="ctl-hint">Base release at generation. Liquidity takes 4&times; this, team takes none.</div>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-top">
+          <span class="ctl-label">Cliff</span>
+          <span class="ctl-val num" id="vCliff">9<small>mo</small></span>
+        </div>
+        <input type="range" id="rCliff" min="0" max="24" step="1" value="9" aria-label="Cliff months">
+        <div class="ctl-scale"><span>0</span><span>24 mo</span></div>
+        <div class="ctl-hint">Dead period before linear release starts. Team cliff = 1.5&times;.</div>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-top">
+          <span class="ctl-label">Linear duration</span>
+          <span class="ctl-val num" id="vVest">30<small>mo</small></span>
+        </div>
+        <input type="range" id="rVest" min="6" max="60" step="1" value="30" aria-label="Linear vesting months">
+        <div class="ctl-scale"><span>6</span><span>60 mo</span></div>
+        <div class="ctl-hint">Length of the straight-line tail after the cliff.</div>
+      </div>
+
+      <div class="checks" id="checks"></div>
+    </section>
+
+    <!-- TREASURY FLOW -->
+    <section class="panel span-5 rise" style="animation-delay:.46s">
+      <div class="p-head">
+        <span class="p-title">Treasury flow</span>
+        <span class="p-note">modeled deployment</span>
+      </div>
+      <p class="p-desc">Ribbon width and particle density track the treasury tokens actually unlocked at month <b id="flowMonth">00</b>.</p>
+      <div class="chart" id="flowWrap">
+        <canvas id="flow"></canvas>
+        <div class="tip" id="flowTip"></div>
+      </div>
+    </section>
+
+    <!-- TABLE -->
+    <section class="panel span-7 rise" style="animation-delay:.50s">
+      <div class="p-head">
+        <span class="p-title">Allocation ledger</span>
+        <span class="p-note">resolved at month <b id="tblMonth">00</b></span>
+      </div>
+      <p class="p-desc">Per-cohort parameters derived live from the three globals.</p>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Allocation</th>
+            <th>Share</th>
+            <th>TGE</th>
+            <th>Cliff</th>
+            <th class="col-vest">Vest</th>
+            <th>Unlocked</th>
+            <th class="col-bar"></th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td>100.0%</td>
+            <td id="tfTge">—</td>
+            <td>—</td>
+            <td class="col-vest">—</td>
+            <td id="tfUnlocked">—</td>
+            <td class="col-bar"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span>Concept / design demo — not a client project.</span>
+    <span class="sep">·</span>
+    <span>Placeholder token, <b>sample data</b>, $0.0420 reference price. No real project is represented.</span>
+    <span class="sep">·</span>
+    <span>Single self-contained HTML file — zero external requests, hand-written WebGL.</span>
+  </footer>
+
+</div>
+
+<a class="corner-cta" href="https://t.me/smirnovarturr" target="_blank" rel="noopener noreferrer">
+  <span class="cta-dot"></span>Хочешь такое? <span class="cta-handle">@smirnovarturr</span>
+</a>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   0 · ENVIRONMENT
+   ============================================================ */
+const RM    = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TOUCH = window.matchMedia('(hover: none)').matches || ('ontouchstart' in window);
+const SMALL = window.innerWidth < 860;
+const DPR   = Math.min(2, window.devicePixelRatio || 1);
+
+/* ============================================================
+   1 · MODEL — the single source of truth
+   ============================================================ */
+const TOTAL   = 1e9;          // total supply
+const HORIZON = 48;           // months modelled
+const PRICE   = 0.042;        // sample reference price, USD
+
+// Each cohort scales the three global params by its own multipliers.
+// That keeps every allocation in character while one slider moves all.
+const COHORTS = [
+  { key:'community', name:'Community & airdrop', share:0.32, color:'#16e0ff', tgeMul:1.60, cliffMul:0.00, vestMul:0.60 },
+  { key:'liquidity', name:'Liquidity & market',  share:0.12, color:'#3fd9a8', tgeMul:4.00, cliffMul:0.00, vestMul:0.25 },
+  { key:'treasury',  name:'DAO treasury',        share:0.24, color:'#7c8ca8', tgeMul:0.50, cliffMul:0.50, vestMul:1.40 },
+  { key:'investors', name:'Seed & private',      share:0.15, color:'#ff8a5b', tgeMul:0.35, cliffMul:1.00, vestMul:1.00 },
+  { key:'team',      name:'Core team',           share:0.17, color:'#9b7bff', tgeMul:0.00, cliffMul:1.50, vestMul:1.25 }
+];
+
+const PRESETS = {
+  conservative:{ tge:0.04, cliff:15, vest:44 },
+  standard:    { tge:0.12, cliff:9,  vest:30 },
+  aggressive:  { tge:0.26, cliff:2,  vest:11 }
+};
+
+const state = {
+  tge:0.12, cliff:9, vest:30,
+  month:0,              // timeline head (integer)
+  iso:-1,               // isolated cohort index, -1 = none
+  isoPin:false,
+  preset:'standard'
+};
+
+// Derived model, refilled by recompute()
+const M = {
+  p:[],                 // per-cohort resolved params
+  circ:new Float64Array(HORIZON+1),
+  monthly:new Float64Array(HORIZON+1),
+  perCohort:[],         // Float64Array per cohort (absolute tokens unlocked)
+  tgePct:0, m12Pct:0, peakPct:0, peakMonth:0, fullMonth:0
+};
+
+const clamp = (v,a,b)=> v<a?a : v>b?b : v;
+
+function resolveParams(){
+  M.p = COHORTS.map(c=>{
+    const tge   = clamp(state.tge * c.tgeMul, 0, 1);
+    const cliff = Math.round(state.cliff * c.cliffMul);
+    const vest  = Math.max(1, Math.round(state.vest * c.vestMul));
+    return { tge, cliff, vest, alloc:TOTAL*c.share };
+  });
+}
+
+// Fraction of a cohort's allocation released by month t.
+function fracAt(i,t){
+  const p = M.p[i];
+  if(t < 0) return 0;
+  const linear = clamp((t - p.cliff) / p.vest, 0, 1);
+  return p.tge + (1 - p.tge) * linear;
+}
+
+function recompute(){
+  resolveParams();
+  M.perCohort = COHORTS.map(()=> new Float64Array(HORIZON+1));
+
+  for(let t=0;t<=HORIZON;t++){
+    let sum = 0;
+    for(let i=0;i<COHORTS.length;i++){
+      const v = M.p[i].alloc * fracAt(i,t);
+      M.perCohort[i][t] = v;
+      sum += v;
+    }
+    M.circ[t] = sum;
+  }
+  M.monthly[0] = M.circ[0];
+  for(let t=1;t<=HORIZON;t++) M.monthly[t] = M.circ[t] - M.circ[t-1];
+
+  // headline metrics — all real derivations, none hard-coded
+  M.tgePct = M.circ[0] / TOTAL * 100;
+  M.m12Pct = M.circ[Math.min(12,HORIZON)] / TOTAL * 100;
+
+  M.peakPct = 0; M.peakMonth = 0;
+  for(let t=1;t<=HORIZON;t++){
+    const base = Math.max(M.circ[t-1], TOTAL*0.005);
+    const pct  = M.monthly[t] / base * 100;
+    if(pct > M.peakPct){ M.peakPct = pct; M.peakMonth = t; }
+  }
+
+  M.fullMonth = -1;
+  for(let t=0;t<=HORIZON;t++){
+    if(M.circ[t] >= TOTAL*0.995){ M.fullMonth = t; break; }
+  }
+}
+
+// Continuous interpolation for the scrubbing crosshair.
+function circAtF(t){
+  const a = Math.floor(clamp(t,0,HORIZON)), b = Math.min(HORIZON, a+1), f = clamp(t,0,HORIZON) - a;
+  return M.circ[a] + (M.circ[b]-M.circ[a])*f;
+}
+
+/* ============================================================
+   2 · FORMATTERS
+   ============================================================ */
+const nf = new Intl.NumberFormat('en-US');
+function fmtTok(n){
+  if(n >= 999.5e6) return (n/1e9).toFixed(n>=9.95e8?2:2)+'B';
+  if(n >= 1e6)     return (n/1e6).toFixed(n>=100e6?0:1)+'M';
+  if(n >= 1e3)     return (n/1e3).toFixed(0)+'K';
+  return Math.round(n).toString();
+}
+function fmtUsd(n){
+  if(n >= 1e9) return '$'+(n/1e9).toFixed(2)+'B';
+  if(n >= 1e6) return '$'+(n/1e6).toFixed(1)+'M';
+  if(n >= 1e3) return '$'+(n/1e3).toFixed(0)+'K';
+  return '$'+n.toFixed(0);
+}
+const mm = t => String(t).padStart(2,'0');
+
+/* ============================================================
+   3 · ANIMATED COUNTERS
+   ============================================================ */
+const counters = new Map();
+function counter(id, target, fmt){
+  let c = counters.get(id);
+  if(!c){
+    const el = document.getElementById(id);
+    if(!el) return;
+    c = { el, cur:target, target, fmt };
+    counters.set(id,c);
+    el.innerHTML = fmt(target);
+    return;
+  }
+  c.target = target; c.fmt = fmt;
+  if(RM){ c.cur = target; c.el.innerHTML = fmt(target); }
+}
+function tickCounters(dt){
+  counters.forEach(c=>{
+    if(Math.abs(c.target - c.cur) < 1e-9) return;
+    const k = 1 - Math.pow(0.0015, dt);
+    c.cur += (c.target - c.cur) * k;
+    if(Math.abs(c.target - c.cur) < Math.max(1e-4, Math.abs(c.target)*1e-5)) c.cur = c.target;
+    c.el.innerHTML = c.fmt(c.cur);
+  });
+}
+
+/* ============================================================
+   4 · CANVAS PLUMBING
+   ============================================================ */
+function mkCanvas(id){
+  const cv = document.getElementById(id);
+  const o = { cv, ctx:cv.getContext('2d'), w:0, h:0 };
+  o.resize = ()=>{
+    const r = cv.getBoundingClientRect();
+    o.w = Math.max(1, r.width); o.h = Math.max(1, r.height);
+    const pw = Math.round(o.w*DPR), ph = Math.round(o.h*DPR);
+    // only touch the backing store when it actually changed — otherwise a
+    // ResizeObserver feedback loop keeps clearing the canvas for nothing
+    if(cv.width !== pw || cv.height !== ph){ cv.width = pw; cv.height = ph; }
+    o.ctx.setTransform(DPR,0,0,DPR,0,0);
+  };
+  o.resize();
+  return o;
+}
+const CE = mkCanvas('emission');
+const CV = mkCanvas('vesting');
+const CF = mkCanvas('flow');
+
+const dirty = { emission:true, vesting:true };
+
+/* ---------- shared chart chrome ---------- */
+const PAD = { l:52, r:14, t:12, b:26 };
+function plot(c){ return { x:PAD.l, y:PAD.t, w:Math.max(10,c.w-PAD.l-PAD.r), h:Math.max(10,c.h-PAD.t-PAD.b) }; }
+
+function grid(ctx, r, yTicks, labelFn){
+  ctx.save();
+  ctx.font = '9px '+getComputedStyle(document.body).fontFamily;
+  ctx.textBaseline = 'middle';
+  for(let i=0;i<=yTicks;i++){
+    const y = Math.round(r.y + r.h - (r.h*i/yTicks)) + .5;
+    ctx.strokeStyle = i===0 ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.045)';
+    ctx.beginPath(); ctx.moveTo(r.x, y); ctx.lineTo(r.x+r.w, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.28)';
+    ctx.textAlign = 'right';
+    ctx.fillText(labelFn(i/yTicks), r.x-9, y);
+  }
+  // month ticks
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const step = r.w < 320 ? 12 : 6;
+  for(let t=0;t<=HORIZON;t+=step){
+    const x = Math.round(r.x + r.w*t/HORIZON) + .5;
+    ctx.strokeStyle = 'rgba(255,255,255,.05)';
+    ctx.beginPath(); ctx.moveTo(x, r.y); ctx.lineTo(x, r.y+r.h); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.26)';
+    ctx.fillText('M'+t, x, r.y+r.h+7);
+  }
+  ctx.restore();
+}
+
+/* ============================================================
+   5 · EMISSION CHART
+   ============================================================ */
+let revealE = RM ? 1 : 0;
+const emissionTip = document.getElementById('emissionTip');
+let hoverE = -1;   // fractional month or -1
+
+function drawEmission(){
+  const { ctx, w, h } = CE;
+  const r = plot(CE);
+  ctx.clearRect(0,0,w,h);
+
+  grid(ctx, r, 4, f => f===0 ? '0' : (f*1000).toFixed(0)+'M');
+
+  const X = t => r.x + r.w * t/HORIZON;
+  const Y = v => r.y + r.h - r.h * (v/TOTAL);
+  const rev = revealE;
+  const cutX = r.x + r.w*rev;
+
+  // monthly release bars (own scale, kept quiet)
+  let maxM = 0; for(let t=0;t<=HORIZON;t++) maxM = Math.max(maxM, M.monthly[t]);
+  if(maxM > 0){
+    const bw = Math.max(1.5, r.w/HORIZON*0.44);
+    ctx.save(); ctx.beginPath(); ctx.rect(r.x, r.y, Math.max(0,cutX-r.x), r.h); ctx.clip();
+    for(let t=0;t<=HORIZON;t++){
+      const bh = (M.monthly[t]/maxM) * r.h * 0.34;
+      if(bh < .5) continue;
+      const hot = t === M.peakMonth;
+      ctx.fillStyle = hot ? 'rgba(255,196,107,.30)' : 'rgba(22,224,255,.115)';
+      ctx.fillRect(X(t)-bw/2, r.y+r.h-bh, bw, bh);
+    }
+    ctx.restore();
+  }
+
+  // total supply reference
+  ctx.save();
+  ctx.setLineDash([3,4]); ctx.strokeStyle = 'rgba(124,140,168,.5)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(r.x, Y(TOTAL)+.5); ctx.lineTo(r.x+r.w, Y(TOTAL)+.5); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = '9px '+getComputedStyle(document.body).fontFamily;
+  ctx.fillStyle = 'rgba(124,140,168,.75)'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText('TOTAL SUPPLY 1,000,000,000', r.x+4, Y(TOTAL)-4);
+  ctx.restore();
+
+  // circulating: area + stroke, progressively revealed
+  ctx.save();
+  ctx.beginPath(); ctx.rect(r.x, r.y-20, Math.max(0,cutX-r.x), r.h+22); ctx.clip();
+
+  const g = ctx.createLinearGradient(0, r.y, 0, r.y+r.h);
+  g.addColorStop(0,   'rgba(22,224,255,.26)');
+  g.addColorStop(.55, 'rgba(22,224,255,.085)');
+  g.addColorStop(1,   'rgba(22,224,255,0)');
+  ctx.beginPath();
+  ctx.moveTo(X(0), r.y+r.h);
+  for(let t=0;t<=HORIZON;t++) ctx.lineTo(X(t), Y(M.circ[t]));
+  ctx.lineTo(X(HORIZON), r.y+r.h); ctx.closePath();
+  ctx.fillStyle = g; ctx.fill();
+
+  ctx.beginPath();
+  for(let t=0;t<=HORIZON;t++){ const x=X(t), y=Y(M.circ[t]); t?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.strokeStyle = '#16e0ff'; ctx.lineWidth = 1.75; ctx.lineJoin = 'round';
+  ctx.shadowColor = 'rgba(22,224,255,.55)'; ctx.shadowBlur = 12;
+  ctx.stroke();
+  ctx.restore();
+
+  // leading head while drawing in
+  if(rev < 1){
+    const t = rev*HORIZON, y = Y(circAtF(t));
+    ctx.save();
+    ctx.fillStyle = '#16e0ff'; ctx.shadowColor='rgba(22,224,255,.9)'; ctx.shadowBlur=14;
+    ctx.beginPath(); ctx.arc(cutX, y, 2.6, 0, 6.2832); ctx.fill();
+    ctx.restore();
+  }
+
+  // timeline head marker
+  const hx = X(monthAnim);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.20)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(hx+.5, r.y); ctx.lineTo(hx+.5, r.y+r.h); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  ctx.beginPath(); ctx.arc(hx, Y(circAtF(monthAnim)), 3, 0, 6.2832); ctx.fill();
+  ctx.restore();
+
+  // scrub crosshair
+  if(hoverE >= 0 && rev >= 1){
+    const t = Math.round(hoverE), x = X(t), y = Y(M.circ[t]);
+    ctx.save();
+    ctx.setLineDash([2,3]); ctx.strokeStyle = 'rgba(22,224,255,.55)';
+    ctx.beginPath(); ctx.moveTo(x+.5, r.y); ctx.lineTo(x+.5, r.y+r.h); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#0a0b0f'; ctx.strokeStyle = '#16e0ff'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, 6.2832); ctx.fill(); ctx.stroke();
+    ctx.restore();
+
+    const infl = M.circ[t]>0 ? M.monthly[t]*12/M.circ[t]*100 : 0;
+    emissionTip.innerHTML =
+      '<div class="tip-h">Month '+mm(t)+'</div>'+
+      '<div class="tip-r"><span>Circulating</span><b>'+fmtTok(M.circ[t])+'</b></div>'+
+      '<div class="tip-r"><span>Of total</span><b>'+(M.circ[t]/TOTAL*100).toFixed(1)+'%</b></div>'+
+      '<div class="tip-r"><span>Released</span><b>'+fmtTok(M.monthly[t])+'</b></div>'+
+      '<div class="tip-r"><span>Ann. inflation</span><b>'+infl.toFixed(1)+'%</b></div>';
+    emissionTip.style.left = clamp(x, 76, CE.w-76)+'px';
+    emissionTip.style.top  = Math.max(58, y-14)+'px';
+    emissionTip.classList.add('on');
+  } else {
+    emissionTip.classList.remove('on');
+  }
+}
+
+/* ============================================================
+   6 · VESTING STACKED AREA
+   ============================================================ */
+let revealV = RM ? 1 : 0;
+const vestingTip = document.getElementById('vestingTip');
+let hoverV = -1;
+const isoAmt = COHORTS.map(()=>1);   // animated isolation weights
+
+function drawVesting(){
+  const { ctx, w, h } = CV;
+  const r = plot(CV);
+  ctx.clearRect(0,0,w,h);
+
+  grid(ctx, r, 4, f => f===0 ? '0' : (f*1000).toFixed(0)+'M');
+
+  const X = t => r.x + r.w * t/HORIZON;
+  const Y = v => r.y + r.h - r.h * (v/TOTAL);
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(r.x, r.y-20, Math.max(0,r.w*revealV), r.h+22); ctx.clip();
+
+  // stack from the bottom up
+  const base = new Float64Array(HORIZON+1);
+  for(let i=0;i<COHORTS.length;i++){
+    const c = COHORTS[i], top = new Float64Array(HORIZON+1);
+    for(let t=0;t<=HORIZON;t++) top[t] = base[t] + M.perCohort[i][t];
+
+    const a = isoAmt[i];
+    ctx.beginPath();
+    ctx.moveTo(X(0), Y(base[0]));
+    for(let t=0;t<=HORIZON;t++) ctx.lineTo(X(t), Y(top[t]));
+    for(let t=HORIZON;t>=0;t--) ctx.lineTo(X(t), Y(base[t]));
+    ctx.closePath();
+    ctx.globalAlpha = 0.10 + 0.46*a;
+    ctx.fillStyle = c.color; ctx.fill();
+
+    ctx.beginPath();
+    for(let t=0;t<=HORIZON;t++){ const x=X(t), y=Y(top[t]); t?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.globalAlpha = 0.18 + 0.82*a;
+    ctx.strokeStyle = c.color; ctx.lineWidth = a>0.6 ? 1.6 : 1;
+    if(a > 0.6){ ctx.shadowColor = c.color; ctx.shadowBlur = 9; }
+    ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    base.set(top);
+  }
+  ctx.restore();
+
+  // cliff marker for the isolated cohort
+  if(state.iso >= 0 && revealV >= 1){
+    const i = state.iso, p = M.p[i], c = COHORTS[i];
+    const x = X(clamp(p.cliff,0,HORIZON));
+    ctx.save();
+    ctx.setLineDash([2,4]); ctx.strokeStyle = c.color; ctx.globalAlpha = .8; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x+.5, r.y); ctx.lineTo(x+.5, r.y+r.h); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    ctx.font = '9px '+getComputedStyle(document.body).fontFamily;
+    ctx.fillStyle = c.color; ctx.textAlign = x > r.x+r.w-90 ? 'right' : 'left'; ctx.textBaseline='top';
+    ctx.fillText('CLIFF M'+p.cliff+' · '+p.vest+'MO LINEAR', x + (x > r.x+r.w-90 ? -5 : 5), r.y+3);
+    ctx.restore();
+  }
+
+  // head marker
+  const hx = X(monthAnim);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.18)';
+  ctx.beginPath(); ctx.moveTo(hx+.5, r.y); ctx.lineTo(hx+.5, r.y+r.h); ctx.stroke();
+  ctx.restore();
+
+  if(hoverV >= 0 && revealV >= 1){
+    const t = Math.round(hoverV), x = X(t);
+    ctx.save();
+    ctx.setLineDash([2,3]); ctx.strokeStyle = 'rgba(255,255,255,.4)';
+    ctx.beginPath(); ctx.moveTo(x+.5, r.y); ctx.lineTo(x+.5, r.y+r.h); ctx.stroke();
+    ctx.restore();
+
+    let html = '<div class="tip-h">Month '+mm(t)+' · unlocked</div>';
+    for(let i=COHORTS.length-1;i>=0;i--){
+      const c = COHORTS[i];
+      html += '<div class="tip-r"><i><span class="sw" style="background:'+c.color+'"></span>'+c.name+'</i><b>'+fmtTok(M.perCohort[i][t])+'</b></div>';
+    }
+    vestingTip.innerHTML = html;
+    vestingTip.style.left = clamp(x, 108, CV.w-108)+'px';
+    vestingTip.style.top  = Math.max(96, r.y+34)+'px';
+    vestingTip.classList.add('on');
+  } else {
+    vestingTip.classList.remove('on');
+  }
+}
+
+/* ============================================================
+   7 · TREASURY FLOW (bezier ribbons + particles)
+   ============================================================ */
+const SINKS = [
+  { name:'Liquidity ops',   w:0.34, color:'#3fd9a8' },
+  { name:'Grants & growth', w:0.28, color:'#16e0ff' },
+  { name:'Protocol ops',    w:0.22, color:'#7c8ca8' },
+  { name:'Buyback reserve', w:0.16, color:'#9b7bff' }
+];
+const PARTICLES = SMALL ? 90 : 230;
+const parts = [];
+for(let i=0;i<PARTICLES;i++){
+  parts.push({ link: i % SINKS.length, t: Math.random(), off: 0.14 + Math.random()*0.72, sp: 0.10 + Math.random()*0.16 });
+}
+let flowHover = -1;
+const flowTip = document.getElementById('flowTip');
+const flowGeom = { links:[], nodes:[] };
+
+function bez(a,b,c,d,t){ const u=1-t; return u*u*u*a + 3*u*u*t*b + 3*u*t*t*c + t*t*t*d; }
+function hexA(hex, a){
+  return 'rgba('+parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16)+','+a.toFixed(3)+')';
+}
+
+function drawFlow(dt){
+  const { ctx, w, h } = CF;
+  ctx.clearRect(0,0,w,h);
+  const pad = 8, labelW = SMALL ? 86 : 100;
+  const x0 = pad + 44, x1 = w - pad - labelW;
+  if(x1 - x0 < 40) return;
+
+  // treasury tokens actually unlocked right now -> deployment budget
+  const ti = COHORTS.findIndex(c=>c.key==='treasury');
+  const unlocked = M.perCohort[ti][Math.round(clamp(monthAnim,0,HORIZON))];
+  const deploy = unlocked * 0.22;                     // modeled deployment rate
+  const load = clamp(unlocked / (TOTAL*0.24), 0, 1);  // 0..1 fill of the treasury
+
+  // the source stays narrower than the sink spread so the ribbons always fan
+  const bandMax = h - pad*2 - 12;
+  const band = Math.max(10, bandMax * (0.30 + 0.70*load) * 0.62);
+  const cy = h/2;
+  const yTop = cy - band/2;
+
+  flowGeom.links.length = 0; flowGeom.nodes.length = 0;
+
+  // source node
+  ctx.save();
+  const sg = ctx.createLinearGradient(0, yTop, 0, yTop+band);
+  sg.addColorStop(0, 'rgba(124,140,168,.9)'); sg.addColorStop(1, 'rgba(124,140,168,.45)');
+  ctx.fillStyle = sg; ctx.fillRect(x0-9, yTop, 5, band);
+  ctx.font = '9px '+getComputedStyle(document.body).fontFamily;
+  ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.save(); ctx.translate(pad+6, cy); ctx.rotate(-Math.PI/2); ctx.textAlign='center';
+  ctx.fillText('DAO TREASURY', 0, 0); ctx.restore();
+  ctx.restore();
+
+  // ribbons
+  let acc = yTop;
+  const gap = 6;
+  const availR = h - pad*2 - gap*(SINKS.length-1);
+  let accR = pad;
+  SINKS.forEach((s,i)=>{
+    const th  = band * s.w;
+    const thR = availR * s.w;
+    const aT = acc, aB = acc + th;
+    const bT = accR, bB = accR + thR;
+    acc += th; accR += thR + gap;
+
+    const cx0 = x0 + (x1-x0)*0.42, cx1 = x0 + (x1-x0)*0.58;
+    flowGeom.links.push({ aT, aB, bT, bB, x0, x1, cx0, cx1, s, i, yMid:(bT+bB)/2 });
+
+    const dim = (flowHover >= 0 && flowHover !== i);
+    const alpha = dim ? 0.05 : 0.17;
+
+    ctx.beginPath();
+    ctx.moveTo(x0, aT);
+    for(let k=0;k<=22;k++){ const t=k/22; ctx.lineTo(bez(x0,cx0,cx1,x1,t), bez(aT,aT,bT,bT,t)); }
+    ctx.lineTo(x1, bB);
+    for(let k=22;k>=0;k--){ const t=k/22; ctx.lineTo(bez(x0,cx0,cx1,x1,t), bez(aB,aB,bB,bB,t)); }
+    ctx.closePath();
+    const rg = ctx.createLinearGradient(x0,0,x1,0);
+    rg.addColorStop(0, 'rgba(124,140,168,'+(alpha*0.55).toFixed(3)+')');
+    rg.addColorStop(1, hexA(s.color, alpha));
+    ctx.fillStyle = rg;
+    ctx.fill();
+    ctx.strokeStyle = dim ? 'rgba(255,255,255,.04)' : 'rgba(255,255,255,.07)';
+    ctx.lineWidth = 1; ctx.stroke();
+
+    // sink node + label
+    ctx.fillStyle = dim ? 'rgba(255,255,255,.10)' : s.color;
+    ctx.globalAlpha = dim ? .5 : .85;
+    ctx.fillRect(x1+3, bT, 3, Math.max(2,thR));
+    ctx.globalAlpha = 1;
+    ctx.font = '9px '+getComputedStyle(document.body).fontFamily;
+    ctx.fillStyle = dim ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.62)';
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(s.name.toUpperCase(), x1+12, (bT+bB)/2 - 5);
+    ctx.fillStyle = dim ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.36)';
+    ctx.fillText(fmtTok(deploy*s.w)+'/MO', x1+12, (bT+bB)/2 + 6);
+    flowGeom.nodes.push({ x:x1+3, y0:bT, y1:bB, i });
+  });
+
+  // particles
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const speedK = 0.35 + load*1.15;
+  for(let k=0;k<parts.length;k++){
+    const p = parts[k], L = flowGeom.links[p.link];
+    if(!L) continue;
+    if(!RM) p.t += p.sp * speedK * dt;
+    if(p.t > 1) p.t -= 1;
+    const t = p.t;
+    const x = bez(L.x0, L.cx0, L.cx1, L.x1, t);
+    const yA = bez(L.aT, L.aT, L.bT, L.bT, t);
+    const yB = bez(L.aB, L.aB, L.bB, L.bB, t);
+    const y = yA + (yB-yA)*p.off;
+    const dim = (flowHover >= 0 && flowHover !== p.link);
+    ctx.globalAlpha = (dim ? .10 : .55) * (0.45 + 0.55*Math.sin(t*Math.PI));
+    ctx.fillStyle = L.s.color;
+    ctx.beginPath(); ctx.arc(x, y, dim?0.9:1.35, 0, 6.2832); ctx.fill();
+  }
+  ctx.restore();
+
+  if(flowHover >= 0){
+    const L = flowGeom.links[flowHover];
+    flowTip.innerHTML =
+      '<div class="tip-h">'+L.s.name+'</div>'+
+      '<div class="tip-r"><span>Share of deployment</span><b>'+(L.s.w*100).toFixed(0)+'%</b></div>'+
+      '<div class="tip-r"><span>Rate</span><b>'+fmtTok(deploy*L.s.w)+' /mo</b></div>'+
+      '<div class="tip-r"><span>Treasury unlocked</span><b>'+fmtTok(unlocked)+'</b></div>';
+    flowTip.style.left = clamp(L.x1-30, 110, CF.w-110)+'px';
+    flowTip.style.top  = Math.max(70, L.yMid-8)+'px';
+    flowTip.classList.add('on');
+  } else flowTip.classList.remove('on');
+}
+
+/* ============================================================
+   8 · SUPPLY SPHERE — hand-written WebGL, particle state bound
+        to the vesting math (each point carries its unlock month)
+   ============================================================ */
+const N_PTS = SMALL ? 1600 : 4000;
+const sphCv = document.getElementById('sphere');
+const fbCv  = document.getElementById('sphere2d');
+let gl = null, sph = null, fallback = false;
+const sphPos    = new Float32Array(N_PTS*3);
+const sphMonth  = new Float32Array(N_PTS);
+const sphCoh    = new Float32Array(N_PTS);
+const sphColor  = new Float32Array(N_PTS*3);
+const rnd = new Float32Array(N_PTS*2);   // frozen per-point randomness
+const cohOf = new Int32Array(N_PTS);
+
+(function seedPoints(){
+  // deterministic-ish sequence so the cloud never reshuffles on re-map
+  let s = 20240613;
+  const rand = ()=>{ s = (s*1664525 + 1013904223) & 0x7fffffff; return s / 0x7fffffff; };
+
+  // assign cohort by cumulative share
+  const cum = []; let a = 0;
+  COHORTS.forEach(c=>{ a += c.share; cum.push(a); });
+
+  const GA = Math.PI * (3 - Math.sqrt(5));
+  for(let i=0;i<N_PTS;i++){
+    const y = 1 - (i/(N_PTS-1))*2;
+    const rr = Math.sqrt(Math.max(0,1-y*y));
+    const th = GA*i;
+    sphPos[i*3]   = Math.cos(th)*rr;
+    sphPos[i*3+1] = y;
+    sphPos[i*3+2] = Math.sin(th)*rr;
+
+    const u = i/N_PTS;                     // spread cohorts as latitude bands
+    let ci = 0; while(ci < cum.length-1 && u > cum[ci]) ci++;
+    cohOf[i] = ci; sphCoh[i] = ci;
+    const c = COHORTS[ci];
+    const R = parseInt(c.color.slice(1,3),16)/255,
+          G = parseInt(c.color.slice(3,5),16)/255,
+          B = parseInt(c.color.slice(5,7),16)/255;
+    sphColor[i*3]=R; sphColor[i*3+1]=G; sphColor[i*3+2]=B;
+
+    rnd[i*2] = rand();      // TGE coin
+    rnd[i*2+1] = rand();    // position within the linear ramp
+  }
+})();
+
+function remapMonths(){
+  for(let i=0;i<N_PTS;i++){
+    const p = M.p[cohOf[i]];
+    sphMonth[i] = (rnd[i*2] < p.tge) ? 0 : (p.cliff + rnd[i*2+1]*p.vest);
+  }
+  if(sph && gl){
+    gl.bindBuffer(gl.ARRAY_BUFFER, sph.bMonth);
+    gl.bufferData(gl.ARRAY_BUFFER, sphMonth, gl.DYNAMIC_DRAW);
+  }
+}
+
+const VS = [
+'attribute vec3 a_pos;',
+'attribute vec3 a_col;',
+'attribute float a_month;',
+'attribute float a_coh;',
+'uniform float u_month, u_time, u_yaw, u_pitch, u_dpr, u_iso;',
+'uniform vec2 u_res;',
+'varying float v_lit; varying vec3 v_col; varying float v_depth; varying float v_iso;',
+'void main(){',
+'  float lit = smoothstep(0.0, 1.4, u_month - a_month + 0.35);',
+'  float r = mix(0.80, 1.0, lit);',
+'  r *= 1.0 + 0.014*sin(u_time*0.7 + a_pos.x*4.0 + a_pos.y*2.5);',
+'  vec3 p = a_pos * r;',
+'  float cy = cos(u_yaw), sy = sin(u_yaw);',
+'  p = vec3(p.x*cy + p.z*sy, p.y, -p.x*sy + p.z*cy);',
+'  float cx = cos(u_pitch), sx = sin(u_pitch);',
+'  p = vec3(p.x, p.y*cx - p.z*sx, p.y*sx + p.z*cx);',
+'  float z = p.z + 3.35;',
+'  float f = 2.40;',
+'  float aspect = max(0.0001, u_res.x/u_res.y);',
+'  gl_Position = vec4(p.x*f/z/aspect, p.y*f/z, 0.0, 1.0);',
+'  gl_PointSize = u_dpr * mix(2.0, 4.1, lit) * (3.35/z);',
+'  v_lit = lit; v_col = a_col; v_depth = (p.z + 1.0) * 0.5;',
+'  v_iso = (u_iso < -0.5 || abs(a_coh - u_iso) < 0.5) ? 1.0 : 0.14;',
+'}'
+].join('\n');
+
+const FS = [
+'precision mediump float;',
+'varying float v_lit; varying vec3 v_col; varying float v_depth; varying float v_iso;',
+'void main(){',
+'  vec2 c = gl_PointCoord * 2.0 - 1.0;',
+'  float d = dot(c,c);',
+'  if(d > 1.0) discard;',
+'  float soft = (1.0 - d); soft *= soft;',
+'  vec3 col = mix(vec3(0.34,0.39,0.48), v_col, v_lit);',
+'  float a = soft * mix(0.34, 1.0, v_lit) * mix(0.34, 1.0, clamp(v_depth,0.0,1.0)) * v_iso;',
+'  gl_FragColor = vec4(col * a, a);',
+'}'
+].join('\n');
+
+function initGL(){
+  try{
+    gl = sphCv.getContext('webgl', { alpha:true, antialias:true, premultipliedAlpha:true, powerPreference:'low-power' })
+      || sphCv.getContext('experimental-webgl');
+  }catch(e){ gl = null; }
+  if(!gl) return false;
+
+  function sh(type, src){
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){ console.warn(gl.getShaderInfoLog(s)); return null; }
+    return s;
+  }
+  const vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
+  if(!vs || !fs) return false;
+  const pr = gl.createProgram();
+  gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+  if(!gl.getProgramParameter(pr, gl.LINK_STATUS)){ console.warn(gl.getProgramInfoLog(pr)); return false; }
+  gl.useProgram(pr);
+
+  const buf = (data, usage)=>{ const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER, data, usage||gl.STATIC_DRAW); return b; };
+  sph = {
+    pr,
+    bPos:   buf(sphPos),
+    bCol:   buf(sphColor),
+    bMonth: buf(sphMonth, gl.DYNAMIC_DRAW),
+    bCoh:   buf(sphCoh),
+    aPos:   gl.getAttribLocation(pr,'a_pos'),
+    aCol:   gl.getAttribLocation(pr,'a_col'),
+    aMonth: gl.getAttribLocation(pr,'a_month'),
+    aCoh:   gl.getAttribLocation(pr,'a_coh'),
+    uMonth: gl.getUniformLocation(pr,'u_month'),
+    uTime:  gl.getUniformLocation(pr,'u_time'),
+    uYaw:   gl.getUniformLocation(pr,'u_yaw'),
+    uPitch: gl.getUniformLocation(pr,'u_pitch'),
+    uRes:   gl.getUniformLocation(pr,'u_res'),
+    uDpr:   gl.getUniformLocation(pr,'u_dpr'),
+    uIso:   gl.getUniformLocation(pr,'u_iso')
+  };
+  gl.disable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0,0,0,0);
+  return true;
+}
+
+function bindAttr(loc, b, size){
+  if(loc < 0) return;
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+}
+
+function resizeSphere(){
+  // measure the wrapper: whichever canvas is hidden would report 0
+  const r = document.getElementById('sphereWrap').getBoundingClientRect();
+  const w = Math.max(1, Math.round(r.width*DPR)), h = Math.max(1, Math.round(r.height*DPR));
+  // guard: re-allocating a WebGL drawing buffer every observer tick will
+  // eventually cost you the context (it did)
+  if(sphCv.width !== w || sphCv.height !== h){
+    sphCv.width = w; sphCv.height = h;
+    if(gl) gl.viewport(0,0,w,h);
+  }
+  if(fbCv.width !== w || fbCv.height !== h){ fbCv.width = w; fbCv.height = h; }
+}
+
+/* A lost context cannot be handed back as 2d, so the fallback lives on its
+   own canvas and we swap which one is visible. */
+function useFallback(on){
+  fallback = on;
+  sphCv.hidden = on;
+  fbCv.hidden = !on;
+  el('sphereNote').textContent = N_PTS.toLocaleString('en-US')+' pts · '+(on ? '2d' : 'webgl');
+}
+
+sphCv.addEventListener('webglcontextlost', e=>{
+  e.preventDefault(); gl = null; sph = null; useFallback(true);
+}, false);
+sphCv.addEventListener('webglcontextrestored', ()=>{
+  if(initGL()){ remapMonths(); sphCv.width = 0; resizeSphere(); useFallback(false); }
+}, false);
+
+let yaw = 0.6, pitch = -0.18, yawT = 0.6, pitchT = -0.18, dragging = false, lastX = 0, lastY = 0, spin = true;
+
+function drawSphere(dt, time){
+  if(fallback || !gl || !sph) { drawSphere2D(dt); return; }
+  if(spin && !RM) yawT += dt*0.16;
+  yaw   += (yawT - yaw) * (1 - Math.pow(0.002, dt));
+  pitch += (pitchT - pitch) * (1 - Math.pow(0.002, dt));
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(sph.pr);
+  bindAttr(sph.aPos, sph.bPos, 3);
+  bindAttr(sph.aCol, sph.bCol, 3);
+  bindAttr(sph.aMonth, sph.bMonth, 1);
+  bindAttr(sph.aCoh, sph.bCoh, 1);
+  gl.uniform1f(sph.uMonth, monthAnim);
+  gl.uniform1f(sph.uTime, time);
+  gl.uniform1f(sph.uYaw, yaw);
+  gl.uniform1f(sph.uPitch, pitch);
+  gl.uniform2f(sph.uRes, sphCv.width, sphCv.height);
+  gl.uniform1f(sph.uDpr, DPR);
+  gl.uniform1f(sph.uIso, state.iso);
+  gl.drawArrays(gl.POINTS, 0, N_PTS);
+}
+
+/* 2D fallback — same particle data, same unlock math, projected in JS */
+let ctx2d = null;
+function drawSphere2D(dt){
+  if(!ctx2d){ ctx2d = fbCv.getContext('2d'); if(!ctx2d) return; }
+  const w = fbCv.width, h = fbCv.height;
+  ctx2d.clearRect(0,0,w,h);
+  if(spin && !RM) yawT += dt*0.16;
+  yaw += (yawT-yaw)*0.1;
+  pitch += (pitchT-pitch)*0.1;
+  const cyy=Math.cos(yaw), syy=Math.sin(yaw), cxx=Math.cos(pitch), sxx=Math.sin(pitch);
+  const R = Math.min(w,h)*0.38, ox = w/2, oy = h/2;
+  const step = SMALL ? 2 : 1;
+  for(let i=0;i<N_PTS;i+=step){
+    const lit = clamp((monthAnim - sphMonth[i] + 0.35)/1.4, 0, 1);
+    const rr = 0.80 + 0.20*lit;
+    let x = sphPos[i*3]*rr, y = sphPos[i*3+1]*rr, z = sphPos[i*3+2]*rr;
+    let x2 = x*cyy + z*syy, z2 = -x*syy + z*cyy;
+    let y2 = y*cxx - z2*sxx; z2 = y*sxx + z2*cxx;
+    const dep = (z2+1)*0.5;
+    const iso = (state.iso < 0 || cohOf[i] === state.iso) ? 1 : 0.14;
+    const a = (0.18 + 0.72*lit) * (0.3 + 0.7*dep) * iso;
+    if(a < 0.03) continue;
+    const c = COHORTS[cohOf[i]];
+    ctx2d.fillStyle = lit > .5 ? c.color : '#454f5e';
+    ctx2d.globalAlpha = a;
+    ctx2d.fillRect(ox + x2*R, oy - y2*R, DPR*(1.2+lit), DPR*(1.2+lit));
+  }
+  ctx2d.globalAlpha = 1;
+}
+
+/* ============================================================
+   9 · DOM WIRING
+   ============================================================ */
+const el = id => document.getElementById(id);
+
+/* legend chips */
+const legend = el('legend');
+COHORTS.forEach((c,i)=>{
+  const b = document.createElement('button');
+  b.className = 'lg'; b.type='button'; b.dataset.i = i;
+  b.innerHTML = '<span class="sw" style="background:'+c.color+'"></span>'+c.name;
+  legend.appendChild(b);
+});
+
+/* allocation table */
+const tblBody = el('tblBody');
+COHORTS.forEach((c,i)=>{
+  const tr = document.createElement('tr');
+  tr.dataset.i = i;
+  tr.innerHTML =
+    '<td><span class="c-name"><span class="sw" style="background:'+c.color+'"></span>'+c.name+'</span></td>'+
+    '<td>'+(c.share*100).toFixed(0)+'%</td>'+
+    '<td class="num" data-f="tge">—</td>'+
+    '<td class="num" data-f="cliff">—</td>'+
+    '<td class="num col-vest" data-f="vest">—</td>'+
+    '<td class="num" data-f="unl">—</td>'+
+    '<td class="col-bar"><span class="bar"><i class="tge" style="background:'+c.color+'"></i><i style="background:'+c.color+'"></i></span></td>';
+  tblBody.appendChild(tr);
+});
+
+function setIso(i){
+  if(state.isoPin && i !== -1 && i !== state.iso) return;
+  state.iso = i;
+  document.querySelectorAll('.lg').forEach(n=> n.classList.toggle('on', +n.dataset.i === i));
+  document.querySelectorAll('#tblBody tr').forEach(n=> n.classList.toggle('dim', i>=0 && +n.dataset.i !== i));
+  dirty.vesting = true;
+}
+legend.addEventListener('pointerover', e=>{ const b=e.target.closest('.lg'); if(b && !state.isoPin) setIso(+b.dataset.i); });
+legend.addEventListener('pointerleave', ()=>{ if(!state.isoPin) setIso(-1); });
+legend.addEventListener('click', e=>{
+  const b = e.target.closest('.lg'); if(!b) return;
+  const i = +b.dataset.i;
+  if(state.isoPin && state.iso === i){ state.isoPin = false; setIso(-1); }
+  else { state.isoPin = false; setIso(i); state.isoPin = true; }
+});
+tblBody.addEventListener('pointerover', e=>{ const tr=e.target.closest('tr'); if(tr && !state.isoPin) setIso(+tr.dataset.i); });
+tblBody.addEventListener('pointerleave', ()=>{ if(!state.isoPin) setIso(-1); });
+
+/* sliders */
+function onParams(){
+  recompute(); remapMonths(); syncUI();
+  dirty.emission = dirty.vesting = true;
+}
+el('rTge').addEventListener('input', e=>{
+  state.tge = +e.target.value/100; clearPreset(); onParams();
+});
+el('rCliff').addEventListener('input', e=>{
+  state.cliff = +e.target.value; clearPreset(); onParams();
+});
+el('rVest').addEventListener('input', e=>{
+  state.vest = +e.target.value; clearPreset(); onParams();
+});
+
+function clearPreset(){
+  state.preset = null;
+  document.querySelectorAll('.preset').forEach(n=> n.classList.remove('on'));
+}
+el('presets').addEventListener('click', e=>{
+  const b = e.target.closest('.preset'); if(!b) return;
+  const p = PRESETS[b.dataset.p];
+  state.tge = p.tge; state.cliff = p.cliff; state.vest = p.vest; state.preset = b.dataset.p;
+  el('rTge').value = Math.round(p.tge*100);
+  el('rCliff').value = p.cliff;
+  el('rVest').value = p.vest;
+  document.querySelectorAll('.preset').forEach(n=> n.classList.toggle('on', n===b));
+  onParams();
+});
+
+/* timeline */
+let monthAnim = 0, playing = false;
+const timeRange = el('timeRange');
+timeRange.addEventListener('input', e=>{
+  state.month = +e.target.value; playing = false; setPlayIcon();
+  syncTime(); dirty.emission = dirty.vesting = true;
+});
+el('playBtn').addEventListener('click', ()=>{
+  if(state.month >= HORIZON) { state.month = 0; monthAnim = 0; timeRange.value = 0; }
+  playing = !playing; setPlayIcon();
+});
+function setPlayIcon(){
+  el('playIcon').innerHTML = playing
+    ? '<path d="M2 1h3v10H2zM7 1h3v10H7z"/>'
+    : '<path d="M2 0.7 L11 6 L2 11.3 Z"/>';
+}
+
+/* chart pointers */
+function chartPointer(wrapId, canvasObj, setter){
+  const wrap = el(wrapId);
+  const move = e=>{
+    const r = canvasObj.cv.getBoundingClientRect();
+    const p = plot(canvasObj);
+    const x = e.clientX - r.left;
+    if(x < p.x-6 || x > p.x+p.w+6){ setter(-1); return; }
+    setter(clamp((x - p.x)/p.w, 0, 1) * HORIZON);
+  };
+  wrap.addEventListener('pointermove', move);
+  wrap.addEventListener('pointerdown', move);
+  wrap.addEventListener('pointerleave', ()=> setter(-1));
+}
+chartPointer('emissionWrap', CE, v=>{ if(hoverE!==v){ hoverE=v; dirty.emission=true; } });
+chartPointer('vestingWrap',  CV, v=>{ if(hoverV!==v){ hoverV=v; dirty.vesting=true; } });
+
+/* flow hover */
+el('flowWrap').addEventListener('pointermove', e=>{
+  const r = CF.cv.getBoundingClientRect();
+  const y = e.clientY - r.top, x = e.clientX - r.left;
+  let hit = -1;
+  flowGeom.links.forEach(L=>{
+    if(x > L.x1 - 60 && y >= L.bT-8 && y <= L.bB+8) hit = L.i;
+  });
+  flowHover = hit;
+});
+el('flowWrap').addEventListener('pointerleave', ()=>{ flowHover = -1; });
+
+/* sphere drag — bound to the wrapper so it survives a canvas swap */
+const sphereWrap = el('sphereWrap');
+sphereWrap.addEventListener('pointerdown', e=>{
+  dragging = true; spin = false; lastX = e.clientX; lastY = e.clientY;
+  sphereWrap.setPointerCapture && sphereWrap.setPointerCapture(e.pointerId);
+});
+window.addEventListener('pointermove', e=>{
+  if(!dragging){
+    if(!TOUCH){
+      const r = sphereWrap.getBoundingClientRect();
+      if(e.clientX>r.left && e.clientX<r.right && e.clientY>r.top && e.clientY<r.bottom){
+        pitchT = clamp(-0.18 + ((e.clientY-r.top)/r.height - .5) * 0.5, -0.9, 0.9);
+      }
+    }
+    return;
+  }
+  yawT   += (e.clientX - lastX) * 0.008;
+  pitchT  = clamp(pitchT + (e.clientY - lastY) * 0.006, -1.15, 1.15);
+  lastX = e.clientX; lastY = e.clientY;
+});
+window.addEventListener('pointerup', ()=>{ if(dragging){ dragging = false; setTimeout(()=> spin = true, 1400); } });
+
+/* ============================================================
+   10 · UI SYNC
+   ============================================================ */
+function hash4(){
+  let h = 2166136261;
+  const s = state.tge.toFixed(4)+'|'+state.cliff+'|'+state.vest;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ((h>>>0) % 65536).toString(16).toUpperCase().padStart(4,'0');
+}
+
+function syncUI(){
+  el('vTge').innerHTML   = Math.round(state.tge*100)+'<small>%</small>';
+  el('vCliff').innerHTML = state.cliff+'<small>mo</small>';
+  el('vVest').innerHTML  = state.vest+'<small>mo</small>';
+  el('rev').textContent  = hash4();
+
+  counter('kpiTge', M.tgePct, v=> v.toFixed(1)+'<small>%</small>');
+  el('kpiTgeSub').textContent = fmtTok(M.circ[0])+' of 1,000,000,000';
+
+  counter('kpiM12', M.m12Pct, v=> v.toFixed(1)+'<small>%</small>');
+  el('kpiM12Sub').textContent = fmtTok(M.circ[12])+' circulating';
+
+  counter('kpiPeak', M.peakPct, v=> v.toFixed(1)+'<small>%</small>');
+  el('kpiPeakSub').textContent = 'added to float at M'+M.peakMonth;
+  el('kpiPeakCell').setAttribute('data-tone', M.peakPct > 12 ? 'warn' : '');
+
+  const fm = M.fullMonth;
+  el('kpiFull').innerHTML = fm >= 0 ? 'M'+mm(fm) : '&gt;M48';
+  el('kpiFullSub').textContent = fm >= 0 ? '99.5% of supply unlocked' : 'still vesting past the horizon';
+
+  renderChecks();
+  renderTable();
+  syncTime();
+}
+
+function syncTime(){
+  const t = clamp(state.month, 0, HORIZON);
+  el('tbMonth').textContent = mm(t);
+  el('flowMonth').textContent = mm(t);
+  el('tblMonth').textContent = mm(t);
+
+  counter('tbCirc',   M.circ[t],            v=> fmtTok(v));
+  counter('tbUnlock', M.monthly[t],         v=> fmtTok(v));
+  counter('tbMc',     M.circ[t]*PRICE,      v=> fmtUsd(v));
+  counter('kpiRatio', M.circ[t]/TOTAL*100,  v=> v.toFixed(0)+'<small>%</small>');
+  el('kpiRatioSub').textContent = fmtUsd(M.circ[t]*PRICE)+' MC / '+fmtUsd(TOTAL*PRICE)+' FDV';
+
+  renderTable();
+}
+
+function renderChecks(){
+  const out = [];
+  const teamCliff = M.p[COHORTS.findIndex(c=>c.key==='team')].cliff;
+
+  if(M.tgePct > 24) out.push(['bad','Float at TGE is '+M.tgePct.toFixed(1)+'%','thin order books absorb this badly — expect violent price discovery.']);
+  else if(M.tgePct < 6) out.push(['warn','Float at TGE is '+M.tgePct.toFixed(1)+'%','too tight to bootstrap depth; market makers will want more.']);
+
+  // an early peak is a steep opening ramp; a late one is cliffs landing together
+  const early = M.peakMonth <= 2;
+  const why = early
+    ? 'the opening ramp outruns the float — lengthen the short vests.'
+    : 'cliffs are landing together — stagger them or the unlock prints a wick.';
+  if(M.peakPct > 12) out.push(['bad','M'+M.peakMonth+' releases '+M.peakPct.toFixed(1)+'% of float', why]);
+  else if(M.peakPct > 7) out.push(['warn','M'+M.peakMonth+' releases '+M.peakPct.toFixed(1)+'% of float','the largest single step in the schedule — watch it.']);
+
+  if(teamCliff < 6) out.push(['warn','Team cliff is '+teamCliff+' months','under the 12-month norm most listing desks look for.']);
+
+  if(M.fullMonth < 0) out.push(['warn','Still vesting past M48','the tail extends beyond the modelled horizon.']);
+
+  if(!out.length) out.push(['ok','Schedule sits inside common ranges','TGE float, peak unlock and team cliff all pass the checks.']);
+
+  el('checks').innerHTML = out.slice(0,3).map(([t,h,s])=>
+    '<div class="check" data-t="'+t+'"><i></i><span><b>'+h+'</b> — '+s+'</span></div>'
+  ).join('');
+}
+
+function renderTable(){
+  const t = clamp(state.month, 0, HORIZON);
+  const rows = tblBody.children;
+  for(let i=0;i<COHORTS.length;i++){
+    const p = M.p[i], tr = rows[i];
+    const frac = fracAt(i,t);
+    tr.querySelector('[data-f="tge"]').textContent   = (p.tge*100).toFixed(0)+'%';
+    tr.querySelector('[data-f="cliff"]').textContent = p.cliff+'mo';
+    tr.querySelector('[data-f="vest"]').textContent  = p.vest+'mo';
+    tr.querySelector('[data-f="unl"]').textContent   = fmtTok(p.alloc*frac);
+    const bars = tr.querySelectorAll('.bar i');
+    if(bars.length===2){
+      bars[1].style.width = (frac*100).toFixed(1)+'%';
+      bars[0].style.width = (Math.min(p.tge,frac)*100).toFixed(1)+'%';
+      bars[0].style.zIndex = 2;
+    }
+  }
+  el('tfTge').textContent = (M.circ[0]/TOTAL*100).toFixed(1)+'%';
+  el('tfUnlocked').textContent = fmtTok(M.circ[t])+' · '+(M.circ[t]/TOTAL*100).toFixed(1)+'%';
+}
+
+/* ============================================================
+   11 · MAIN LOOP
+   ============================================================ */
+let last = performance.now()/1000, t0 = last, autoDone = RM;
+
+function frame(now){
+  now /= 1000;
+  const dt = Math.min(0.05, now - last); last = now;
+  const time = now - t0;
+
+  // draw-in
+  if(revealE < 1){ revealE = Math.min(1, revealE + dt/1.15); dirty.emission = true; }
+  if(time > .28 && revealV < 1){ revealV = Math.min(1, revealV + dt/1.05); dirty.vesting = true; }
+
+  // one auto sweep so the page is alive before anyone touches it
+  if(!autoDone && revealE >= 1 && !playing){ playing = true; autoDone = true; setPlayIcon(); }
+  if(playing){
+    // monthAnim is the float playhead; state.month is its integer shadow
+    monthAnim = Math.min(HORIZON, monthAnim + dt*4.6);
+    const stopAt = autoSweepStop ? 24 : HORIZON;
+    if(monthAnim >= stopAt){
+      monthAnim = stopAt; playing = false; setPlayIcon();
+      if(autoSweepStop) autoSweepStop = false;
+    }
+    const im = Math.round(monthAnim);
+    if(im !== state.month){ state.month = im; timeRange.value = im; syncTime(); }
+    dirty.emission = dirty.vesting = true;
+  } else {
+    const d = state.month - monthAnim;
+    if(Math.abs(d) > 0.002){
+      monthAnim += d * (1 - Math.pow(0.0009, dt));
+      dirty.emission = dirty.vesting = true;
+    } else monthAnim = state.month;
+  }
+
+  // isolation weights ease
+  let isoMoved = false;
+  for(let i=0;i<COHORTS.length;i++){
+    const target = (state.iso < 0 || state.iso === i) ? 1 : 0;
+    const d = target - isoAmt[i];
+    if(Math.abs(d) > 0.002){ isoAmt[i] += d * (1 - Math.pow(0.0008, dt)); isoMoved = true; }
+    else isoAmt[i] = target;
+  }
+  if(isoMoved) dirty.vesting = true;
+
+  tickCounters(dt);
+
+  if(dirty.emission){ drawEmission(); dirty.emission = false; }
+  if(dirty.vesting){ drawVesting(); dirty.vesting = false; }
+  drawFlow(dt);
+  drawSphere(dt, time);
+
+  requestAnimationFrame(frame);
+}
+
+let autoSweepStop = true;   // the first automatic sweep stops at M24
+
+/* ============================================================
+   12 · BOOT
+   ============================================================ */
+function resizeAll(){
+  CE.resize(); CV.resize(); CF.resize(); resizeSphere();
+  dirty.emission = dirty.vesting = true;
+}
+let rzT = 0;
+const scheduleResize = ()=>{ clearTimeout(rzT); rzT = setTimeout(resizeAll, 90); };
+window.addEventListener('resize', scheduleResize);
+
+// the chart wrappers are flex children, so their final height is only known
+// once the grid row has resolved — observe rather than guess.
+if(window.ResizeObserver){
+  const ro = new ResizeObserver(scheduleResize);
+  ['emissionWrap','vestingWrap','flowWrap','sphereWrap'].forEach(id=>{
+    const n = document.getElementById(id); if(n) ro.observe(n);
+  });
+}
+
+recompute();
+remapMonths();
+useFallback(!initGL());
+el('perPt').textContent = nf.format(Math.round(TOTAL/N_PTS));
+
+resizeAll();
+syncUI();
+counter('sphLit', 0, v=> nf.format(Math.round(v)));
+counter('sphLock', N_PTS, v=> nf.format(Math.round(v)));
+
+// lit-particle readout follows the same math the shader uses
+setInterval(()=>{
+  let lit = 0;
+  for(let i=0;i<N_PTS;i++) if(sphMonth[i] <= monthAnim + 0.35) lit++;
+  counter('sphLit', lit, v=> nf.format(Math.round(v)));
+  counter('sphLock', N_PTS-lit, v=> nf.format(Math.round(v)));
+}, 140);
+
+if(RM){ state.month = 24; monthAnim = 24; timeRange.value = 24; syncTime(); }
+
+requestAnimationFrame(()=>{
+  document.getElementById('app').classList.add('ready');
+  requestAnimationFrame(frame);
+});
+
+// release the WebGL context if the page is hidden for a long time
+document.addEventListener('visibilitychange', ()=>{ spin = !document.hidden; });
+
+})();
+</script>
+</body>
+</html>
