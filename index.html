@@ -93,10 +93,10 @@
 
   .masthead {
     border-bottom: 1px solid var(--rule-strong);
-    padding: clamp(2.2rem, 6vw, 4.5rem) 0 0;
+    padding: clamp(1.8rem, 4.6vw, 3.4rem) 0 0;
     display: flex;
     flex-direction: column;
-    gap: clamp(1.6rem, 4vw, 2.8rem);
+    gap: clamp(1.4rem, 3.2vw, 2.3rem);
   }
 
   .masthead-top {
@@ -142,7 +142,7 @@
 
   .offer {
     background: var(--paper);
-    padding: 1.4rem 0 1.8rem;
+    padding: 1.2rem 0 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -164,6 +164,191 @@
     margin: 0;
     color: var(--graphite);
     font-size: 0.9rem;
+  }
+
+  /* ---------- флагманские демо ---------- */
+
+  .flagships {
+    margin-top: clamp(1.9rem, 4vw, 2.8rem);
+  }
+
+  .flagships-head {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 0.9rem clamp(1.5rem, 4vw, 3.2rem);
+    align-items: end;
+    margin-bottom: clamp(1.2rem, 2.6vw, 1.9rem);
+  }
+
+  .flagships-id {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem 1.5rem;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+  }
+
+  .flagships h2 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.06;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .flagships-note {
+    margin: 0;
+    color: var(--graphite);
+    font-size: 0.95rem;
+    max-width: 52ch;
+  }
+
+  .cases {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: clamp(0.85rem, 1.8vw, 1.3rem);
+  }
+
+  .case {
+    grid-column: span 2;
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    border: 1px solid var(--rule-strong);
+    color: inherit;
+    text-decoration: none;
+    position: relative;
+    transition: border-color 0.18s ease;
+  }
+
+  .case:nth-child(-n + 2) { grid-column: span 3; }
+
+  .case::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 46px;
+    height: 3px;
+    background: var(--blue);
+    z-index: 2;
+    transition: width 0.32s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  .case:hover, .case:focus-visible { border-color: var(--blue); }
+  .case:hover::before, .case:focus-visible::before { width: calc(100% + 2px); }
+  .case:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  .case-shot {
+    margin: 0;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #0B0E13;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .case-shot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  .case:hover .case-shot img { transform: scale(1.035); }
+
+  .case-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem clamp(0.85rem, 1.5vw, 1.15rem) 0.95rem;
+  }
+
+  .case-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .case h3 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    line-height: 1.06;
+    margin: 0;
+  }
+
+  .case p {
+    margin: 0;
+    color: var(--graphite);
+    font-size: 0.9rem;
+  }
+
+  .case-open {
+    margin-top: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blue);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .case-open .arrow {
+    transition: transform 0.22s ease;
+  }
+
+  .case:hover .case-open .arrow { transform: translateX(5px); }
+
+  /* ---------- разделитель каталога ---------- */
+
+  .rail {
+    border-top: 1px solid var(--rule-strong);
+    margin-top: clamp(3rem, 7vw, 5rem);
+    padding-top: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .rail-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.4rem 1.5rem;
+  }
+
+  .rail h2 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.06;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  @media (max-width: 980px) {
+    .case, .case:nth-child(-n + 2) { grid-column: span 3; }
+    .case:last-child { grid-column: 1 / -1; }
+  }
+
+  @media (max-width: 620px) {
+    .flagships-head { grid-template-columns: minmax(0, 1fr); align-items: start; }
+    .case, .case:nth-child(-n + 2), .case:last-child { grid-column: 1 / -1; }
   }
 
   /* ---------- plates ---------- */
@@ -483,7 +668,7 @@
     <p class="lede">
       Делаю то, что веб-студии обычно не берут: инженерные калькуляторы и 3D-конфигураторы,
       автоматизацию документооборота, обучающие платформы, серверную часть под мобильные
-      приложения. Ниже — четырнадцать работ, каждая с экраном или живой записью.
+      приложения. Ниже — пять интерактивных демо и четырнадцать рабочих проектов.
     </p>
 
     <div class="offers">
@@ -503,6 +688,112 @@
   </header>
 
   <main>
+
+    <section class="flagships" aria-labelledby="flagships-title">
+      <div class="flagships-head">
+        <div class="flagships-id">
+          <p class="eyebrow">Флагманы</p>
+          <p class="eyebrow">Живые страницы, не запись экрана</p>
+        </div>
+        <h2 id="flagships-title">Пять демо — лучше один раз открыть</h2>
+        <p class="flagships-note">
+          Сложная графика в браузере: WebGL на сырых шейдерах, курсорная физика,
+          параметрическая генерация. Каждое демо — отдельная страница, ничего ставить не нужно.
+        </p>
+      </div>
+
+      <div class="cases">
+
+        <a class="case" href="cases/aurum/">
+          <figure class="case-shot">
+            <img src="assets/thumbs/aurum.jpg" width="1000" height="562" decoding="async"
+                 alt="AURUM: бронзовая скульптура коня на тёмном фоне, крупная типографика Bronze and Time">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Демо 01</span>
+              <span class="eyebrow">WebGL · шейдеры</span>
+            </div>
+            <h3>AURUM</h3>
+            <p>Бронзовая скульптура на сырых шейдерах: камера облетает её на 360° по скроллу.</p>
+            <span class="case-open"><span>Открыть демо</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        <a class="case" href="cases/ferro/">
+          <figure class="case-shot">
+            <img src="assets/thumbs/ferro.jpg" width="1000" height="562" decoding="async"
+                 alt="Ferro: светлый лендинг студии с портретом во весь экран и заголовком Bold ideas, shipped with quiet precision">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Демо 02</span>
+              <span class="eyebrow">Курсор · маска</span>
+            </div>
+            <h3>Ferro</h3>
+            <p>Лендинг студии: liquid-курсор вскрывает второе изображение прямо под указателем.</p>
+            <span class="case-open"><span>Открыть демо</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        <a class="case" href="cases/flux/">
+          <figure class="case-shot">
+            <img src="assets/thumbs/flux.jpg" width="1000" height="562" loading="lazy" decoding="async"
+                 alt="Fluxwave: неоновый цветок на скале в сумерках и крупная надпись Fluxwave поверх видео">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Демо 03</span>
+              <span class="eyebrow">Видео · курсор</span>
+            </div>
+            <h3>Fluxwave</h3>
+            <p>Неоновый первый экран с живым фоновым видео и собственной физикой курсора.</p>
+            <span class="case-open"><span>Открыть демо</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        <a class="case" href="cases/new1/">
+          <figure class="case-shot">
+            <img src="assets/thumbs/signal.jpg" width="1000" height="562" loading="lazy" decoding="async"
+                 alt="SIGNAL: объёмная монета с тикером $SIGNAL, рядом панель шейдерных параметров">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Демо 04</span>
+              <span class="eyebrow">Шейдер · генератив</span>
+            </div>
+            <h3>SIGNAL</h3>
+            <p>Вводите тикер — геометрия монеты и палитра пересобираются под него на лету.</p>
+            <span class="case-open"><span>Открыть демо</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        <a class="case" href="cases/new2/">
+          <figure class="case-shot">
+            <img src="assets/thumbs/vault.jpg" width="1000" height="562" loading="lazy" decoding="async"
+                 alt="VAULT: тёмная панель токеномики — кривая эмиссии, показатели float и сфера предложения">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Демо 05</span>
+              <span class="eyebrow">Данные · WebGL</span>
+            </div>
+            <h3>VAULT</h3>
+            <p>Токеномика вживую: тянете месяц — кривая эмиссии, вестинг и сфера из 4 000 частиц пересчитываются разом.</p>
+            <span class="case-open"><span>Открыть демо</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <header class="rail">
+      <div class="rail-top">
+        <p class="eyebrow">Все работы</p>
+        <p class="eyebrow">Листы 01—14</p>
+      </div>
+      <h2>Четырнадцать проектов из практики</h2>
+    </header>
 
     <section class="plate">
       <div class="plate-head">
