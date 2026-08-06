@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURUM — Bronze &amp; Time</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Italiana&family=Outfit:wght@300;400;600&family=Playfair+Display:ital,wght@1,500&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #000000;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+body {
+    min-height: 900vh;
+    font-family: 'Outfit', sans-serif;
+    color: #ffffff;
+    overflow-x: hidden;
+    cursor: none;
+}
+
+* { cursor: none !important; }
+::-webkit-scrollbar { display: none; width: 0; }
+
+#webgl {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    outline: none;
+}
+
+/* ---------------- custom cursor ---------------- */
+.cursor-inner {
+    position: fixed; top: 0; left: 0;
+    width: 6px; height: 6px;
+    border: 2px solid rgba(255, 255, 255, 1);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 9999;
+}
+.cursor-outer {
+    position: fixed; top: 0; left: 0;
+    width: 40px; height: 40px;
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 9998;
+    transition: width 0.3s, height 0.3s, background 0.3s;
+}
+.cursor-outer.hover {
+    width: 60px; height: 60px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------------- overlay layer ---------------- */
+.cinematic-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0 60px 40px 60px;
+    box-sizing: border-box;
+}
+
+/* ---------------- header ---------------- */
+.main-header {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; z-index: 20;
+    pointer-events: auto;
+    padding: 20px 0;
+}
+.brand { font-size: 14px; font-weight: 600; letter-spacing: 5px; text-transform: uppercase; }
+.header-nav { display: flex; align-items: center; gap: 24px; }
+.nav-link {
+    color: #ffffff; text-decoration: none;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+    font-weight: 500; transition: color 0.3s;
+}
+.nav-link:hover { color: #ffffff; }
+.nav-dot { width: 3px; height: 3px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; }
+.contact-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 24px;
+    background: #ffffff; color: #000000;
+    text-decoration: none;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+    border-radius: 20px;
+    transition: transform 0.3s, background 0.3s;
+}
+.btn-circle {
+    display: inline-block; width: 6px; height: 6px;
+    border: 1px solid #000000; border-radius: 50%; background: transparent;
+}
+.contact-btn:hover { transform: scale(1.05); background: #f0f0f0; }
+
+/* ---------------- slides ---------------- */
+.slide { position: absolute; bottom: 12%; pointer-events: none; }
+
+#slide-1 { left: 0; width: 100%; }
+#slide-1 .slide-title { margin-left: 60px; }
+#slide-1 .desc-row { position: relative; display: flex; width: 100%; }
+#slide-1 .col-1 {
+    margin-left: 60px;
+    width: calc(25vw - 60px);
+    max-width: calc(25vw - 60px);
+}
+#slide-1 .col-2 {
+    position: absolute;
+    left: calc(25vw + 40px);
+    width: calc(25vw - 60px);
+    max-width: calc(25vw - 60px);
+}
+
+#slide-2 { left: 0; width: 100%; }
+#slide-2-img {
+    position: fixed;
+    top: 90px;
+    left: 60px;
+    width: calc(25vw - 60px);
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    z-index: 2;
+    pointer-events: none;
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 1.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+    opacity: 0;
+}
+#slide-2-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scale(1.15);
+    transition: transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#slide-2-img.active { clip-path: inset(0 0 0 0); opacity: 1; }
+#slide-2-img.active img { transform: scale(1); }
+#slide-2 .slide-title { margin-left: calc(25vw + 40px); }
+#slide-2 .slide-desc {
+    margin-left: calc(50vw + 20px);
+    width: calc(25vw - 60px);
+    max-width: calc(25vw - 60px);
+}
+
+#slide-3 {
+    left: calc(50vw + 20px);
+    width: calc(25vw - 60px);
+    max-width: calc(25vw - 60px);
+}
+#slide-3 .slide-title { white-space: nowrap; }
+
+#slide-4 { left: calc(25% + 40px); max-width: 600px; }
+
+.slide-title {
+    font-family: 'Italiana', serif;
+    font-size: 116px;
+    line-height: 1.0;
+    font-weight: 400;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    color: #fff6ed;
+}
+.slide-desc {
+    font-size: 16px; line-height: 1.7; font-weight: 300;
+    color: #d1d5db; letter-spacing: 0.5px;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1),
+                transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    transition-delay: 0.4s;
+}
+.slide.active .slide-desc { opacity: 1; transform: translateY(0); }
+.slide-title .char {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(50px);
+    filter: blur(12px);
+    transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1),
+                transform 0.8s cubic-bezier(0.25, 1, 0.5, 1),
+                filter 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.slide.active .slide-title .char { opacity: 1; transform: translateY(0); filter: blur(0); }
+.slide.active { pointer-events: auto; }
+
+/* ---------------- grid overlay + stories progress ---------------- */
+.story-dashes {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; gap: 12px;
+}
+.story-dash { width: 2px; height: 40px; background: rgba(255, 255, 255, 0.15); border-radius: 2px; }
+.story-dash-fill { width: 100%; height: 0%; background: #ffffff; border-radius: 2px; }
+
+.grid-horizontal-line {
+    position: fixed; top: 70px; left: 0; right: 0;
+    width: 100%; height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    z-index: 5; pointer-events: none;
+}
+.grid-lines {
+    position: fixed; top: 0; left: 40px; right: 40px;
+    width: calc(100% - 80px); height: 100vh;
+    display: flex; justify-content: space-between;
+    z-index: 5; pointer-events: none;
+}
+.grid-line {
+    position: relative; width: 1px; height: 100%;
+    background: rgba(255, 255, 255, 0.12);
+}
+.grid-line:nth-child(3) { margin-top: 70px; height: calc(100vh - 70px); }
+.grid-dot {
+    position: absolute; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
+}
+</style>
+</head>
+<body>
+
+<div class="cursor-inner"></div>
+<div class="cursor-outer"></div>
+
+<div class="cinematic-container">
+
+    <div class="main-header">
+        <div class="brand">AURUM</div>
+        <nav class="header-nav">
+            <a href="#slide-1" class="nav-link">Bronze</a>
+            <span class="nav-dot"></span>
+            <a href="#slide-2" class="nav-link">Marble</a>
+            <span class="nav-dot"></span>
+            <a href="#slide-3" class="nav-link">Fluid</a>
+            <span class="nav-dot"></span>
+            <a href="#slide-4" class="nav-link">Digital</a>
+        </nav>
+        <div class="header-actions">
+            <a href="#" class="contact-btn">Contact <span class="btn-circle"></span></a>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-1">
+        <h2 class="slide-title">Bronze <br>and Time</h2>
+        <div class="desc-row">
+            <p class="slide-desc col-1">A timeless material holding centuries of human history. Fluid in hot flames, eternal in its form. Each curve captures a tense, dramatic moment.</p>
+            <p class="slide-desc col-2">Born of molten fire and creative will, it stands to bridge our ancient memory and modern vision. A fluid energy frozen in still, heavy bronze.</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-2">
+        <h2 class="slide-title">Marble <br>Emotion</h2>
+        <p class="slide-desc">A sculpture frozen at the peak of human suffering and heroic struggle. Laocoön and his sons, bound by ruthless fate.</p>
+    </div>
+
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title">Liquid Metal</h2>
+        <p class="slide-desc">Art that breathes. Mesmerizing waves of liquid bronze flow through space, reflecting every contour and tensed muscle of the ancient masterpiece.</p>
+    </div>
+
+    <div class="slide" id="slide-4">
+        <h2 class="slide-title">Eternal <br>Moment</h2>
+        <p class="slide-desc">Contemplating antique form through the lens of new dimensions. A classic masterpiece reborn in the currents of radiant digital matter.</p>
+    </div>
+
+</div>
+
+<div class="slide-image-mask" id="slide-2-img">
+    <img src="https://api.getlayers.ai/storage/v1/object/public/public/assets/laocoon-59f84455c6/1.png" alt="Editorial Concept">
+</div>
+
+<div class="grid-horizontal-line"></div>
+<div class="grid-lines">
+    <div class="grid-line"><div class="grid-dot top"></div><div class="grid-dot bottom"></div></div>
+    <div class="grid-line"><div class="grid-dot top"></div><div class="grid-dot bottom"></div></div>
+    <div class="grid-line"><div class="grid-dot top"></div><div class="grid-dot bottom"></div></div>
+    <div class="grid-line"><div class="grid-dot top"></div><div class="grid-dot bottom"></div></div>
+    <div class="grid-line story-progress-container">
+        <div class="grid-dot top"></div>
+        <div class="grid-dot bottom"></div>
+        <div class="story-dashes">
+            <div class="story-dash"><div class="story-dash-fill" id="dash-fill-1"></div></div>
+            <div class="story-dash"><div class="story-dash-fill" id="dash-fill-2"></div></div>
+            <div class="story-dash"><div class="story-dash-fill" id="dash-fill-3"></div></div>
+            <div class="story-dash"><div class="story-dash-fill" id="dash-fill-4"></div></div>
+        </div>
+    </div>
+</div>
+
+<canvas id="webgl"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+const ASSET_BASE_URL = "https://api.getlayers.ai/storage/v1/object/public/public/assets/laocoon-59f84455c6";
+
+/* ------------------------------------------------------------------ *
+ *  state
+ * ------------------------------------------------------------------ */
+let scene, camera, renderer, canvas;
+let bgMaterial, bgMesh;
+let sparks, sparkGeometry, sparkVelocities = [];
+let model = null, pivot = null;
+let modelMaterials = [];
+let modelOpacity = 0;
+
+const sizes = { width: window.innerWidth, height: window.innerHeight };
+const clock = new THREE.Clock();
+
+let currentScroll = 0;
+let scrollVelocity = 0;
+
+let targetMouseX = 0, targetMouseY = 0;
+let mouseX = 0, mouseY = 0;
+
+let cursorX = 0, cursorY = 0;
+let outerX = 0, outerY = 0;
+
+const cursorInner = document.querySelector('.cursor-inner');
+const cursorOuter = document.querySelector('.cursor-outer');
+
+let gridDots = [];
+
+const cameraTarget = new THREE.Vector3();
+
+/* ------------------------------------------------------------------ *
+ *  per-letter title split
+ * ------------------------------------------------------------------ */
+function splitTitlesIntoChars() {
+    document.querySelectorAll('.slide-title').forEach((title) => {
+        const nodes = Array.from(title.childNodes);
+        let html = '';
+        let index = 0;
+        nodes.forEach((node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent;
+                for (let i = 0; i < text.length; i++) {
+                    const ch = text[i];
+                    if (ch === ' ') {
+                        html += '<span class="space">&nbsp;</span>';
+                    } else {
+                        html += '<span class="char" style="transition-delay:' +
+                                (index * 0.035).toFixed(3) + 's">' + ch + '</span>';
+                        index++;
+                    }
+                }
+            } else if (node.nodeName === 'BR') {
+                html += '<br>';
+            } else if (node.outerHTML) {
+                html += node.outerHTML;
+            }
+        });
+        title.innerHTML = html;
+    });
+}
+
+/* ------------------------------------------------------------------ *
+ *  liquid-bronze background wave shader
+ * ------------------------------------------------------------------ */
+const bgVertexShader = /* glsl */`
+varying vec2 vUv;
+void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const bgFragmentShader = /* glsl */`
+precision highp float;
+
+uniform float uTime;
+uniform vec2  uResolution;
+uniform vec2  uMouse;
+uniform float uScroll;
+
+varying vec2 vUv;
+
+/* --- hash based 3D value noise --- */
+float hash(vec3 p) {
+    p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419));
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+float noise(vec3 x) {
+    vec3 i = floor(x);
+    vec3 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(hash(i + vec3(0.0, 0.0, 0.0)), hash(i + vec3(1.0, 0.0, 0.0)), f.x),
+                   mix(hash(i + vec3(0.0, 1.0, 0.0)), hash(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+               mix(mix(hash(i + vec3(0.0, 0.0, 1.0)), hash(i + vec3(1.0, 0.0, 1.0)), f.x),
+                   mix(hash(i + vec3(0.0, 1.0, 1.0)), hash(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+}
+
+float fbm(vec3 p) {
+    float v = 0.0;
+    float a = 0.5;
+    for (int i = 0; i < 4; i++) {
+        v += a * noise(p);
+        p *= 2.02;
+        a *= 0.5;
+    }
+    return v;
+}
+
+vec2 dir(float a) { return vec2(cos(a), sin(a)); }
+
+void main() {
+    /* screen space uv, y in [-1, 1] */
+    vec2 uv = (gl_FragCoord.xy * 2.0 - uResolution.xy) / uResolution.y;
+
+    float t = uTime * 0.08;
+    float scrollDeform = uScroll * 5.0;
+
+    /* mouse gives the surface a subtle parallax breath */
+    vec2 m = uMouse * 0.18;
+
+    /* turbulent field that warps the sine layers */
+    float n  = noise(vec3(uv * 1.05 + m, t * 1.20)) * 2.0 - 1.0;
+    float n2 = noise(vec3(uv * 1.90 - m, t * 0.85 + 11.7)) * 2.0 - 1.0;
+
+    /* --- three layered sine waves --- */
+    float w1 = sin(dot(uv, dir( 0.6)) * 2.4 + t * 1.10 + n  * 0.95 + scrollDeform * 0.60);
+    float w2 = sin(dot(uv, dir(-0.7)) * 3.2 - t * 1.45 + n2 * 0.75 + scrollDeform * 0.85);
+    float w3 = sin(dot(uv, dir( 1.2)) * 4.0 + t * 1.85 + n  * 0.55 + scrollDeform * 1.10);
+
+    float wave = w1 * 0.50 + w2 * 0.35 + w3 * 0.15;
+    float h = clamp(wave * 0.5 + 0.5, 0.0, 1.0);
+
+    /* --- molten bronze palette (top of the page) --- */
+    vec3 b0 = vec3(0.000, 0.000, 0.000);   /* shadow          */
+    vec3 b1 = vec3(0.235, 0.082, 0.020);   /* rich copper     */
+    vec3 b2 = vec3(0.560, 0.253, 0.062);   /* deep bronze     */
+    vec3 b3 = vec3(1.000, 0.741, 0.353);   /* polished gold   */
+
+    /* --- deep sapphire palette (bottom of the page) --- */
+    vec3 s0 = vec3(0.000, 0.000, 0.008);   /* shadow          */
+    vec3 s1 = vec3(0.016, 0.055, 0.196);   /* abyss blue      */
+    vec3 s2 = vec3(0.055, 0.196, 0.494);   /* sapphire        */
+    vec3 s3 = vec3(0.545, 0.792, 1.000);   /* icy highlight   */
+
+    float p = smoothstep(0.0, 1.0, uScroll);
+    vec3 c0 = mix(b0, s0, p);
+    vec3 c1 = mix(b1, s1, p);
+    vec3 c2 = mix(b2, s2, p);
+    vec3 c3 = mix(b3, s3, p);
+
+    vec3 col = mix(c0, c1, smoothstep(0.26, 0.66, h));
+    col = mix(col, c2, smoothstep(0.68, 0.90, h));
+    col = mix(col, c3, smoothstep(0.93, 1.00, h));
+
+    /* metallic crest sheen */
+    float crest = smoothstep(0.88, 1.0, h);
+    col *= mix(1.0, 1.4, crest);
+
+    /* fine grain so the metal never looks flat */
+    col += (fbm(vec3(uv * 26.0, t * 3.0)) - 0.5) * 0.030;
+
+    /* vignette */
+    col *= 1.0 - dot(uv, uv) * 0.12;
+
+    /* keep it a background, never a subject */
+    col *= 0.42;
+
+    gl_FragColor = vec4(max(col, 0.0), 1.0);
+}
+`;
+
+function createBackgroundShader() {
+    const geometry = new THREE.PlaneGeometry(30, 30);
+    bgMaterial = new THREE.ShaderMaterial({
+        vertexShader: bgVertexShader,
+        fragmentShader: bgFragmentShader,
+        uniforms: {
+            uTime:       { value: 0 },
+            uResolution: { value: new THREE.Vector2(sizes.width, sizes.height) },
+            uMouse:      { value: new THREE.Vector2(0, 0) },
+            uScroll:     { value: 0 }
+        },
+        depthWrite: false,
+        depthTest: false,
+        fog: false
+    });
+    bgMesh = new THREE.Mesh(geometry, bgMaterial);
+    bgMesh.position.z = -8.0;
+    bgMesh.renderOrder = -10;
+    bgMesh.frustumCulled = false;
+    camera.add(bgMesh);
+}
+
+/* ------------------------------------------------------------------ *
+ *  forge sparks
+ * ------------------------------------------------------------------ */
+function createSparkTexture() {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0.00, 'rgba(255,255,255,1)');
+    g.addColorStop(0.18, 'rgba(255,255,255,0.85)');
+    g.addColorStop(0.45, 'rgba(255,255,255,0.28)');
+    g.addColorStop(1.00, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const tex = new THREE.CanvasTexture(c);
+    tex.needsUpdate = true;
+    return tex;
+}
+
+function createSparks() {
+    const sparkCount = 450;
+    const positions = new Float32Array(sparkCount * 3);
+    const colors = new Float32Array(sparkCount * 3);
+
+    const fiery = new THREE.Color('#ff7a1f');
+    const icy   = new THREE.Color('#9fd8ff');
+
+    sparkVelocities = [];
+
+    for (let i = 0; i < sparkCount; i++) {
+        const i3 = i * 3;
+        positions[i3 + 0] = (Math.random() - 0.5) * 3.0;
+        positions[i3 + 1] = (Math.random() - 0.5) * 5.5;
+        positions[i3 + 2] = (Math.random() - 0.5) * 3.0;
+
+        const c = Math.random() < 0.6 ? fiery : icy;
+        colors[i3 + 0] = c.r;
+        colors[i3 + 1] = c.g;
+        colors[i3 + 2] = c.b;
+
+        sparkVelocities.push({
+            y: 0.0025 + Math.random() * 0.0065,
+            x: (Math.random() - 0.5) * 0.0016,
+            z: (Math.random() - 0.5) * 0.0016,
+            phase: Math.random() * Math.PI * 2,
+            drift: 0.3 + Math.random() * 0.9
+        });
+    }
+
+    sparkGeometry = new THREE.BufferGeometry();
+    sparkGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    sparkGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+        size: 0.025,
+        map: createSparkTexture(),
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        vertexColors: true,
+        sizeAttenuation: true
+    });
+
+    sparks = new THREE.Points(sparkGeometry, material);
+    sparks.frustumCulled = false;
+    scene.add(sparks);
+}
+
+function updateSparks(elapsed) {
+    if (!sparks) return;
+    const pos = sparkGeometry.attributes.position.array;
+    const speedMultiplier = 1 + scrollVelocity * 9;
+    const turbulence = scrollVelocity * 0.8;
+
+    for (let i = 0; i < sparkVelocities.length; i++) {
+        const i3 = i * 3;
+        const v = sparkVelocities[i];
+
+        pos[i3 + 1] += v.y * speedMultiplier;
+        pos[i3 + 0] += v.x * speedMultiplier +
+                       Math.sin(elapsed * v.drift + v.phase) * 0.0012 * (1 + turbulence * 6);
+        pos[i3 + 2] += v.z * speedMultiplier +
+                       Math.cos(elapsed * v.drift * 0.8 + v.phase) * 0.0012 * (1 + turbulence * 6);
+
+        if (pos[i3 + 1] > 3.0 || Math.abs(pos[i3 + 0]) > 3.5 || Math.abs(pos[i3 + 2]) > 3.5) {
+            pos[i3 + 0] = (Math.random() - 0.5) * 3.0;
+            pos[i3 + 1] = -2.5;
+            pos[i3 + 2] = (Math.random() - 0.5) * 3.0;
+        }
+    }
+    sparkGeometry.attributes.position.needsUpdate = true;
+}
+
+/* ------------------------------------------------------------------ *
+ *  bronze horse
+ * ------------------------------------------------------------------ */
+function loadModel() {
+    const loader = new GLTFLoader();
+    loader.load(
+        ASSET_BASE_URL + '/bronze_horse.glb',
+        (gltf) => {
+            model = gltf.scene;
+            modelMaterials = [];
+
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    const mats = Array.isArray(child.material) ? child.material : [child.material];
+                    mats.forEach((mat) => {
+                        if (!mat) return;
+                        mat.roughness = 0.42;
+                        mat.metalness = 0.92;
+                        mat.flatShading = false;
+                        if (mat.map) mat.map.anisotropy = 16;
+                        mat.transparent = true;
+                        mat.opacity = 0;
+                        mat.needsUpdate = true;
+                        modelMaterials.push(mat);
+                    });
+                }
+            });
+
+            /* auto scale so the largest dimension is 3.5 */
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = maxDim > 0 ? 3.5 / maxDim : 1;
+            model.scale.setScalar(scale);
+
+            /* recenter using the scaled bounding box */
+            const scaledBox = new THREE.Box3().setFromObject(model);
+            const center = scaledBox.getCenter(new THREE.Vector3());
+            model.position.sub(center);
+
+            pivot = new THREE.Group();
+            pivot.add(model);
+            pivot.position.y = -0.4;
+            scene.add(pivot);
+        },
+        undefined,
+        (err) => {
+            console.warn('[AURUM] bronze_horse.glb failed to load:', err && err.message ? err.message : err);
+        }
+    );
+}
+
+function updateModelFade() {
+    if (!modelMaterials.length || modelOpacity >= 1) return;
+    modelOpacity += (1 - modelOpacity) * 0.03;
+    if (modelOpacity > 0.995) modelOpacity = 1;
+    for (let i = 0; i < modelMaterials.length; i++) {
+        modelMaterials[i].opacity = modelOpacity;
+        if (modelOpacity === 1) {
+            modelMaterials[i].transparent = false;
+            modelMaterials[i].needsUpdate = true;
+        }
+    }
+}
+
+/* ------------------------------------------------------------------ *
+ *  overlay updates
+ * ------------------------------------------------------------------ */
+const SLIDE_RANGES = [
+    [-0.10, 0.12],
+    [ 0.28, 0.40],
+    [ 0.56, 0.68],
+    [ 0.84, 1.05]
+];
+
+function updateSlides(scroll) {
+    for (let i = 1; i <= 4; i++) {
+        const fill = document.getElementById('dash-fill-' + i);
+        if (fill) {
+            const p = Math.max(0, Math.min(1, (scroll - (i - 1) * 0.25) / 0.25));
+            fill.style.height = (p * 100) + '%';
+        }
+    }
+
+    for (let i = 0; i < SLIDE_RANGES.length; i++) {
+        const el = document.getElementById('slide-' + (i + 1));
+        if (!el) continue;
+        const active = scroll >= SLIDE_RANGES[i][0] && scroll <= SLIDE_RANGES[i][1];
+        el.classList.toggle('active', active);
+        if (i === 1) {
+            const img = document.getElementById('slide-2-img');
+            if (img) img.classList.toggle('active', active);
+        }
+    }
+}
+
+function updateGridDots(scroll) {
+    for (let i = 0; i < gridDots.length; i++) {
+        const startY = (i * 17) % 80 + 10;
+        let speed = 90 + (i * 55) % 180;
+        if (i % 2 === 0) speed = -speed;
+        const y = (((startY + scroll * speed) % 100) + 100) % 100;
+        gridDots[i].style.top = y + '%';
+    }
+}
+
+function setupNavigation() {
+    const targetScrolls = [0.0, 0.34, 0.62, 0.94];
+    document.querySelectorAll('.nav-link').forEach((link, i) => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const maxScroll = document.body.scrollHeight - window.innerHeight;
+            window.scrollTo({ top: targetScrolls[i] * maxScroll, behavior: 'smooth' });
+        });
+    });
+    document.querySelectorAll('a').forEach((el) => {
+        el.addEventListener('mouseenter', () => cursorOuter.classList.add('hover'));
+        el.addEventListener('mouseleave', () => cursorOuter.classList.remove('hover'));
+    });
+}
+
+/* ------------------------------------------------------------------ *
+ *  scene
+ * ------------------------------------------------------------------ */
+function initScene() {
+    canvas = document.getElementById('webgl');
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('#000000');
+    scene.fog = new THREE.FogExp2('#000000', 0.01);
+
+    camera = new THREE.PerspectiveCamera(50, sizes.width / sizes.height, 0.1, 100);
+    camera.position.set(0, 0.2, 3.0);
+    scene.add(camera);
+
+    createBackgroundShader();
+
+    renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+        alpha: false,
+        powerPreference: "high-performance"
+    });
+    renderer.setSize(sizes.width, sizes.height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 2.2;
+}
+
+function initLights() {
+    const ambientLight = new THREE.AmbientLight('#ffffff', 0.1);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.SpotLight('#ffffff', 18.0);
+    keyLight.position.set(4, 6, 3);
+    keyLight.angle = Math.PI / 4;
+    keyLight.penumbra = 0.9;
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.camera.near = 1.0;
+    keyLight.shadow.camera.far = 15;
+    keyLight.shadow.bias = -0.001;
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight('#e3f2ff', 10.0);
+    rimLight.position.set(-5, 3, -4);
+    scene.add(rimLight);
+
+    const fillLight = new THREE.DirectionalLight('#fff3e6', 0.8);
+    fillLight.position.set(-2, -4, 2);
+    scene.add(fillLight);
+}
+
+/* ------------------------------------------------------------------ *
+ *  animation loop
+ * ------------------------------------------------------------------ */
+function animate() {
+    requestAnimationFrame(animate);
+
+    const elapsed = clock.getElapsedTime();
+
+    /* --- smoothed scroll --- */
+    const maxScroll = document.body.scrollHeight - window.innerHeight;
+    const targetScroll = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+    scrollVelocity = Math.abs(targetScroll - currentScroll);
+    currentScroll += (targetScroll - currentScroll) * 0.025;
+
+    /* --- smoothed mouse --- */
+    mouseX += (targetMouseX - mouseX) * 0.05;
+    mouseY += (targetMouseY - mouseY) * 0.05;
+
+    /* --- outer cursor ring --- */
+    outerX += (cursorX - outerX) * 0.2;
+    outerY += (cursorY - outerY) * 0.2;
+    cursorOuter.style.left = outerX + 'px';
+    cursorOuter.style.top = outerY + 'px';
+
+    /* --- 360 degree scroll orbit --- */
+    const phi = currentScroll * Math.PI * 2;
+    const camY = 0.35 + Math.sin(currentScroll * Math.PI) * 0.8;
+    const radius = 4.2 - Math.sin(currentScroll * Math.PI) * 0.6;
+    cameraTarget.set(radius * Math.sin(phi), camY, radius * Math.cos(phi));
+    camera.position.lerp(cameraTarget, 0.025);
+
+    const e = Math.min(Math.max(currentScroll / 0.28, 0), 1);
+    const easeFactor = e * e * (3 - 2 * e);
+    const lookAtXOffset = -0.9 * easeFactor;
+    camera.lookAt(lookAtXOffset, -0.15, 0);
+
+    /* --- model tilt --- */
+    if (pivot) {
+        pivot.rotation.y = mouseX * 0.25;
+        pivot.rotation.x = mouseY * 0.15;
+        updateModelFade();
+    }
+
+    /* --- sparks --- */
+    updateSparks(elapsed);
+
+    /* --- shader uniforms --- */
+    if (bgMaterial) {
+        bgMaterial.uniforms.uTime.value = elapsed;
+        bgMaterial.uniforms.uScroll.value = currentScroll;
+        bgMaterial.uniforms.uMouse.value.set(mouseX, -mouseY);
+        bgMaterial.uniforms.uResolution.value.set(
+            sizes.width * renderer.getPixelRatio(),
+            sizes.height * renderer.getPixelRatio()
+        );
+    }
+
+    updateSlides(currentScroll);
+    updateGridDots(currentScroll);
+
+    renderer.render(scene, camera);
+}
+
+/* ------------------------------------------------------------------ *
+ *  events
+ * ------------------------------------------------------------------ */
+window.addEventListener('mousemove', (event) => {
+    cursorX = event.clientX;
+    cursorY = event.clientY;
+    cursorInner.style.left = cursorX + 'px';
+    cursorInner.style.top = cursorY + 'px';
+
+    targetMouseX = (event.clientX / window.innerWidth) * 2 - 1;
+    targetMouseY = (event.clientY / window.innerHeight) * 2 - 1;
+});
+
+window.addEventListener('resize', () => {
+    sizes.width = window.innerWidth;
+    sizes.height = window.innerHeight;
+    if (!camera || !renderer) return;
+    camera.aspect = sizes.width / sizes.height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(sizes.width, sizes.height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
+
+/* ------------------------------------------------------------------ *
+ *  bootstrap
+ * ------------------------------------------------------------------ */
+function init() {
+    splitTitlesIntoChars();
+    gridDots = Array.from(document.querySelectorAll('.grid-dot'));
+
+    initScene();
+    initLights();
+    createSparks();
+    loadModel();
+    setupNavigation();
+
+    updateSlides(0);
+    updateGridDots(0);
+
+    animate();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+</script>
+
+</body>
+</html>
