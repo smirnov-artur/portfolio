@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fluxwave</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%8C%B8%3C%2Ftext%3E%3C%2Fsvg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap">
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
-        @import url('https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap');
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #000000; min-height: 100vh; overflow: hidden; position: relative; }
+        body {
+            background-color: #000000; min-height: 100vh; overflow: hidden; position: relative;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
 
         /* 1. Top gradient overlay */
         #top-gradient { position: fixed; top: -30vh; left: 0; width: 100vw; height: auto; display: block; z-index: 0; pointer-events: none; }
@@ -44,9 +51,12 @@
         .footer-logo-wrap { position: fixed; bottom: 20px; left: 0; right: 0; width: 100%; padding: 0 20px; box-sizing: border-box; display: flex; justify-content: center; align-items: center; z-index: 3; margin: 0; }
         .footer-logo-text { font-family: 'General Sans', -apple-system, sans-serif; font-size: 21.9vw; font-weight: 400; color: #ffffff; letter-spacing: -0.03em; margin-right: -0.03em; transform: translateX(-20px); line-height: 0.8; margin-top: 0; margin-bottom: 0; margin-left: 0; text-align: center; width: 100%; pointer-events: none; opacity: 0.95; text-shadow: none; white-space: nowrap; }
 
-        /* 5. Background video */
-        .video-container { position: fixed; bottom: 0; left: 0; width: 100vw; height: 90vh; overflow: hidden; z-index: -1; }
-        #bg-video { width: 100%; height: 110%; object-fit: cover; display: block; transform: translateY(0%); }
+        /* 5. Background video — постер лежит фоном под кадром: он приезжает
+              первым и держит кадр, пока видео ещё качается */
+        .video-container { position: fixed; bottom: 0; left: 0; width: 100vw; height: 90vh; overflow: hidden; z-index: -1; background-color: #000; }
+        .video-container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: -10%; background: url('./assets/flower-poster.jpg') center/cover no-repeat; }
+        #bg-video { position: relative; width: 100%; height: 110%; object-fit: cover; display: block; transform: translateY(0%); }
+        @media (max-width: 640px) { .video-container::before { background-image: url('./assets/flower-poster-ld.jpg'); } }
 
         /* 6. Custom cursor */
         .glass-cursor-card { position: fixed; top: 0; left: 0; z-index: 99999; pointer-events: none; padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.18); border-radius: 9999px; box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.15); transform: translate(-50%,-50%) scale(0); opacity: 0; will-change: transform, opacity; transition: opacity 0.4s cubic-bezier(0.16,1,0.3,1), background 0.35s cubic-bezier(0.16,1,0.3,1), border-color 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s cubic-bezier(0.16,1,0.3,1); }
@@ -80,6 +90,32 @@
         .footer-logo-text .letter-wrapper { display: inline-block; overflow: hidden; vertical-align: bottom; line-height: 0.8; }
         .footer-logo-text .letter-inner { display: inline-block; opacity: 0; transform: translateX(-105%); filter: blur(20px); animation: letter-reveal-mask 1.2s cubic-bezier(0.05,0.9,0.1,1) forwards; }
         @keyframes letter-reveal-mask { 0% { opacity: 0; transform: translateX(-105%); filter: blur(20px); } 25% { opacity: 1; } 100% { opacity: 0.95; transform: translateX(0); filter: blur(0); } }
+
+        /* Телефон: тот же кадр, но заголовок и подвал перестают вылезать за экран */
+        @media (max-width: 640px) {
+            .hero-content { padding-top: 4.5vh; width: 92%; }
+            .hero-title { font-size: clamp(1.55rem, 7vw, 2.1rem); margin-bottom: 1.7rem; }
+            .hero-btn { font-size: 0.95rem; padding: 1rem 1.9rem; gap: 0.7rem; }
+            .footer-container { top: 47vh; left: 14px; right: 14px; width: calc(100vw - 28px); }
+            .footer-top { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+            .footer-title { font-size: 1.05rem; }
+            .footer-divider { margin: 1.05rem 0; }
+            .footer-bottom { flex-wrap: wrap; row-gap: 0.9rem; }
+            .footer-socials { flex: 0 0 auto; order: 1; gap: 1.1rem; }
+            .footer-copyright { flex: 0 0 auto; order: 2; margin-left: auto; font-size: 0.8rem; }
+            .footer-links { order: 3; flex: 1 0 100%; justify-content: flex-start; gap: 1.5rem; }
+            .footer-link { font-size: 0.85rem; }
+            .footer-logo-wrap { bottom: 72px; padding: 0 12px; }
+            .footer-logo-text { font-size: 20.5vw; transform: none; letter-spacing: -0.035em; }
+        }
+
+        /* Сокращённое движение: текст на месте, курсорного слоя нет */
+        @media (prefers-reduced-motion: reduce) {
+            .hero-title .word-inner { animation: none; opacity: 1; transform: none; filter: none; }
+            .footer-logo-text .letter-inner { animation: none; opacity: 0.95; transform: none; filter: none; }
+            .blinking-dot, .blinking-dot::after { animation: none; }
+            .glass-cursor-card, .cursor-ring-outline { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -107,7 +143,14 @@
 
     <div class="footer-logo-wrap"><h2 class="footer-logo-text">Fluxwave</h2></div>
 
-    <div class="video-container"><video autoplay muted playsinline loop id="bg-video"><source src="./assets/flower.mp4" type="video/mp4">Your browser does not support the video tag.</video></div>
+    <div class="video-container">
+        <video autoplay muted playsinline loop id="bg-video" preload="auto">
+            <source media="(max-width: 640px)" src="./assets/flower-720.mp4" type="video/mp4">
+            <source src="./assets/flower-1280.webm" type="video/webm">
+            <source src="./assets/flower-1280.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
 
     <a class="author-cta" href="https://t.me/smirnovarturr" target="_blank" rel="noopener noreferrer" aria-label="Want this? Message @smirnovarturr on Telegram">
         <span class="author-cta__label">Want this?</span>
@@ -154,7 +197,8 @@
             }
             const glassCard = document.getElementById('glass-card');
             const cursorRing = document.getElementById('cursor-ring');
-            if (glassCard && cursorRing) {
+            const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (glassCard && cursorRing && !reduced) {
                 let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
                 let cardX = mouseX, cardY = mouseY, ringX = mouseX, ringY = mouseY;
                 let isFirstMove = true, scale = 0, targetScale = 0, isHoveringBtn = false;
