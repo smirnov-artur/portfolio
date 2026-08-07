@@ -163,6 +163,15 @@
       lenis.scrollTo(target, { offset: -24 });
     });
 
+    /* пока открыт лайтбокс, фон под ним ехать не должен: showModal() сам прокрутку
+       не блокирует, а с инерцией это особенно заметно */
+    var dlg = document.querySelector('dialog.lb');
+    if (dlg) {
+      new MutationObserver(function () {
+        if (dlg.open) { lenis.stop(); } else { lenis.start(); }
+      }).observe(dlg, { attributes: true, attributeFilter: ['open'] });
+    }
+
     /* --- заголовки: строки из-под маски --- */
 
     document.fonts && document.fonts.ready.then(function () { ScrollTrigger.refresh(); });
