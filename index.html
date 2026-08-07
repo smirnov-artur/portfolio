@@ -16,7 +16,6 @@
 <script src="js/motion.js"></script>
 </head>
 <body>
-<title>Инженерные веб-инструменты — каталог работ</title>
 <style>
   /* ---------- шрифты: self-hosted woff2, subset по unicode-range ----------
      Geologica   — дисплейный технический гротеск (заголовки)
@@ -674,8 +673,15 @@
     color: var(--graphite);
     padding-top: 0.65rem;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.2rem 1rem;
+  }
+
+  /* На узком экране три подписи в строку сминаются в столбики по два слова:
+     подсказку уводим на свою строку, а не сжимаем колонку. */
+  @media (max-width: 620px) {
+    .screen figcaption .zoom-hint { order: 1; flex-basis: 100%; }
   }
 
   /* ---------- стопка скриншотов ---------- */
@@ -696,6 +702,11 @@
   }
 
   .shots img:first-child { grid-column: 1 / -1; }
+
+  /* Первая картинка занимает всю ширину, дальше идут парами. Значит при чётном
+     числе последняя остаётся одна в левой колонке, а справа зияет дыра —
+     растягиваем её тоже. */
+  .shots img:last-child:nth-child(even) { grid-column: 1 / -1; }
 
   .shots img:focus-visible {
     outline: 3px solid var(--blue);
@@ -1000,7 +1011,7 @@
         <div class="shots">
           <img src="assets/a1.jpg" loading="lazy" decoding="async" alt="Главная: девять расчётных модулей и счётчики перенесённой базы 63 таблицы, 3471 запись">
         </div>
-        <figcaption><span>Живой подбор: ввод → расчёт → кривая с рабочей точкой</span><span>Нажмите, чтобы развернуть</span></figcaption>
+        <figcaption><span>Живой подбор: ввод → расчёт → кривая с рабочей точкой</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
 
@@ -1085,7 +1096,7 @@
         <div class="shots">
           <img src="assets/a4.jpg" loading="lazy" decoding="async" alt="Конфигуратор STANDES: зал со стеллажами в 3D, каталог, смета, отправка ТЗ">
         </div>
-        <figcaption><span>Расстановка стеллажей в 3D со сметой</span><span>Нажмите, чтобы развернуть</span></figcaption>
+        <figcaption><span>Расстановка стеллажей в 3D со сметой</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
 
@@ -1114,7 +1125,7 @@
           <img src="assets/a5.jpg" loading="lazy" decoding="async" alt="Вход: страница проекта — таблица характеристик вентсистем по ГОСТ">
           <img src="assets/a6.jpg" loading="lazy" decoding="async" alt="Выход: 33 позиции чистой спецификации, воздуховоды в метрах, фасон в штуках">
         </div>
-        <figcaption><span>Слева проект, справа извлечённая спецификация</span><span>Нажмите, чтобы развернуть</span></figcaption>
+        <figcaption><span>Слева проект, справа извлечённая спецификация</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
 
@@ -1195,7 +1206,7 @@
           <source media="(max-width: 640px)" src="assets/a9-ld.mp4" type="video/mp4">
           <source src="assets/a9-md.mp4" type="video/mp4">
         </video>
-        <figcaption><span>Свет ведут по фактуре, затем меняют покрытие</span><span>Нажмите, чтобы развернуть</span></figcaption>
+        <figcaption><span>Свет ведут по фактуре, затем меняют покрытие</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
 
@@ -1224,7 +1235,7 @@
           <source media="(max-width: 640px)" src="assets/a10-ld.mp4" type="video/mp4">
           <source src="assets/a10-md.mp4" type="video/mp4">
         </video>
-        <figcaption><span>Один экран: гость видит витрину, дилер — кабинет</span><span>Нажмите, чтобы развернуть</span></figcaption>
+        <figcaption><span>Один экран: гость видит витрину, дилер — кабинет</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
 
@@ -1284,7 +1295,7 @@
         <div class="shots">
           <img src="assets/a13.jpg" loading="lazy" decoding="async" alt="Прогресс: калибровка уверенности — совпадает ли заявленная уверенность с реальной точностью">
         </div>
-        <figcaption><span>Живой проход: карточка → оценка уверенности → ответ → экзамен</span><span>Нажмите, чтобы развернуть</span></figcaption>
+        <figcaption><span>Живой проход: карточка → оценка уверенности → ответ → экзамен</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
 
@@ -1313,7 +1324,7 @@
           <img src="assets/a14.jpg" loading="lazy" decoding="async" alt="Упражнение: редактор кода, запуск и проверка, результат совпал">
           <img src="assets/a15.jpg" loading="lazy" decoding="async" alt="Экзамен: оценка по рубрикам, вердикт судьи, эталонный разбор">
         </div>
-        <figcaption><span>Практика с запуском кода и экзамен с разбором</span><span>Нажмите, чтобы развернуть</span></figcaption>
+        <figcaption><span>Практика с запуском кода и экзамен с разбором</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
 
@@ -1341,7 +1352,7 @@
         <div class="shots">
           <img src="assets/a16.jpg" loading="lazy" decoding="async" alt="Карта REST API: 9 доменов, 53 эндпоинта, 51 таблица, 5 внешних интеграций">
         </div>
-        <figcaption><span>Карта API по данным спецификации проекта</span><span>Нажмите, чтобы развернуть</span></figcaption>
+        <figcaption><span>Карта API по данным спецификации проекта</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
 
@@ -1519,8 +1530,9 @@
         }
       });
 
+      /* подсказка уже может стоять в разметке — тогда второй не надо */
       var cap = plate ? plate.querySelector("figcaption") : null;
-      if (cap) {
+      if (cap && !cap.querySelector(".zoom-hint")) {
         var hint = document.createElement("span");
         hint.className = "zoom-hint";
         hint.textContent = "Нажмите, чтобы развернуть";
@@ -1536,31 +1548,6 @@
 </script>
 
 
-<script>
-/* Страховка первого экрана.
-   Скролл-слой (js/motion.js) прячет h1/h2 и раскрывает их по ScrollTrigger.
-   Если твин не проиграл — заголовков на странице просто нет. Через 2.2 с
-   проверяем только то, что попало в первый экран, и снимаем начальное
-   состояние ровно с него. Раскрытия ниже по странице не трогаем. */
-(function () {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  setTimeout(function () {
-    var fold = innerHeight;
-    var sel = '.m-line, .m-armed, .offer, .case, .plate-head .spec, .plate .screen, .terms > div, [data-m-reveal]';
-    var stuck = [].slice.call(document.querySelectorAll(sel)).filter(function (el) {
-      var b = el.getBoundingClientRect();
-      return b.top < fold && parseFloat(getComputedStyle(el).opacity) < 0.05;
-    });
-    if (!stuck.length) return;
-    stuck.forEach(function (el) {
-      el.style.setProperty('opacity', '1', 'important');
-      el.style.setProperty('transform', 'none', 'important');
-      var host = el.closest('h1, h2, h3, [data-m-split]');
-      if (host) host.style.setProperty('visibility', 'visible', 'important');
-    });
-  }, 2200);
-})();
-</script>
 
 </body>
 </html>

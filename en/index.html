@@ -675,8 +675,15 @@
     color: var(--graphite);
     padding-top: 0.65rem;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.2rem 1rem;
+  }
+
+  /* На узком экране три подписи в строку сминаются в столбики по два слова:
+     подсказку уводим на свою строку, а не сжимаем колонку. */
+  @media (max-width: 620px) {
+    .screen figcaption .zoom-hint { order: 1; flex-basis: 100%; }
   }
 
   /* ---------- стопка скриншотов ---------- */
@@ -697,6 +704,11 @@
   }
 
   .shots img:first-child { grid-column: 1 / -1; }
+
+  /* Первая картинка занимает всю ширину, дальше идут парами. Значит при чётном
+     числе последняя остаётся одна в левой колонке, а справа зияет дыра —
+     растягиваем её тоже. */
+  .shots img:last-child:nth-child(even) { grid-column: 1 / -1; }
 
   .shots img:focus-visible {
     outline: 3px solid var(--blue);
@@ -1049,7 +1061,7 @@
         <div class="shots">
           <img src="../assets/a4.jpg" loading="lazy" decoding="async" alt="STANDES configurator: a room of shelving in 3D with the catalogue, the running quote and the send-as-brief action">
         </div>
-        <figcaption><span>Shelving laid out in 3D with a live quote</span><span>Click to expand</span></figcaption>
+        <figcaption><span>Shelving laid out in 3D with a live quote</span><span class="zoom-hint">Click to expand</span></figcaption>
       </figure>
     </section>
 
@@ -1283,7 +1295,7 @@
           <img src="../assets/a5.jpg" loading="lazy" decoding="async" alt="Input: a project page — a standards-formatted table of ventilation system parameters">
           <img src="../assets/a6.jpg" loading="lazy" decoding="async" alt="Output: 33 clean line items, ducting in metres and fittings in pieces">
         </div>
-        <figcaption><span>The project on the left, the extracted specification on the right</span><span>Click to expand</span></figcaption>
+        <figcaption><span>The project on the left, the extracted specification on the right</span><span class="zoom-hint">Click to expand</span></figcaption>
       </figure>
     </section>
 
@@ -1373,7 +1385,7 @@
           <img src="../assets/a14.jpg" loading="lazy" decoding="async" alt="Exercise view: code editor, run and check, output matched">
           <img src="../assets/a15.jpg" loading="lazy" decoding="async" alt="Exam view: rubric scoring, the judge's verdict and a reference breakdown">
         </div>
-        <figcaption><span>Practice with a live code run, and an exam with a breakdown</span><span>Click to expand</span></figcaption>
+        <figcaption><span>Practice with a live code run, and an exam with a breakdown</span><span class="zoom-hint">Click to expand</span></figcaption>
       </figure>
     </section>
 
@@ -1401,7 +1413,7 @@
         <div class="shots">
           <img src="../assets/a16.jpg" loading="lazy" decoding="async" alt="REST API map: 9 domains, 53 endpoints, 51 tables, 5 external integrations">
         </div>
-        <figcaption><span>API map drawn from the project specification</span><span>Click to expand</span></figcaption>
+        <figcaption><span>API map drawn from the project specification</span><span class="zoom-hint">Click to expand</span></figcaption>
       </figure>
     </section>
 
@@ -1598,8 +1610,9 @@
         }
       });
 
+      /* подсказка уже может стоять в разметке — тогда второй не надо */
       var cap = plate ? plate.querySelector("figcaption") : null;
-      if (cap) {
+      if (cap && !cap.querySelector(".zoom-hint")) {
         var hint = document.createElement("span");
         hint.className = "zoom-hint";
         hint.textContent = "Click to expand";
@@ -1615,31 +1628,6 @@
 </script>
 
 
-<script>
-/* Страховка первого экрана.
-   Скролл-слой (js/motion.js) прячет h1/h2 и раскрывает их по ScrollTrigger.
-   Если твин не проиграл — заголовков на странице просто нет. Через 2.2 с
-   проверяем только то, что попало в первый экран, и снимаем начальное
-   состояние ровно с него. Раскрытия ниже по странице не трогаем. */
-(function () {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  setTimeout(function () {
-    var fold = innerHeight;
-    var sel = '.m-line, .m-armed, .offer, .case, .plate-head .spec, .plate .screen, .terms > div, [data-m-reveal]';
-    var stuck = [].slice.call(document.querySelectorAll(sel)).filter(function (el) {
-      var b = el.getBoundingClientRect();
-      return b.top < fold && parseFloat(getComputedStyle(el).opacity) < 0.05;
-    });
-    if (!stuck.length) return;
-    stuck.forEach(function (el) {
-      el.style.setProperty('opacity', '1', 'important');
-      el.style.setProperty('transform', 'none', 'important');
-      var host = el.closest('h1, h2, h3, [data-m-split]');
-      if (host) host.style.setProperty('visibility', 'visible', 'important');
-    });
-  }, 2200);
-})();
-</script>
 
 </body>
 </html>
