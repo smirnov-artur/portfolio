@@ -20,7 +20,7 @@
     /* заголовки, которые вскрываются построчно */
     split: 'h1, .flagships-head h2, .rail h2, [data-m-split]',
     /* блоки, которые всплывают при входе в кадр */
-    reveal: '.offer, .case, .plate-head .spec, .plate .screen, .terms > div, [data-m-reveal]',
+    reveal: '.offer, .case, .plate-head, .plate .screen, .terms > div, [data-m-reveal]',
     /* герой, который уезжает под скраб */
     hero: '.masthead',
     /* инерция: меньше — тяжелее */
