@@ -1047,7 +1047,7 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="../assets/a4.jpg" alt="STANDES configurator: a room of shelving in 3D with the catalogue, the running quote and the send-as-brief action">
+          <img src="../assets/a4.jpg" loading="lazy" decoding="async" alt="STANDES configurator: a room of shelving in 3D with the catalogue, the running quote and the send-as-brief action">
         </div>
         <figcaption><span>Shelving laid out in 3D with a live quote</span><span>Click to expand</span></figcaption>
       </figure>
@@ -1251,7 +1251,7 @@
           <source src="../assets/a0-md.mp4" type="video/mp4">
         </video>
         <div class="shots">
-          <img src="../assets/a1.jpg" alt="Home screen: nine calculation modules with counters for the migrated database — 63 tables, 3,471 records">
+          <img src="../assets/a1.jpg" loading="lazy" decoding="async" alt="Home screen: nine calculation modules with counters for the migrated database — 63 tables, 3,471 records">
         </div>
         <figcaption><span>Live selection: input → calculation → curve with the operating point</span><span>video and screens</span></figcaption>
       </figure>
@@ -1280,8 +1280,8 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="../assets/a5.jpg" alt="Input: a project page — a standards-formatted table of ventilation system parameters">
-          <img src="../assets/a6.jpg" alt="Output: 33 clean line items, ducting in metres and fittings in pieces">
+          <img src="../assets/a5.jpg" loading="lazy" decoding="async" alt="Input: a project page — a standards-formatted table of ventilation system parameters">
+          <img src="../assets/a6.jpg" loading="lazy" decoding="async" alt="Output: 33 clean line items, ducting in metres and fittings in pieces">
         </div>
         <figcaption><span>The project on the left, the extracted specification on the right</span><span>Click to expand</span></figcaption>
       </figure>
@@ -1342,7 +1342,7 @@
           <source src="../assets/a12-md.mp4" type="video/mp4">
         </video>
         <div class="shots">
-          <img src="../assets/a13.jpg" alt="Progress view: confidence calibration — whether stated confidence matches real accuracy">
+          <img src="../assets/a13.jpg" loading="lazy" decoding="async" alt="Progress view: confidence calibration — whether stated confidence matches real accuracy">
         </div>
         <figcaption><span>A live pass: card → confidence → answer → exam</span><span>video and screens</span></figcaption>
       </figure>
@@ -1370,8 +1370,8 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="../assets/a14.jpg" alt="Exercise view: code editor, run and check, output matched">
-          <img src="../assets/a15.jpg" alt="Exam view: rubric scoring, the judge's verdict and a reference breakdown">
+          <img src="../assets/a14.jpg" loading="lazy" decoding="async" alt="Exercise view: code editor, run and check, output matched">
+          <img src="../assets/a15.jpg" loading="lazy" decoding="async" alt="Exam view: rubric scoring, the judge's verdict and a reference breakdown">
         </div>
         <figcaption><span>Practice with a live code run, and an exam with a breakdown</span><span>Click to expand</span></figcaption>
       </figure>
@@ -1399,7 +1399,7 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="../assets/a16.jpg" alt="REST API map: 9 domains, 53 endpoints, 51 tables, 5 external integrations">
+          <img src="../assets/a16.jpg" loading="lazy" decoding="async" alt="REST API map: 9 domains, 53 endpoints, 51 tables, 5 external integrations">
         </div>
         <figcaption><span>API map drawn from the project specification</span><span>Click to expand</span></figcaption>
       </figure>
@@ -1612,6 +1612,33 @@
     });
     dlg.addEventListener("cancel", function (e) { e.preventDefault(); close(); });
   })();
+</script>
+
+
+<script>
+/* Страховка первого экрана.
+   Скролл-слой (js/motion.js) прячет h1/h2 и раскрывает их по ScrollTrigger.
+   Если твин не проиграл — заголовков на странице просто нет. Через 2.2 с
+   проверяем только то, что попало в первый экран, и снимаем начальное
+   состояние ровно с него. Раскрытия ниже по странице не трогаем. */
+(function () {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  setTimeout(function () {
+    var fold = innerHeight;
+    var sel = '.m-line, .m-armed, .offer, .case, .plate-head .spec, .plate .screen, .terms > div, [data-m-reveal]';
+    var stuck = [].slice.call(document.querySelectorAll(sel)).filter(function (el) {
+      var b = el.getBoundingClientRect();
+      return b.top < fold && parseFloat(getComputedStyle(el).opacity) < 0.05;
+    });
+    if (!stuck.length) return;
+    stuck.forEach(function (el) {
+      el.style.setProperty('opacity', '1', 'important');
+      el.style.setProperty('transform', 'none', 'important');
+      var host = el.closest('h1, h2, h3, [data-m-split]');
+      if (host) host.style.setProperty('visibility', 'visible', 'important');
+    });
+  }, 2200);
+})();
 </script>
 
 </body>

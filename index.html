@@ -998,7 +998,7 @@
           <source src="assets/a0-md.mp4" type="video/mp4">
         </video>
         <div class="shots">
-          <img src="assets/a1.jpg" alt="Главная: девять расчётных модулей и счётчики перенесённой базы 63 таблицы, 3471 запись">
+          <img src="assets/a1.jpg" loading="lazy" decoding="async" alt="Главная: девять расчётных модулей и счётчики перенесённой базы 63 таблицы, 3471 запись">
         </div>
         <figcaption><span>Живой подбор: ввод → расчёт → кривая с рабочей точкой</span><span>Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1083,7 +1083,7 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="assets/a4.jpg" alt="Конфигуратор STANDES: зал со стеллажами в 3D, каталог, смета, отправка ТЗ">
+          <img src="assets/a4.jpg" loading="lazy" decoding="async" alt="Конфигуратор STANDES: зал со стеллажами в 3D, каталог, смета, отправка ТЗ">
         </div>
         <figcaption><span>Расстановка стеллажей в 3D со сметой</span><span>Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1111,8 +1111,8 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="assets/a5.jpg" alt="Вход: страница проекта — таблица характеристик вентсистем по ГОСТ">
-          <img src="assets/a6.jpg" alt="Выход: 33 позиции чистой спецификации, воздуховоды в метрах, фасон в штуках">
+          <img src="assets/a5.jpg" loading="lazy" decoding="async" alt="Вход: страница проекта — таблица характеристик вентсистем по ГОСТ">
+          <img src="assets/a6.jpg" loading="lazy" decoding="async" alt="Выход: 33 позиции чистой спецификации, воздуховоды в метрах, фасон в штуках">
         </div>
         <figcaption><span>Слева проект, справа извлечённая спецификация</span><span>Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1282,7 +1282,7 @@
           <source src="assets/a12-md.mp4" type="video/mp4">
         </video>
         <div class="shots">
-          <img src="assets/a13.jpg" alt="Прогресс: калибровка уверенности — совпадает ли заявленная уверенность с реальной точностью">
+          <img src="assets/a13.jpg" loading="lazy" decoding="async" alt="Прогресс: калибровка уверенности — совпадает ли заявленная уверенность с реальной точностью">
         </div>
         <figcaption><span>Живой проход: карточка → оценка уверенности → ответ → экзамен</span><span>Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1310,8 +1310,8 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="assets/a14.jpg" alt="Упражнение: редактор кода, запуск и проверка, результат совпал">
-          <img src="assets/a15.jpg" alt="Экзамен: оценка по рубрикам, вердикт судьи, эталонный разбор">
+          <img src="assets/a14.jpg" loading="lazy" decoding="async" alt="Упражнение: редактор кода, запуск и проверка, результат совпал">
+          <img src="assets/a15.jpg" loading="lazy" decoding="async" alt="Экзамен: оценка по рубрикам, вердикт судьи, эталонный разбор">
         </div>
         <figcaption><span>Практика с запуском кода и экзамен с разбором</span><span>Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1339,7 +1339,7 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="assets/a16.jpg" alt="Карта REST API: 9 доменов, 53 эндпоинта, 51 таблица, 5 внешних интеграций">
+          <img src="assets/a16.jpg" loading="lazy" decoding="async" alt="Карта REST API: 9 доменов, 53 эндпоинта, 51 таблица, 5 внешних интеграций">
         </div>
         <figcaption><span>Карта API по данным спецификации проекта</span><span>Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1533,6 +1533,33 @@
     });
     dlg.addEventListener("cancel", function (e) { e.preventDefault(); close(); });
   })();
+</script>
+
+
+<script>
+/* Страховка первого экрана.
+   Скролл-слой (js/motion.js) прячет h1/h2 и раскрывает их по ScrollTrigger.
+   Если твин не проиграл — заголовков на странице просто нет. Через 2.2 с
+   проверяем только то, что попало в первый экран, и снимаем начальное
+   состояние ровно с него. Раскрытия ниже по странице не трогаем. */
+(function () {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  setTimeout(function () {
+    var fold = innerHeight;
+    var sel = '.m-line, .m-armed, .offer, .case, .plate-head .spec, .plate .screen, .terms > div, [data-m-reveal]';
+    var stuck = [].slice.call(document.querySelectorAll(sel)).filter(function (el) {
+      var b = el.getBoundingClientRect();
+      return b.top < fold && parseFloat(getComputedStyle(el).opacity) < 0.05;
+    });
+    if (!stuck.length) return;
+    stuck.forEach(function (el) {
+      el.style.setProperty('opacity', '1', 'important');
+      el.style.setProperty('transform', 'none', 'important');
+      var host = el.closest('h1, h2, h3, [data-m-split]');
+      if (host) host.style.setProperty('visibility', 'visible', 'important');
+    });
+  }, 2200);
+})();
 </script>
 
 </body>
