@@ -165,10 +165,10 @@ body {
 
 .slide-title {
     font-family: 'Italiana', serif;
-    font-size: 116px;
+    font-size: clamp(2.6rem, 8vw, 116px);
     line-height: 1.0;
     font-weight: 400;
-    letter-spacing: 2px;
+    letter-spacing: 0.018em;
     margin-bottom: 20px;
     color: #fff6ed;
 }
@@ -262,6 +262,84 @@ body {
 .corner-cta .cta-handle { color: rgba(255, 255, 255, 0.9); font-weight: 600; }
 @media (max-width: 600px) {
     .corner-cta { font-size: 10px; padding: 6px 11px; bottom: 10px; right: 10px; }
+}
+
+/* ---------------- tablet: narrow the four-column rhythm ---------------- */
+@media (max-width: 1024px) {
+    .cinematic-container { padding: 0 32px 32px 32px; }
+    #slide-1 .slide-title { margin-left: 32px; }
+    #slide-1 .col-1 { margin-left: 32px; width: calc(38vw - 40px); max-width: calc(38vw - 40px); }
+    #slide-1 .col-2 { left: calc(38vw + 8px); width: calc(38vw - 40px); max-width: calc(38vw - 40px); }
+    #slide-2 .slide-title { margin-left: 32px; }
+    #slide-2 .slide-desc { margin-left: calc(38vw + 8px); width: calc(45vw - 40px); max-width: calc(45vw - 40px); }
+    #slide-2-img { top: 84px; left: 32px; width: calc(32vw - 40px); }
+    #slide-3 { left: 32px; width: calc(55vw); max-width: calc(55vw); }
+    #slide-4 { left: 32px; max-width: 60vw; }
+    .slide-desc { font-size: 15px; }
+}
+
+/* ---------------- phone: everything collapses to one column ---------------- */
+@media (max-width: 760px) {
+    .cinematic-container { padding: 0 20px 20px 20px; }
+
+    .header-nav { display: none; }
+    .brand { font-size: 12px; letter-spacing: 4px; }
+    .contact-btn { padding: 9px 18px; font-size: 9px; }
+
+    .grid-lines { left: 16px; right: 16px; width: calc(100% - 32px); }
+    .grid-line:nth-child(2), .grid-line:nth-child(4) { display: none; }
+    .story-dash { height: 26px; }
+
+    .slide,
+    #slide-1, #slide-2, #slide-3, #slide-4 {
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        bottom: 12%;
+        padding: 0 20px;
+    }
+
+    #slide-1 .slide-title,
+    #slide-2 .slide-title { margin-left: 0; }
+    #slide-3 .slide-title { white-space: normal; }
+
+    #slide-1 .desc-row { display: block; }
+    #slide-1 .col-1,
+    #slide-1 .col-2,
+    #slide-2 .slide-desc {
+        position: static;
+        left: auto;
+        margin-left: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+    #slide-1 .col-2 { margin-top: 14px; }
+
+    #slide-2-img {
+        top: 84px;
+        left: 20px;
+        width: 40vw;
+    }
+
+    .slide-title { margin-bottom: 14px; }
+    .slide-desc { font-size: 13.5px; line-height: 1.62; letter-spacing: 0.2px; }
+    .slide-title .char { transform: translateY(28px); filter: blur(8px); }
+}
+
+/* short viewports (landscape phones) keep the block inside the screen */
+@media (max-height: 560px) {
+    .slide-title { font-size: clamp(2rem, 6.2vh, 116px); margin-bottom: 10px; }
+    .slide-desc { font-size: 12.5px; line-height: 1.5; }
+    .slide { bottom: 8%; }
+}
+
+/* touch devices get a real cursor back */
+@media (pointer: coarse) {
+    body { cursor: auto; }
+    * { cursor: auto !important; }
+    a, button, .contact-btn, .nav-link { cursor: pointer !important; }
+    .cursor-inner, .cursor-outer { display: none; }
 }
 </style>
 </head>
@@ -384,6 +462,18 @@ const cursorOuter = document.querySelector('.cursor-outer');
 let gridDots = [];
 
 const cameraTarget = new THREE.Vector3();
+
+/* phones render at 1.5x max, desktops at 2x — same clamp the top studios use */
+const isMobile = () => window.innerWidth < 900;
+const dprCap = () => Math.min(window.devicePixelRatio || 1, isMobile() ? 1.5 : 2);
+
+/* portrait screens have a far narrower horizontal FOV, so the camera pulls back
+   to keep the same horizontal framing a 16:10 desktop gets */
+const REF_ASPECT = 1.6;
+function framingScale() {
+    const a = sizes.width / sizes.height;
+    return a >= REF_ASPECT ? 1 : Math.min(REF_ASPECT / a, 1.85);
+}
 
 /* ------------------------------------------------------------------ *
  *  per-letter title split
@@ -790,7 +880,7 @@ function initScene() {
         powerPreference: "high-performance"
     });
     renderer.setSize(sizes.width, sizes.height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(dprCap());
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -806,8 +896,9 @@ function initLights() {
     keyLight.angle = Math.PI / 4;
     keyLight.penumbra = 0.9;
     keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 2048;
-    keyLight.shadow.mapSize.height = 2048;
+    const shadowRes = isMobile() ? 1024 : 2048;
+    keyLight.shadow.mapSize.width = shadowRes;
+    keyLight.shadow.mapSize.height = shadowRes;
     keyLight.shadow.camera.near = 1.0;
     keyLight.shadow.camera.far = 15;
     keyLight.shadow.bias = -0.001;
@@ -847,16 +938,21 @@ function animate() {
     cursorOuter.style.top = outerY + 'px';
 
     /* --- 360 degree scroll orbit --- */
+    const frame = framingScale();
     const phi = currentScroll * Math.PI * 2;
-    const camY = 0.35 + Math.sin(currentScroll * Math.PI) * 0.8;
-    const radius = 4.2 - Math.sin(currentScroll * Math.PI) * 0.6;
+    const camY = (0.35 + Math.sin(currentScroll * Math.PI) * 0.8) * frame;
+    const radius = (4.2 - Math.sin(currentScroll * Math.PI) * 0.6) * frame;
     cameraTarget.set(radius * Math.sin(phi), camY, radius * Math.cos(phi));
     camera.position.lerp(cameraTarget, 0.025);
 
     const e = Math.min(Math.max(currentScroll / 0.28, 0), 1);
     const easeFactor = e * e * (3 - 2 * e);
-    const lookAtXOffset = -0.9 * easeFactor;
-    camera.lookAt(lookAtXOffset, -0.15, 0);
+    /* on desktop the sculpture slides right to clear the text column;
+       on portrait it stays centred and is lifted into the upper half instead */
+    const portrait = frame > 1.15;
+    const lookAtX = portrait ? 0 : -0.9 * easeFactor;
+    const lookAtY = portrait ? -1.2 : -0.15;
+    camera.lookAt(lookAtX, lookAtY, 0);
 
     /* --- model tilt --- */
     if (pivot) {
@@ -905,7 +1001,7 @@ window.addEventListener('resize', () => {
     camera.aspect = sizes.width / sizes.height;
     camera.updateProjectionMatrix();
     renderer.setSize(sizes.width, sizes.height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(dprCap());
 });
 
 /* ------------------------------------------------------------------ *
