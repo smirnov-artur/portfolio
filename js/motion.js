@@ -60,8 +60,8 @@
     var css = document.createElement('style');
     css.id = 'm-init';
     css.textContent =
-      CFG.split + '{visibility:hidden}' +
-      CFG.reveal + '{opacity:0;transform:translate3d(0,26px,0)}';
+      (CFG.split ? CFG.split + '{visibility:hidden}' : '') +
+      (CFG.reveal ? CFG.reveal + '{opacity:0;transform:translate3d(0,26px,0)}' : '');
     (document.head || root).appendChild(css);
 
     /* если библиотеки не доехали за 3 с — показать всё как есть */
@@ -256,7 +256,10 @@
     });
   }
 
-  var LINE_TWEEN = { yPercent: 108, opacity: 0, duration: 0.9, stagger: 0.08, ease: 'power3.out' };
+  /* yPercent должен переносить строку за нижний край маски. Маске добавлен
+     воздух под выносные (см. .m-mask в motion.css), поэтому 108 уже мало:
+     на старте из-под края выглядывала верхушка строки. */
+  var LINE_TWEEN = { yPercent: 135, opacity: 0, duration: 0.9, stagger: 0.08, ease: 'power3.out' };
 
   function buildSplit() {
     [].slice.call(document.querySelectorAll(CFG.split)).forEach(function (el) {
@@ -268,6 +271,14 @@
         return;
       }
       splits.push(split);
+
+      /* Обёртку-маску GSAP называет сам, и имя у него от версии к версии
+         разное (сейчас m-mask-line-mask). Вешаем своё — иначе стиль маски
+         молча отваливается, а маска режет строку по line-height. */
+      split.lines.forEach(function (ln) {
+        var m = ln.parentNode;
+        if (m && m !== el) { m.classList.add('m-mask'); }
+      });
 
       /* заголовок показываем сразу: прячут теперь строки, а не он сам */
       gsap.set(el, { visibility: 'visible' });

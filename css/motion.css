@@ -15,8 +15,21 @@ html.lenis body { height: auto; }
 .lenis.lenis-stopped { overflow: clip; }
 .lenis.lenis-smooth iframe { pointer-events: none; }
 
-/* Маски строк SplitText: строка едет из-под своей же обрезки */
-.m-line-mask { display: block; }
+/* Маски строк SplitText: строка едет из-под своей же обрезки.
+   Класс вешает motion.js — собственное имя GSAP меняется от версии к версии.
+
+   Обрезка идёт ровно по line-height, а заголовки набраны с 0.9: нижние
+   выносные (р, у, д) выходят за строку и попадали под нож — буквы выглядели
+   обрубленными. overflow-clip-margin раздвигает саму область обрезки, не
+   трогая раскладку: padding с отрицательным margin тут не годится, соседние
+   поля схлопываются и строки разъезжаются. Работает только при overflow:clip
+   — его GSAP и ставит. */
+.m-mask {
+  display: block;
+  overflow: clip;
+  overflow-clip-margin: 0.3em;
+}
+
 .m-line { display: block; will-change: transform; }
 
 /* Пока слой жив — блоки, которые он трогает, обещают браузеру трансформ */
