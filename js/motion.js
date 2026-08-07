@@ -1,17 +1,25 @@
 /* ---------------------------------------------------------------------------
    motion.js — скролл-слой: Lenis + GSAP ScrollTrigger + SplitText.
 
-   Подключается в <head> обычным (не defer) тегом, потому что первая фаза
-   должна отработать до первой отрисовки: она вешает на <html> класс motion-on
-   и вставляет <style> с начальными состояниями. Вторая фаза — уже после
-   загрузки библиотек — заводит инерцию, раскрытие строк и скраб героя.
+   Главный принцип: анимация появления не имеет права оставить контент
+   невидимым. Начальное состояние ставится только после того, как твин создан,
+   и только инлайном; любая осечка — контент видим. Сломанная анимация
+   деградирует в «просто текст», а не в пустую страницу.
 
-   Ничего не ломается, если JS выключен или библиотеки не приехали: начальные
-   состояния снимаются страховочным таймером, разметка остаётся как была.
+   Отсюда три правила, на которых собран файл:
+   1. Всё, что видно до первого движения мыши, раскрывается СРАЗУ по загрузке.
+      ScrollTrigger отвечает только за то, что ниже первого экрана.
+   2. Прячущий <style> живёт ровно до момента, когда начальные состояния
+      перенесены в инлайн, и удаляется. visibility:hidden не может застрять.
+   3. Сторож раз в 2 с проверяет, не остался ли в кадре невидимый элемент, за
+      которым не стоит живой твин, и показывает его.
+
+   Подключается в <head> обычным (не defer) тегом: первая фаза должна
+   отработать до первой отрисовки, иначе контент моргнёт.
 
    Настройка на страницу — window.MOTION до подключения этого файла:
      window.MOTION = { split: '...', reveal: '...', hero: '...' }
-   Либо по атрибутам прямо в разметке: data-m-split, data-m-reveal.
+   Либо по атрибутам в разметке: data-m-split, data-m-reveal, data-m-parallax.
    --------------------------------------------------------------------------- */
 (function () {
   'use strict';
@@ -41,15 +49,10 @@
   var here = (document.currentScript && document.currentScript.src) || '';
   var base = here.replace(/[^/]*$/, '');
 
-  /* ---------- фаза 1: до первой отрисовки ---------- */
-
   var guard = null;
+  var splits = [];
 
-  function disarm() {
-    root.classList.remove('motion-on');
-    var s = document.getElementById('m-init');
-    if (s) { s.parentNode.removeChild(s); }
-  }
+  /* ---------- фаза 1: до первой отрисовки ---------- */
 
   if (!reduced) {
     root.classList.add('motion-on');
@@ -63,6 +66,29 @@
 
     /* если библиотеки не доехали за 3 с — показать всё как есть */
     guard = setTimeout(disarm, 3000);
+  }
+
+  /* Снять прячущий стиль и любое застрявшее начальное состояние. */
+  function dropInitStyle() {
+    var s = document.getElementById('m-init');
+    if (s && s.parentNode) { s.parentNode.removeChild(s); }
+  }
+
+  function show(list) {
+    [].forEach.call(list, function (el) {
+      el.style.visibility = 'visible';
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    });
+  }
+
+  function disarm() {
+    clearTimeout(guard);
+    root.classList.remove('motion-on');
+    dropInitStyle();
+    show(document.querySelectorAll('.m-line, .m-armed'));
+    try { show(document.querySelectorAll(CFG.split)); } catch (e) { /* чужой селектор */ }
+    try { show(document.querySelectorAll(CFG.reveal)); } catch (e) { /* чужой селектор */ }
   }
 
   /* ---------- ленивые видео: работает независимо от GSAP ---------- */
@@ -130,15 +156,45 @@
 
   /* ---------- сборка ---------- */
 
+  /* Элемент считается «в первом экране», если он уже на виду или выше него:
+     такое раскрывается сразу, без ScrollTrigger. */
+  function onScreen(el) {
+    return el.getBoundingClientRect().top < window.innerHeight;
+  }
+
   function init() {
-    if (!window.gsap || !window.ScrollTrigger || !window.Lenis) { return disarm(); }
-
+    if (!window.gsap || !window.ScrollTrigger || !window.SplitText || !window.Lenis) {
+      return disarm();
+    }
     clearTimeout(guard);
-    gsap.registerPlugin(ScrollTrigger, SplitText);
 
-    /* --- инерция --- */
+    try {
+      gsap.registerPlugin(ScrollTrigger, SplitText);
+      setupLenis();
+      /* шрифты меняют метрики строк, поэтому разбиваем после них — но ждём
+         не дольше 400 мс, иначе заголовок заметно висит пустым */
+      race(fontsReady(), 400, build);
+      watchdog();
+    } catch (e) {
+      disarm();
+    }
+  }
 
-    var lenis = new Lenis({
+  function fontsReady() {
+    return (document.fonts && document.fonts.ready) || Promise.resolve();
+  }
+
+  function race(promise, ms, fn) {
+    var done = false;
+    var go = function () { if (!done) { done = true; try { fn(); } catch (e) { disarm(); } } };
+    promise.then(go, go);
+    setTimeout(go, ms);
+  }
+
+  var lenis;
+
+  function setupLenis() {
+    lenis = new Lenis({
       autoRaf: false,
       lerp: CFG.lerp,
       wheelMultiplier: 1,
@@ -163,85 +219,132 @@
       lenis.scrollTo(target, { offset: -24 });
     });
 
-    /* пока открыт лайтбокс, фон под ним ехать не должен: showModal() сам прокрутку
-       не блокирует, а с инерцией это особенно заметно */
+    /* пока открыт лайтбокс, фон под ним ехать не должен: showModal() сам
+       прокрутку не блокирует, а с инерцией это особенно заметно */
     var dlg = document.querySelector('dialog.lb');
     if (dlg) {
       new MutationObserver(function () {
         if (dlg.open) { lenis.stop(); } else { lenis.start(); }
       }).observe(dlg, { attributes: true, attributeFilter: ['open'] });
     }
+  }
 
-    /* --- заголовки: строки из-под маски --- */
+  function build() {
+    buildSplit();
+    buildReveal();
 
-    document.fonts && document.fonts.ready.then(function () { ScrollTrigger.refresh(); });
+    /* начальные состояния теперь стоят инлайном у конкретных элементов —
+       прячущий стиль больше не нужен и не может ничего застрять */
+    dropInitStyle();
 
+    buildHero();
+    buildParallax();
+
+    ScrollTrigger.refresh();
+    fontsReady().then(function () { ScrollTrigger.refresh(); });
+
+    /* после ресайза разбиение строк устаревает: возвращаем текст как был,
+       к этому моменту он давно раскрыт */
+    var t = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(t);
+      t = setTimeout(function () {
+        splits.forEach(function (s) { try { s.revert(); } catch (e) { /* уже снят */ } });
+        splits = [];
+        ScrollTrigger.refresh();
+      }, 250);
+    });
+  }
+
+  var LINE_TWEEN = { yPercent: 108, opacity: 0, duration: 0.9, stagger: 0.08, ease: 'power3.out' };
+
+  function buildSplit() {
     [].slice.call(document.querySelectorAll(CFG.split)).forEach(function (el) {
-      SplitText.create(el, {
-        type: 'lines',
-        mask: 'lines',
-        linesClass: 'm-line',
-        autoSplit: true,           /* пересобрать после подгрузки шрифта */
-        onSplit: function (self) {
-          gsap.set(el, { visibility: 'visible' });
-          return gsap.from(self.lines, {
-            yPercent: 108,
-            opacity: 0,
-            duration: 0.9,
-            stagger: 0.08,
-            ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'clamp(top 88%)', once: true }
-          });
-        }
-      });
-    });
-
-    /* --- блоки: всплытие пачками --- */
-
-    var rev = [].slice.call(document.querySelectorAll(CFG.reveal));
-    rev.forEach(function (el) { el.classList.add('m-armed'); });
-
-    ScrollTrigger.batch(rev, {
-      start: 'top 90%',
-      once: true,
-      onEnter: function (batch) {
-        gsap.to(batch, {
-          opacity: 1,
-          y: 0,
-          duration: 0.75,
-          stagger: 0.07,
-          ease: 'power2.out',
-          overwrite: true,
-          onComplete: function () {
-            this.targets().forEach(function (el) {
-              el.classList.remove('m-armed');
-              el.style.willChange = '';
-            });
-          }
-        });
+      var split;
+      try {
+        split = SplitText.create(el, { type: 'lines', mask: 'lines', linesClass: 'm-line' });
+      } catch (e) {
+        show([el]);
+        return;
       }
+      splits.push(split);
+
+      /* заголовок показываем сразу: прячут теперь строки, а не он сам */
+      gsap.set(el, { visibility: 'visible' });
+
+      if (!split.lines.length) { return; }
+
+      var vars = {
+        yPercent: LINE_TWEEN.yPercent, opacity: LINE_TWEEN.opacity,
+        duration: LINE_TWEEN.duration, stagger: LINE_TWEEN.stagger, ease: LINE_TWEEN.ease
+      };
+
+      /* первый экран не должен зависеть от ScrollTrigger — играем сразу */
+      if (!onScreen(el)) {
+        vars.scrollTrigger = { trigger: el, start: 'top 88%', once: true };
+      }
+      gsap.from(split.lines, vars);
+    });
+  }
+
+  function buildReveal() {
+    var all = [].slice.call(document.querySelectorAll(CFG.reveal));
+    if (!all.length) { return; }
+
+    var near = [];
+    var far = [];
+    all.forEach(function (el) {
+      el.classList.add('m-armed');
+      (onScreen(el) ? near : far).push(el);
     });
 
-    /* --- герой под скраб --- */
+    var done = function () {
+      this.targets().forEach(function (el) {
+        el.classList.remove('m-armed');
+        el.style.willChange = '';
+      });
+    };
 
-    var hero = CFG.hero && document.querySelector(CFG.hero);
-    if (hero) {
-      gsap.to(hero, {
-        yPercent: -9,
-        opacity: 0.25,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: hero,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: 0.6,
-          invalidateOnRefresh: true
-        }
+    /* то, что уже в кадре, всплывает сразу одной волной */
+    if (near.length) {
+      gsap.set(near, { opacity: 0, y: 26 });
+      gsap.to(near, {
+        opacity: 1, y: 0, duration: 0.75, stagger: 0.07, ease: 'power2.out',
+        overwrite: true, onComplete: done
       });
     }
 
-    /* --- лёгкий параллакс на кадрах кейсов --- */
+    /* остальное ждёт своей очереди по скроллу */
+    if (far.length) {
+      gsap.set(far, { opacity: 0, y: 26 });
+      ScrollTrigger.batch(far, {
+        start: 'top 90%',
+        once: true,
+        onEnter: function (batch) {
+          gsap.to(batch, {
+            opacity: 1, y: 0, duration: 0.75, stagger: 0.07, ease: 'power2.out',
+            overwrite: true, onComplete: done
+          });
+        }
+      });
+    }
+  }
 
+  function buildHero() {
+    var hero = CFG.hero && document.querySelector(CFG.hero);
+    if (!hero) { return; }
+    gsap.to(hero, {
+      yPercent: -9,
+      opacity: 0.25,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: hero, start: 'top top', end: 'bottom top',
+        scrub: 0.6, invalidateOnRefresh: true
+      }
+    });
+  }
+
+  function buildParallax() {
     [].slice.call(document.querySelectorAll('[data-m-parallax]')).forEach(function (el) {
       var d = parseFloat(el.getAttribute('data-m-parallax')) || 8;
       gsap.fromTo(el, { yPercent: d }, {
@@ -250,7 +353,36 @@
         scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: true }
       });
     });
+  }
 
-    ScrollTrigger.refresh();
+  /* ---------- сторож ---------- */
+
+  /* Если в кадре есть невидимый элемент, за которым не стоит живой твин —
+     значит анимация не сыграла. Показываем принудительно. */
+  function sweep() {
+    var stuck = [].filter.call(document.querySelectorAll('.m-line, .m-armed'), function (el) {
+      var cs = getComputedStyle(el);
+      if (cs.visibility !== 'hidden' && parseFloat(cs.opacity) >= 0.05) { return false; }
+      if (window.gsap && gsap.isTweening(el)) { return false; }
+      var r = el.getBoundingClientRect();
+      return r.bottom > 0 && r.top < window.innerHeight;
+    });
+    if (stuck.length) { show(stuck); }
+  }
+
+  /* Первые 10 с — по таймеру (первый экран), дальше — через полсекунды после
+     каждой остановки скролла, чтобы прикрыть и раскрытия ниже по странице. */
+  function watchdog() {
+    var runs = 0;
+    var tick = setInterval(function () {
+      if (++runs > 5) { clearInterval(tick); }
+      sweep();
+    }, 2000);
+
+    var t = null;
+    window.addEventListener('scroll', function () {
+      clearTimeout(t);
+      t = setTimeout(sweep, 500);
+    }, { passive: true });
   }
 })();
