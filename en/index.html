@@ -1,0 +1,1453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interactive 3D for the web — selected work</title>
+<meta name="description" content="Three.js product configurators, hand-written GLSL scenes and browser tools with real engineering logic behind them. Five live demos and fourteen shipped projects.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%93%90%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta name="robots" content="noindex">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/en/">
+<link rel="alternate" hreflang="x-default" href="https://smirnov-artur.github.io/portfolio/en/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://smirnov-artur.github.io/portfolio/en/">
+<meta property="og:title" content="Interactive 3D for the web — selected work">
+<meta property="og:description" content="Three.js product configurators, hand-written GLSL scenes and browser tools with real engineering logic behind them. Five live demos, fourteen shipped projects.">
+<meta property="og:image" content="https://smirnov-artur.github.io/portfolio/assets/thumbs/aurum.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --paper: #EDEEEA;
+    --panel: #E4E6E1;
+    --ink: #12161B;
+    --graphite: #59616B;
+    --rule: #C9CCC5;
+    --rule-strong: #A8ADA4;
+    --blue: #1B34C4;
+    --blue-soft: #1B34C41A;
+
+    --f-display: "Bahnschrift", "Archivo Narrow", "Franklin Gothic Medium", "Arial Narrow", system-ui, sans-serif;
+    --f-body: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    --f-mono: "Cascadia Mono", "Consolas", ui-monospace, "SFMono-Regular", "Menlo", monospace;
+
+    --gap: clamp(1rem, 2.4vw, 2rem);
+    --edge: clamp(1.1rem, 4vw, 3.5rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0E1116;
+      --panel: #151A21;
+      --ink: #E7E9E5;
+      --graphite: #939CA6;
+      --rule: #262C34;
+      --rule-strong: #39424C;
+      --blue: #7C93FF;
+      --blue-soft: #7C93FF1F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0E1116;
+    --panel: #151A21;
+    --ink: #E7E9E5;
+    --graphite: #939CA6;
+    --rule: #262C34;
+    --rule-strong: #39424C;
+    --blue: #7C93FF;
+    --blue-soft: #7C93FF1F;
+  }
+  :root[data-theme="light"] {
+    --paper: #EDEEEA;
+    --panel: #E4E6E1;
+    --ink: #12161B;
+    --graphite: #59616B;
+    --rule: #C9CCC5;
+    --rule-strong: #A8ADA4;
+    --blue: #1B34C4;
+    --blue-soft: #1B34C41A;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+  img, video { max-width: 100%; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 var(--edge) clamp(3rem, 8vw, 6rem);
+  }
+
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    margin: 0;
+  }
+
+  /* ---------- title block ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--rule-strong);
+    padding: clamp(1.8rem, 4.6vw, 3.4rem) 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.4rem, 3.2vw, 2.3rem);
+  }
+
+  .masthead-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.6rem 1.5rem;
+  }
+
+  .masthead-aside {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 1.2rem;
+  }
+
+  /* ---------- language switch ---------- */
+
+  .lang {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .lang a {
+    color: var(--blue);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+
+  .lang a:hover { border-bottom-color: var(--blue); }
+  .lang a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  .lang .current { color: var(--graphite); }
+  .lang .sep { color: var(--rule-strong); }
+
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: clamp(2.3rem, 6.4vw, 4.4rem);
+    line-height: 0.98;
+    letter-spacing: -0.015em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    margin: 0;
+    max-width: 16ch;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--blue);
+  }
+
+  .lede {
+    max-width: 62ch;
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .offers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border-top: 1px solid var(--rule);
+    margin-top: 0.6rem;
+  }
+
+  .offer {
+    background: var(--paper);
+    padding: 1.2rem 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .offer + .offer { padding-left: var(--gap); }
+
+  .offer h2 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    font-size: 1.12rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.15;
+  }
+
+  .offer p {
+    margin: 0;
+    color: var(--graphite);
+    font-size: 0.9rem;
+  }
+
+  /* ---------- flagship demos ---------- */
+
+  .flagships {
+    margin-top: clamp(1.9rem, 4vw, 2.8rem);
+  }
+
+  .flagships-head {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 0.9rem clamp(1.5rem, 4vw, 3.2rem);
+    align-items: end;
+    margin-bottom: clamp(1.2rem, 2.6vw, 1.9rem);
+  }
+
+  .flagships-id {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem 1.5rem;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+  }
+
+  .flagships h2 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.06;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .flagships-note {
+    margin: 0;
+    color: var(--graphite);
+    font-size: 0.95rem;
+    max-width: 52ch;
+  }
+
+  .cases {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: clamp(0.85rem, 1.8vw, 1.3rem);
+  }
+
+  .case {
+    grid-column: span 2;
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    border: 1px solid var(--rule-strong);
+    color: inherit;
+    text-decoration: none;
+    position: relative;
+    transition: border-color 0.18s ease;
+  }
+
+  .case:nth-child(-n + 2) { grid-column: span 3; }
+
+  .case::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 46px;
+    height: 3px;
+    background: var(--blue);
+    z-index: 2;
+    transition: width 0.32s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  .case:hover, .case:focus-visible { border-color: var(--blue); }
+  .case:hover::before, .case:focus-visible::before { width: calc(100% + 2px); }
+  .case:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  .case-shot {
+    margin: 0;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #0B0E13;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .case-shot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  .case:hover .case-shot img { transform: scale(1.035); }
+
+  .case-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem clamp(0.85rem, 1.5vw, 1.15rem) 0.95rem;
+  }
+
+  .case-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .case h3 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    line-height: 1.06;
+    margin: 0;
+  }
+
+  .case p {
+    margin: 0;
+    color: var(--graphite);
+    font-size: 0.9rem;
+  }
+
+  .case-open {
+    margin-top: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blue);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .case-open .arrow {
+    transition: transform 0.22s ease;
+  }
+
+  .case:hover .case-open .arrow { transform: translateX(5px); }
+
+  /* ---------- catalogue divider ---------- */
+
+  .rail {
+    border-top: 1px solid var(--rule-strong);
+    margin-top: clamp(3rem, 7vw, 5rem);
+    padding-top: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .rail-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.4rem 1.5rem;
+  }
+
+  .rail h2 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.06;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .rail-note {
+    margin: 0;
+    color: var(--graphite);
+    font-size: 0.95rem;
+    max-width: 62ch;
+  }
+
+  @media (max-width: 980px) {
+    .case, .case:nth-child(-n + 2) { grid-column: span 3; }
+    .case:last-child { grid-column: 1 / -1; }
+  }
+
+  @media (max-width: 620px) {
+    .flagships-head { grid-template-columns: minmax(0, 1fr); align-items: start; }
+    .case, .case:nth-child(-n + 2), .case:last-child { grid-column: 1 / -1; }
+  }
+
+  /* ---------- plates ---------- */
+
+  .plate {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.1rem;
+    margin-top: clamp(2.6rem, 6vw, 4.5rem);
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--gap) clamp(1.5rem, 4vw, 3.2rem);
+    position: relative;
+  }
+
+  .plate::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 46px;
+    height: 3px;
+    background: var(--blue);
+  }
+
+  .plate-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .plate-id {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+  }
+
+  .plate h3 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.06;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .plate-sub {
+    margin: 0;
+    color: var(--graphite);
+    font-size: 0.95rem;
+    max-width: 46ch;
+  }
+
+  dl.spec {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.05rem 1.1rem;
+    font-size: 0.86rem;
+    align-content: start;
+  }
+
+  dl.spec dt {
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    padding-top: 0.42rem;
+    white-space: nowrap;
+  }
+
+  dl.spec dd {
+    margin: 0;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+
+  dl.spec dt { border-bottom: 1px solid var(--rule); }
+  dl.spec dt:last-of-type, dl.spec dd:last-of-type { border-bottom: 0; }
+
+  .screen {
+    margin: 0;
+    align-self: start;
+  }
+
+  .screen video {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #0B0E13;
+    border: 1px solid var(--rule-strong);
+  }
+
+  .screen video[data-zoom] { cursor: zoom-in; }
+
+  .screen video[data-zoom]:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .zoom-hint {
+    color: var(--blue);
+  }
+
+  /* ---------- lightbox ---------- */
+
+  dialog.lb {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    max-width: 100vw;
+    max-height: 100vh;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  dialog.lb::backdrop { background: rgba(6, 9, 13, 0.93); }
+
+  .lb-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    padding: clamp(0.8rem, 2.5vw, 2rem);
+  }
+
+  .lb-inner video {
+    max-width: 100%;
+    max-height: calc(100vh - 7rem);
+    width: auto;
+    height: auto;
+    background: #0B0E13;
+    border: 1px solid #2A3038;
+  }
+
+  .lb-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1100px;
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #9AA3AE;
+  }
+
+  .lb-bar button {
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: #E7E9E5;
+    background: transparent;
+    border: 1px solid #39424C;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+  }
+
+  .lb-bar button:hover { border-color: #7C93FF; color: #7C93FF; }
+  .lb-bar button:focus-visible { outline: 2px solid #7C93FF; outline-offset: 2px; }
+
+  .screen figcaption {
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    padding-top: 0.55rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  /* ---------- screenshot stack ---------- */
+
+  .shots {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .shots img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule-strong);
+    background: #fff;
+    cursor: zoom-in;
+  }
+
+  .shots img:first-child { grid-column: 1 / -1; }
+
+  .shots img:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .lb-inner img {
+    max-width: 100%;
+    max-height: calc(100vh - 7rem);
+    width: auto;
+    height: auto;
+    border: 1px solid #2A3038;
+    background: #fff;
+  }
+
+  /* ---------- audio a/b ---------- */
+
+  .ab {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    border: 1px solid var(--rule-strong);
+    background: var(--panel);
+    padding: clamp(1rem, 2.4vw, 1.5rem);
+  }
+
+  .ab-row { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .ab-row .ab-label {
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .ab-row.synth .ab-label { color: var(--blue); }
+
+  .ab audio { width: 100%; display: block; }
+
+  .ab-note {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--graphite);
+    border-top: 1px solid var(--rule);
+    padding-top: 0.9rem;
+  }
+
+  /* ---------- close ---------- */
+
+  .terms {
+    border-top: 1px solid var(--rule-strong);
+    margin-top: clamp(3rem, 8vw, 5.5rem);
+    padding-top: 1.6rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--gap);
+  }
+
+  .terms h2 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+  }
+
+  .terms p { margin: 0; color: var(--graphite); font-size: 0.9rem; }
+
+  .contact {
+    margin-top: clamp(2.2rem, 5vw, 3.4rem);
+    padding: 1.5rem var(--gap);
+    background: var(--blue-soft);
+    border-left: 3px solid var(--blue);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.8rem 1.5rem;
+  }
+
+  .contact p { margin: 0; }
+
+  .contact .handle {
+    font-family: var(--f-display);
+    font-size: clamp(1.4rem, 3.4vw, 2rem);
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: var(--blue);
+  }
+
+  .contact-alt {
+    margin: 0.9rem 0 0;
+    padding-left: calc(var(--gap) + 3px);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.8rem;
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--graphite);
+  }
+
+  .contact-alt a {
+    color: var(--blue);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    text-transform: none;
+    letter-spacing: 0.04em;
+  }
+
+  .contact-alt a:hover { border-bottom-color: var(--blue); }
+  .contact-alt a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+  @media (max-width: 760px) {
+    .plate { grid-template-columns: minmax(0, 1fr); }
+    .offer + .offer { padding-left: 0; }
+    .offers { gap: 1px; }
+  }
+
+  /* caption has three parts — let it break to two rows instead of three columns */
+  @media (max-width: 620px) {
+    .screen figcaption { flex-wrap: wrap; gap: 0.3rem 1rem; }
+    .screen figcaption > :first-child { flex: 1 1 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-top">
+      <p class="eyebrow">Selected work · 2026</p>
+      <div class="masthead-aside">
+        <p class="eyebrow">Interactive 3D and browser tooling</p>
+        <nav class="lang" aria-label="Language">
+          <a href="../" hreflang="ru" lang="ru">RU</a>
+          <span class="sep" aria-hidden="true">/</span>
+          <span class="current" aria-current="true">EN</span>
+        </nav>
+      </div>
+    </div>
+
+    <h1>WebGL, shaders and <em>the math underneath</em></h1>
+
+    <p class="lede">
+      I build interactive 3D for the web: product configurators on Three.js, scenes written
+      on raw GLSL, and the domain logic that turns a demo into something people actually
+      order from — catalogues, selection engines, live quotes. Five demos below, fourteen
+      shipped projects under them.
+    </p>
+
+    <div class="offers">
+      <div class="offer">
+        <h2>3D configurators</h2>
+        <p>The product is assembled in the browser on Three.js: parts snap together, the quote follows the layout, the scene exports to AR or a render.</p>
+      </div>
+      <div class="offer">
+        <h2>WebGL &amp; GLSL</h2>
+        <p>Hand-written shaders, cursor physics, parametric geometry. Written for the brief, not pulled off a shelf.</p>
+      </div>
+      <div class="offer">
+        <h2>Domain logic in the browser</h2>
+        <p>Engineering maths where it belongs — selection by operating point, 400-item catalogues, live stock, quotes that reach the CRM.</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="flagships" aria-labelledby="flagships-title">
+      <div class="flagships-head">
+        <div class="flagships-id">
+          <p class="eyebrow">Flagships</p>
+          <p class="eyebrow">Live pages, not screen recordings</p>
+        </div>
+        <h2 id="flagships-title">Five demos — better opened than described</h2>
+        <p class="flagships-note">
+          Heavy graphics inside a browser tab: raw WebGL shaders, cursor physics,
+          parametric geometry. Each demo is a page of its own — nothing to install.
+        </p>
+      </div>
+
+      <div class="cases">
+
+        <a class="case" href="../cases/aurum/">
+          <figure class="case-shot">
+            <img src="../assets/thumbs/aurum.jpg" width="1000" height="562" decoding="async"
+                 alt="AURUM: a bronze horse sculpture on a dark ground under the large title Bronze and Time">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Demo 01</span>
+              <span class="eyebrow">WebGL · shaders</span>
+            </div>
+            <h3>AURUM</h3>
+            <p>A bronze sculpture on raw shaders: the camera orbits it a full 360° as you scroll.</p>
+            <span class="case-open"><span>Open demo</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        <a class="case" href="../cases/ferro/">
+          <figure class="case-shot">
+            <img src="../assets/thumbs/ferro.jpg" width="1000" height="562" decoding="async"
+                 alt="Ferro: a light studio landing page with a full-bleed portrait and the headline Bold ideas, shipped with quiet precision">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Demo 02</span>
+              <span class="eyebrow">Cursor · masking</span>
+            </div>
+            <h3>Ferro</h3>
+            <p>A studio landing page where a liquid cursor tears open a second image right under the pointer.</p>
+            <span class="case-open"><span>Open demo</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        <a class="case" href="../cases/flux/">
+          <figure class="case-shot">
+            <img src="../assets/thumbs/flux.jpg" width="1000" height="562" loading="lazy" decoding="async"
+                 alt="Fluxwave: a neon flower on a cliff at dusk with the large Fluxwave wordmark over video">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Demo 03</span>
+              <span class="eyebrow">Video · cursor</span>
+            </div>
+            <h3>Fluxwave</h3>
+            <p>A neon first screen driven by live background video, with cursor physics of its own.</p>
+            <span class="case-open"><span>Open demo</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        <a class="case" href="../cases/new1/">
+          <figure class="case-shot">
+            <img src="../assets/thumbs/signal.jpg" width="1000" height="562" loading="lazy" decoding="async"
+                 alt="SIGNAL: a volumetric coin carrying the ticker $SIGNAL next to a panel of shader parameters">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Demo 04</span>
+              <span class="eyebrow">Shader · generative</span>
+            </div>
+            <h3>SIGNAL</h3>
+            <p>Type a ticker and the coin's geometry and palette rebuild around it on the fly.</p>
+            <span class="case-open"><span>Open demo</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        <a class="case" href="../cases/new2/">
+          <figure class="case-shot">
+            <img src="../assets/thumbs/vault.jpg" width="1000" height="562" loading="lazy" decoding="async"
+                 alt="VAULT: a dark tokenomics panel with an emission curve, float metrics and a supply sphere">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Demo 05</span>
+              <span class="eyebrow">Data · WebGL</span>
+            </div>
+            <h3>VAULT</h3>
+            <p>Tokenomics in motion: drag a month and the emission curve, the vesting and a 4,000-particle supply sphere all recompute at once.</p>
+            <span class="case-open"><span>Open demo</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <header class="rail">
+      <div class="rail-top">
+        <p class="eyebrow">All work</p>
+        <p class="eyebrow">Sheets 01—14</p>
+      </div>
+      <h2>Fourteen projects that shipped</h2>
+      <p class="rail-note">
+        Production work for manufacturers and suppliers — the screens are shown in the
+        language their users actually work in.
+      </p>
+    </header>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 01</p>
+          <p class="eyebrow">3D configurator</p>
+        </div>
+        <h3>STANDES — shelving laid out in 3D, priced as it goes</h3>
+        <p class="plate-sub">
+          The client enters the room dimensions and places shelving, shelves and display
+          cases in 3D. The quote follows every change, the scene opens in AR or renders to
+          an image, and the finished layout goes to the manufacturer as a brief — without a
+          call to a sales rep.
+        </p>
+        <dl class="spec">
+          <dt>Scene</dt><dd>layout inside a room of given dimensions, 3D and 2D views</dd>
+          <dt>Catalogue</dt><dd>shelving, shelves, display cases, accessories, pegboard</dd>
+          <dt>Quote</dt><dd>recalculated in real time from the current bill of items</dd>
+          <dt>Export</dt><dd>AR view, render, screenshot, item summary, send as brief</dd>
+          <dt>Stack</dt><dd>Three.js</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <div class="shots">
+          <img src="../assets/a4.jpg" alt="STANDES configurator: a room of shelving in 3D with the catalogue, the running quote and the send-as-brief action">
+        </div>
+        <figcaption><span>Shelving laid out in 3D with a live quote</span><span>Click to expand</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 02</p>
+          <p class="eyebrow">Parametric configurator</p>
+        </div>
+        <h3>Ventprom — duct fittings built to size in the browser</h3>
+        <p class="plate-sub">
+          The buyer enters the dimensions and watches the fitting redraw with its dimension
+          lines in place. Out comes a costed spec and a quote — no thread of emails with a
+          sales manager.
+        </p>
+        <dl class="spec">
+          <dt>Products</dt><dd>ducts, bends, reducers, tees, saddles, cowls</dd>
+          <dt>Input</dt><dd>dimensions, material, connection type</dd>
+          <dt>Preview</dt><dd>rebuilds live, dimension lines included</dd>
+          <dt>Output</dt><dd>costed specification and quote</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a3.mp4"></video>
+        <figcaption><span>Building a fitting to size</span><span>9 s · no audio</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 03</p>
+          <p class="eyebrow">Three.js</p>
+        </div>
+        <h3>Dios+ — a fleet moving on a globe</h3>
+        <p class="plate-sub">
+          Cargo ship and aircraft routes drawn along great circles, from Azov out to
+          twenty-eight cities. Built on Three.js and running in the browser with nothing to
+          install.
+        </p>
+        <dl class="spec">
+          <dt>Base</dt><dd>NASA Earth textures, cloud layer, atmospheric halo</dd>
+          <dt>Routes</dt><dd>28 cities, a live fleet of ships and aircraft</dd>
+          <dt>Stack</dt><dd>Three.js</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a7.mp4"></video>
+        <figcaption><span>Globe with live routes</span><span>9 s · no audio</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 04</p>
+          <p class="eyebrow">Design · art direction</p>
+        </div>
+        <h3>SREZ — a coatings catalogue that behaves like the wall</h3>
+        <p class="plate-sub">
+          A catalogue built as a working tool rather than a shop window. Eight textures, each
+          with a technical card — and in place of flat photography, a lamp: drag the light
+          across the wall at a raking angle and the relief comes up, exactly the way an
+          applicator checks a surface.
+        </p>
+        <dl class="spec">
+          <dt>Concept</dt><dd>catalogue as a working tool, not a shop window</dd>
+          <dt>Textures</dt><dd>8 coatings, each with layer thickness, coverage, trowel passes, price</dd>
+          <dt>Device</dt><dd>raking light reveals the relief as the slider moves</dd>
+          <dt>Type</dt><dd>Unbounded display grotesque, monospaced technical labels</dd>
+          <dt>Stack</dt><dd>plain HTML/CSS/JS, no libraries</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a9.mp4"></video>
+        <figcaption><span>Light dragged across the texture, then the coating changes</span><span>muted loop</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 05</p>
+          <p class="eyebrow">B2B wholesale</p>
+        </div>
+        <h3>Santehmark — wholesale plumbing catalogue</h3>
+        <p class="plate-sub">
+          A B2B store for a supplier running four warehouses: brands, live stock, price lists
+          and a separate dealer login. The first screen is a 3D scene so the catalogue does
+          not read like a price list.
+        </p>
+        <dl class="spec">
+          <dt>Sections</dt><dd>catalogue, brands, stock, price lists, dealer portal</dd>
+          <dt>First screen</dt><dd>3D scene — chrome, droplets, vapour</dd>
+          <dt>Logistics</dt><dd>4 warehouses, dispatch on the day of order</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a8.mp4"></video>
+        <figcaption><span>First screen</span><span>9 s · no audio</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 06</p>
+          <p class="eyebrow">Design · concept</p>
+        </div>
+        <h3>Santehmark — concept: shop window and dealer desk in one site</h3>
+        <p class="plate-sub">
+          A design proposal laid out as a project document. The central decision: one
+          interface in two states — a visitor from search gets the shop window, a signed-in
+          dealer gets a working desk with prices, credit limit and orders. One switch changes
+          everything at once.
+        </p>
+        <dl class="spec">
+          <dt>Idea</dt><dd>split the shop window from the working desk — dealers bring 80% of revenue and need speed</dd>
+          <dt>States</dt><dd>guest: catalogue and prices; dealer: orders, balance due, credit limit, documents in one archive</dd>
+          <dt>Language</dt><dd>installation-drawing graphics — honest about what ends up hidden in the wall</dd>
+          <dt>Format</dt><dd>interactive sketch document with a state switch</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a10.mp4"></video>
+        <figcaption><span>One screen: the guest sees the window, the dealer sees the desk</span><span>muted loop</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 07</p>
+          <p class="eyebrow">Selection engine</p>
+        </div>
+        <h3>Ventmarket — fans selected by operating point</h3>
+        <p class="plate-sub">
+          The engineer enters airflow and total pressure; the system picks the fan, draws the
+          aerodynamic curve through the operating point and assembles the order with every
+          ancillary it needs.
+        </p>
+        <dl class="spec">
+          <dt>Catalogue</dt><dd>400+ units of equipment</dd>
+          <dt>Maths</dt><dd>~20,000 polynomial curves</dd>
+          <dt>Sections</dt><dd>aerodynamics, acoustics, VFD, cost of ownership</dd>
+          <dt>Order</dt><dd>cart, weight and volume, shipping, quote request</dd>
+          <dt>Integration</dt><dd>Bitrix24</dd>
+          <dt>Languages</dt><dd>Russian, English</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a2.mp4"></video>
+        <figcaption><span>The selection screen</span><span>9 s · no audio</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 08</p>
+          <p class="eyebrow">Legacy → web</p>
+        </div>
+        <h3>Vertro — a desktop engineering suite moved into the browser</h3>
+        <p class="plate-sub">
+          It was a Visual Basic application on Access databases, usable on exactly one
+          machine. I opened the databases, pulled out the data and the calculation logic and
+          rebuilt the thing for the web: nine calculation modules and the full equipment
+          catalogue now open from a link.
+        </p>
+        <dl class="spec">
+          <dt>Source</dt><dd>VB6 application, Access (.mdb) databases, OCX controls</dd>
+          <dt>Migration</dt><dd>databases opened, data extracted from the .exe, moved to SQL</dd>
+          <dt>Carried over</dt><dd>63 tables, 3,471 records — fans, motors, sections</dd>
+          <dt>Modules</dt><dd>AHU configurator, fan and drive selection, acoustics, heat exchangers, performance curves</dd>
+          <dt>Stack</dt><dd>Next.js, React</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a0.mp4"></video>
+        <div class="shots">
+          <img src="../assets/a1.jpg" alt="Home screen: nine calculation modules with counters for the migrated database — 63 tables, 3,471 records">
+        </div>
+        <figcaption><span>Live selection: input → calculation → curve with the operating point</span><span>video and screens</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 09</p>
+          <p class="eyebrow">Automation · ERP</p>
+        </div>
+        <h3>Softvent — from a PDF project to a spec the ERP can import</h3>
+        <p class="plate-sub">
+          Ventilation design documents arrive as multi-page PDFs with tables laid out to the
+          national standard. The system reads them and returns a clean bill of materials —
+          ducting in metres, fittings in pieces — ready to load into 1C:ERP instead of being
+          retyped by hand.
+        </p>
+        <dl class="spec">
+          <dt>Input</dt><dd>PDF project to GOST 21.602-2016, dozens of pages</dd>
+          <dt>Parsing</dt><dd>locates the specification tables, recognises line items</dd>
+          <dt>Conversion</dt><dd>units mapped to the product range (metres → pieces by stock length)</dd>
+          <dt>Output</dt><dd>33 line items from the test project, ready to import</dd>
+          <dt>Next</dt><dd>UI autofill of the product range inside 1C:ERP</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <div class="shots">
+          <img src="../assets/a5.jpg" alt="Input: a project page — a standards-formatted table of ventilation system parameters">
+          <img src="../assets/a6.jpg" alt="Output: 33 clean line items, ducting in metres and fittings in pieces">
+        </div>
+        <figcaption><span>The project on the left, the extracted specification on the right</span><span>Click to expand</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 10</p>
+          <p class="eyebrow">Computer vision</p>
+        </div>
+        <h3>Strimkarts — cards recognised live on stream</h3>
+        <p class="plate-sub">
+          An overlay on top of a live stream: the camera watches the table, the system
+          identifies the card the moment it is turned over, pulls its market price and keeps
+          score across the whole session.
+        </p>
+        <dl class="spec">
+          <dt>Input</dt><dd>live camera feed</dd>
+          <dt>Recognition</dt><dd>the card is identified in real time</dd>
+          <dt>On screen</dt><dd>pack and card counters, running total, top hits with prices</dd>
+          <dt>Format</dt><dd>browser overlay, drops straight into OBS</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a11.mp4"></video>
+        <figcaption><span>The overlay at work</span><span>9 s · no audio</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 11</p>
+          <p class="eyebrow">Learning</p>
+        </div>
+        <h3>Epidemio — a spaced-repetition trainer for a medical exam</h3>
+        <p class="plate-sub">
+          A textbook and a question bank are broken down into cards, and from there the app
+          decides what to show and when. It also tracks whether stated confidence matches
+          real accuracy — in other words, where the student is overrating themselves.
+        </p>
+        <dl class="spec">
+          <dt>Bank</dt><dd>3,401 cards and 163 exam questions</dd>
+          <dt>Source</dt><dd>PDFs parsed into questions, deduplicated, wordings reconciled</dd>
+          <dt>Repetition</dt><dd>spaced algorithm: mature, young, learning, new</dd>
+          <dt>Modes</dt><dd>flashcards, and an exam with a spoken long-form answer</dd>
+          <dt>Analytics</dt><dd>confidence calibration, weekly load, 30-day activity</dd>
+          <dt>Scope</dt><dd>9 topic blocks of the subject area</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <video autoplay muted loop playsinline preload="metadata" src="../assets/a12.mp4"></video>
+        <div class="shots">
+          <img src="../assets/a13.jpg" alt="Progress view: confidence calibration — whether stated confidence matches real accuracy">
+        </div>
+        <figcaption><span>A live pass: card → confidence → answer → exam</span><span>video and screens</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 12</p>
+          <p class="eyebrow">Learning · Go</p>
+        </div>
+        <h3>Vector — Go interview prep with a code runner and an AI judge</h3>
+        <p class="plate-sub">
+          Lesson → exercise with real code execution → reinforcement. Exam answers are not
+          graded by self-assessment but against rubrics, with a reference breakdown to
+          compare against. The track runs all the way to an offer — eight stages.
+        </p>
+        <dl class="spec">
+          <dt>Practice</dt><dd>built-in editor, code run in a sandbox, output checked</dd>
+          <dt>Exam</dt><dd>answers scored against rubrics, reference breakdown: core / deeper / trap</dd>
+          <dt>Memory</dt><dd>spaced repetition (FSRS); cards written from the judge's verdict</dd>
+          <dt>Track</dt><dd>a single path, 8 stages, progress by node</dd>
+          <dt>Stack</dt><dd>Go backend, React, execution sandbox, external AI judge</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <div class="shots">
+          <img src="../assets/a14.jpg" alt="Exercise view: code editor, run and check, output matched">
+          <img src="../assets/a15.jpg" alt="Exam view: rubric scoring, the judge's verdict and a reference breakdown">
+        </div>
+        <figcaption><span>Practice with a live code run, and an exam with a breakdown</span><span>Click to expand</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 13</p>
+          <p class="eyebrow">Backend · Java</p>
+        </div>
+        <h3>AI Health Coach — the backend behind a mobile app</h3>
+        <p class="plate-sub">
+          A Spring Boot backend for a fitness app: accounts and subscriptions, nutrition with
+          adaptive targets, training with an AI-generated programme, wearable sync and a
+          coach conversation on the Claude API. Production-ready and packaged for deploy.
+        </p>
+        <dl class="spec">
+          <dt>Stack</dt><dd>Java 21, Spring Boot 3.4, PostgreSQL, Flyway, JWT</dd>
+          <dt>Size</dt><dd>53 REST endpoints, 51 tables, 9 domains</dd>
+          <dt>Integrations</dt><dd>Claude API, Firebase FCM, Garmin OAuth, HealthKit, Health Connect</dd>
+          <dt>Subscriptions</dt><dd>plans, trial, store receipt validation</dd>
+          <dt>Deploy</dt><dd>Docker, ready-made Railway and Render configs</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <div class="shots">
+          <img src="../assets/a16.jpg" alt="REST API map: 9 domains, 53 endpoints, 51 tables, 5 external integrations">
+        </div>
+        <figcaption><span>API map drawn from the project specification</span><span>Click to expand</span></figcaption>
+      </figure>
+    </section>
+
+    <section class="plate">
+      <div class="plate-head">
+        <div class="plate-id">
+          <p class="eyebrow">Sheet 14</p>
+          <p class="eyebrow">Speech synthesis</p>
+        </div>
+        <h3>Voice clone — the model speaks a language its owner doesn't</h3>
+        <p class="plate-sub">
+          The model was trained on recordings of one person. Judge for yourself: on top, a
+          real recording; below, English speech they never said. Same voice.
+        </p>
+        <dl class="spec">
+          <dt>Training</dt><dd>on the voice owner's own recordings</dd>
+          <dt>Input</dt><dd>arbitrary text</dd>
+          <dt>Output</dt><dd>speech in a language absent from the training data</dd>
+          <dt>Use</dt><dd>voiceover, live stream interaction, role-gated access</dd>
+        </dl>
+      </div>
+      <figure class="screen">
+        <div class="ab">
+          <div class="ab-row">
+            <span class="ab-label"><span>Original · real recording</span><span>12 s</span></span>
+            <audio controls preload="none" src="../assets/a17.mp3"></audio>
+          </div>
+          <div class="ab-row synth">
+            <span class="ab-label"><span>Synthesis · English</span><span>10 s</span></span>
+            <audio controls preload="none" src="../assets/a18.mp3"></audio>
+          </div>
+          <p class="ab-note">
+            The second clip is generated by the model. A capability demo, made for the owner
+            of the voice and with their knowledge.
+          </p>
+        </div>
+        <figcaption><span>Original against synthesis</span><span>with audio</span></figcaption>
+      </figure>
+    </section>
+
+  </main>
+
+  <section class="terms">
+    <div>
+      <h2>How I work</h2>
+      <p>Scope and price are fixed in writing before anything starts. 30–50% up front, or the job split into stages with each stage paid on delivery.</p>
+    </div>
+    <div>
+      <h2>If we haven't worked before</h2>
+      <p>The first stage can be deliberately small — two or three days and a modest sum — so you are not betting on a stranger. Escrow is fine by me.</p>
+    </div>
+    <div>
+      <h2>Payment</h2>
+      <p>USDT, or an escrow service of your choice. Scope and price fixed in writing before the start, delivery in stages.</p>
+    </div>
+    <div>
+      <h2>Time zone</h2>
+      <p>UTC+3. A full working day of overlap with Europe and the UK, and the morning hours with the US East Coast.</p>
+    </div>
+  </section>
+
+  <section class="contact">
+    <p class="eyebrow">Message me on Telegram</p>
+    <p class="handle"><a href="https://t.me/smirnovarturr" style="color:inherit;text-decoration:none">@smirnovarturr</a></p>
+    <p class="eyebrow">Usually a reply within the hour</p>
+  </section>
+
+  <!-- ==========================================================================
+       TODO · EMAIL — почты пока нет. Как только появится рабочий адрес:
+         1) раскомментировать блок <p class="contact-alt"> ниже;
+         2) заменить ОБА вхождения name@example.com на реальный адрес
+            (в href="mailto:..." и в тексте ссылки).
+       Западные клиенты часто пишут на почту, а не в Telegram — без адреса
+       часть входящих просто теряется. Стили .contact-alt уже в файле.
+       ========================================================================== -->
+  <!--
+  <p class="contact-alt">
+    <span>Or by email</span>
+    <a href="mailto:name@example.com">name@example.com</a>
+  </p>
+  -->
+
+</div>
+
+<script>
+  (function () {
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    var inline = [].slice.call(document.querySelectorAll(".screen video"));
+
+    function applyMotion() {
+      inline.forEach(function (v) {
+        if (reduce.matches) {
+          v.pause();
+          v.removeAttribute("autoplay");
+          v.setAttribute("controls", "");
+        } else {
+          v.removeAttribute("controls");
+          var p = v.play();
+          if (p && p.catch) { p.catch(function () {}); }
+        }
+      });
+    }
+    applyMotion();
+    if (reduce.addEventListener) { reduce.addEventListener("change", applyMotion); }
+
+    /* ---- expand to full screen ---- */
+
+    var dlg = document.createElement("dialog");
+    dlg.className = "lb";
+    dlg.innerHTML =
+      '<div class="lb-inner">' +
+        '<video controls loop playsinline></video>' +
+        '<img alt="" hidden>' +
+        '<div class="lb-bar">' +
+          '<span class="lb-title"></span>' +
+          '<span>Space to pause · Esc to close</span>' +
+          '<button type="button" data-close>Close</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(dlg);
+
+    var big = dlg.querySelector("video");
+    var bigImg = dlg.querySelector("img");
+    var title = dlg.querySelector(".lb-title");
+    var opener = null;
+
+    function show() {
+      if (typeof dlg.showModal === "function") { dlg.showModal(); } else { dlg.setAttribute("open", ""); }
+    }
+
+    function open(v) {
+      opener = v;
+      title.textContent = v.getAttribute("data-title") || "";
+      bigImg.hidden = true;
+      big.hidden = false;
+      big.src = v.currentSrc || v.src;
+      big.currentTime = v.currentTime || 0;
+      show();
+      if (!reduce.matches) {
+        var p = big.play();
+        if (p && p.catch) { p.catch(function () {}); }
+      }
+    }
+
+    function openImage(img) {
+      opener = img;
+      title.textContent = img.getAttribute("data-title") || img.alt || "";
+      big.pause();
+      big.hidden = true;
+      bigImg.hidden = false;
+      bigImg.src = img.currentSrc || img.src;
+      bigImg.alt = img.alt || "";
+      show();
+    }
+
+    function close() {
+      big.pause();
+      big.removeAttribute("src");
+      big.load();
+      bigImg.removeAttribute("src");
+      if (typeof dlg.close === "function" && dlg.open) { dlg.close(); } else { dlg.removeAttribute("open"); }
+      if (opener) { opener.focus(); opener = null; }
+    }
+
+    [].slice.call(document.querySelectorAll(".shots img")).forEach(function (img) {
+      var plate = img.closest(".plate");
+      var heading = plate ? plate.querySelector("h3") : null;
+      img.setAttribute("data-title", heading ? heading.textContent.trim() : "");
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openImage(img); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          openImage(img);
+        }
+      });
+    });
+
+    inline.forEach(function (v) {
+      var plate = v.closest(".plate");
+      var heading = plate ? plate.querySelector("h3") : null;
+      var name = heading ? heading.textContent.trim() : "Screen";
+      v.setAttribute("data-zoom", "");
+      v.setAttribute("data-title", name);
+      v.setAttribute("tabindex", "0");
+      v.setAttribute("role", "button");
+      v.setAttribute("aria-label", "Expand: " + name);
+
+      v.addEventListener("click", function () { open(v); });
+      v.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          open(v);
+        }
+      });
+
+      var cap = plate ? plate.querySelector("figcaption") : null;
+      if (cap) {
+        var hint = document.createElement("span");
+        hint.className = "zoom-hint";
+        hint.textContent = "Click to expand";
+        cap.insertBefore(hint, cap.lastElementChild);
+      }
+    });
+
+    dlg.addEventListener("click", function (e) {
+      if (e.target === dlg || e.target.hasAttribute("data-close")) { close(); }
+    });
+    dlg.addEventListener("cancel", function (e) { e.preventDefault(); close(); });
+  })();
+</script>
+
+</body>
+</html>
