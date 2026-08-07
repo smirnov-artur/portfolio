@@ -171,6 +171,8 @@ body {
     letter-spacing: 0.018em;
     margin-bottom: 20px;
     color: #fff6ed;
+    /* separation for the odd specular that still lands under a glyph */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.42), 0 10px 44px rgba(0, 0, 0, 0.55);
 }
 .slide-desc {
     font-size: 16px; line-height: 1.7; font-weight: 300;
@@ -226,6 +228,25 @@ body {
     width: 6px; height: 6px; border-radius: 50%;
     background: rgba(255, 255, 255, 0.35);
     box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
+}
+
+/* ---------------- scrim under the copy ----------------
+   The sculpture is lit from above, so its croup lands bright exactly where the
+   title sits. A bottom-up gradient keeps the type off the highlight without
+   flattening the frame — the same trick a colourist uses for lower thirds. */
+.text-scrim {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 58%;
+    z-index: 6;
+    pointer-events: none;
+    --scrim: 0.62;
+    background: linear-gradient(to top,
+        rgba(0, 0, 0, var(--scrim)) 0%,
+        rgba(0, 0, 0, calc(var(--scrim) * 0.86)) 24%,
+        rgba(0, 0, 0, calc(var(--scrim) * 0.52)) 52%,
+        rgba(0, 0, 0, calc(var(--scrim) * 0.20)) 78%,
+        rgba(0, 0, 0, 0) 100%);
 }
 
 /* ---------------- corner cta ---------------- */
@@ -324,6 +345,8 @@ body {
 
     .slide-title { margin-bottom: 14px; }
     .slide-desc { font-size: 13.5px; line-height: 1.62; letter-spacing: 0.2px; }
+    /* portrait puts the sculpture directly behind the copy, so the scrim works harder */
+    .text-scrim { height: 66%; --scrim: 0.88; }
     .slide-title .char { transform: translateY(28px); filter: blur(8px); }
 }
 
@@ -367,7 +390,7 @@ body {
     </div>
 
     <div class="slide" id="slide-1">
-        <h2 class="slide-title">Bronze <br>and Time</h2>
+        <h1 class="slide-title">Bronze <br>and Time</h1>
         <div class="desc-row">
             <p class="slide-desc col-1">A timeless material holding centuries of human history. Fluid in hot flames, eternal in its form. Each curve captures a tense, dramatic moment.</p>
             <p class="slide-desc col-2">Born of molten fire and creative will, it stands to bridge our ancient memory and modern vision. A fluid energy frozen in still, heavy bronze.</p>
@@ -394,6 +417,8 @@ body {
 <div class="slide-image-mask" id="slide-2-img">
     <img src="./assets/1.webp" alt="Editorial Concept" width="760" height="757" loading="lazy" decoding="async">
 </div>
+
+<div class="text-scrim"></div>
 
 <div class="grid-horizontal-line"></div>
 <div class="grid-lines">
@@ -1090,8 +1115,10 @@ function animate() {
     /* on desktop the sculpture slides right to clear the text column;
        on portrait it stays centred and is lifted into the upper half instead */
     const portrait = frame > 1.15;
-    const lookAtX = portrait ? 0 : -0.9 * easeFactor;
-    const lookAtY = portrait ? -1.2 : -0.15;
+    /* even at scroll 0 the sculpture is held off the title column — centred, it
+       put its lit chest straight behind the type */
+    const lookAtX = portrait ? 0 : -(0.38 + 0.52 * easeFactor);
+    const lookAtY = portrait ? -1.35 : -0.15;
     camera.lookAt(lookAtX, lookAtY, 0);
 
     /* --- model tilt --- */
