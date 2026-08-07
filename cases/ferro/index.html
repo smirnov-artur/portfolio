@@ -1239,99 +1239,363 @@ function loaderExit(){
 /* ============================================================
    LIQUID REVEAL
    ============================================================ */
-const AFTER_SRC = './assets/before.jpg';
+/* WebGL: the pointer drags a liquid lens that refracts the top image away and
+   uncovers the one underneath. Two passes per frame — a ping-pong ink
+   simulation (advection + spread + decay) and a composite with dispersion. */
+const BASE_SRC   = './assets/after.jpg';   /* what you see first  */
+const REVEAL_SRC = './assets/before.jpg';  /* what the lens opens */
+
 (function initLiquid(){
-  const wrap = document.getElementById('liquid');
-  const canvas = document.getElementById('liquidCanvas');
+  const wrap    = document.getElementById('liquid');
+  const canvas  = document.getElementById('liquidCanvas');
+  const baseImg = document.getElementById('heroBase');
   if (!wrap || !canvas || REDUCED) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
 
-  const BRUSH_RADIUS = 143, DECAY = 0.016, FADE_FRAMES = 120;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const radius = BRUSH_RADIUS * dpr;
-  const diam = Math.ceil(radius * 2);
+  const GL_ATTRS = {
+    alpha: false, depth: false, stencil: false, antialias: false,
+    preserveDrawingBuffer: false, powerPreference: 'high-performance'
+  };
+  const gl = canvas.getContext('webgl2', GL_ATTRS) || canvas.getContext('webgl', GL_ATTRS);
+  if (!gl) return;                       /* no context — the <img> stays as the fallback */
 
-  const brush = document.createElement('canvas');
-  brush.width = diam; brush.height = diam;
-  const bctx = brush.getContext('2d');
+  const MOBILE = matchMedia('(max-width: 760px)').matches;
+  const DPR    = Math.min(window.devicePixelRatio || 1, MOBILE ? 1.5 : 2);
+  const SIM_SCALE = 0.5;                 /* the ink field is blurry, half res is plenty */
+  const SIM_MAX   = MOBILE ? 384 : 640;
 
-  const cover = document.createElement('canvas');
-  const cctx = cover.getContext('2d');
+  /* ---------------------------------------------------------------- *
+   *  shaders
+   * ---------------------------------------------------------------- */
+  const VERT = `
+attribute vec2 aPos;
+varying vec2 vUv;
+void main(){
+  vUv = aPos * 0.5 + 0.5;
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
 
-  let W = 0, H = 0, loaded = false;
-  const after = new Image();
-  after.decoding = 'async';
-  after.onload = () => { loaded = true; drawCover(); };
-  after.src = AFTER_SRC;
+  const NOISE = `
+float hash(vec2 p){
+  p = fract(p * vec2(123.34, 345.45));
+  p += dot(p, p + 34.345);
+  return fract(p.x * p.y);
+}
+float noise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+             mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float fbm(vec2 p){
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 3; i++){ v += a * noise(p); p *= 2.03; a *= 0.5; }
+  return v;
+}`;
 
-  function drawCover(){
-    if (!loaded || !W || !H) return;
-    cctx.clearRect(0, 0, W, H);
-    const s = Math.max(W / after.naturalWidth, H / after.naturalHeight);
-    const w = after.naturalWidth * s, h = after.naturalHeight * s;
-    cctx.drawImage(after, (W - w) / 2, (H - h) / 2, w, h);
+  /* ink field: advect along a noise flow, spread, decay, then stamp the stroke */
+  const SIM = `
+precision highp float;
+uniform sampler2D uPrev;
+uniform vec2  uTexel;
+uniform vec2  uMouse;      //js {value: [0.5, 0.5]}
+uniform vec2  uPrevMouse;  //js {value: [0.5, 0.5]}
+uniform float uAspect;     //js {value: 1}
+uniform float uRadius;     //js {value: 0.13}
+uniform float uDecay;      //js {value: 0.982}
+uniform float uTime;       //js {value: 0}
+uniform float uPaint;      //js {value: 0}
+varying vec2 vUv;
+${NOISE}
+
+/* aspect-corrected distance to the segment the pointer travelled this frame —
+   without it a fast swipe leaves a dotted line instead of a stroke */
+float segDist(vec2 p, vec2 a, vec2 b){
+  vec2 s = vec2(uAspect, 1.0);
+  vec2 pa = (p - a) * s, ba = (b - a) * s;
+  float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+  return length(pa - ba * h);
+}
+
+void main(){
+  float n1 = fbm(vUv * 3.1 + vec2(0.0, uTime * 0.06));
+  float n2 = fbm(vUv * 3.1 + vec2(5.2, uTime * 0.06 + 1.7));
+  vec2 flow = vec2(n1 - 0.5, n2 - 0.5) * 2.0;
+  vec2 src = vUv - flow * uTexel * 2.4;
+
+  float m = texture2D(uPrev, src).r * 0.44
+          + texture2D(uPrev, src + vec2( uTexel.x, 0.0)).r * 0.14
+          + texture2D(uPrev, src - vec2( uTexel.x, 0.0)).r * 0.14
+          + texture2D(uPrev, src + vec2(0.0,  uTexel.y)).r * 0.14
+          + texture2D(uPrev, src - vec2(0.0,  uTexel.y)).r * 0.14;
+  m *= uDecay;
+
+  if (uPaint > 0.5){
+    float wob = 1.0 + (fbm(vUv * 6.5 + uTime * 0.4) - 0.5) * 0.6;
+    float d = segDist(vUv, uPrevMouse, uMouse);
+    m += smoothstep(uRadius * wob, uRadius * 0.16 * wob, d) * 0.9;
   }
+  gl_FragColor = vec4(clamp(m, 0.0, 1.0), 0.0, 0.0, 1.0);
+}`;
+
+  const DRAW = `
+precision highp float;
+uniform sampler2D uBase;
+uniform sampler2D uReveal;
+uniform sampler2D uMask;
+uniform vec2  uRes;
+uniform vec2  uBaseSize;
+uniform vec2  uRevealSize;
+uniform vec2  uTexel;
+uniform float uTime;
+uniform float uRefract;    //js {value: 0.62}
+uniform float uDispersion; //js {value: 0.09}
+varying vec2 vUv;
+${NOISE}
+
+/* background-size: cover, done in the shader so the canvas matches the CSS img */
+vec2 coverUV(vec2 uv, vec2 img){
+  float ca = uRes.x / uRes.y;
+  float ia = img.x / img.y;
+  vec2 s = ca > ia ? vec2(1.0, ia / ca) : vec2(ca / ia, 1.0);
+  return (uv - 0.5) * s + 0.5;
+}
+
+void main(){
+  float m = texture2D(uMask, vUv).r;
+
+  vec2 grad = vec2(
+    texture2D(uMask, vUv + vec2(uTexel.x, 0.0)).r - texture2D(uMask, vUv - vec2(uTexel.x, 0.0)).r,
+    texture2D(uMask, vUv + vec2(0.0, uTexel.y)).r - texture2D(uMask, vUv - vec2(0.0, uTexel.y)).r
+  );
+  float edge   = clamp(length(grad) * 7.5, 0.0, 1.0) * smoothstep(0.04, 0.20, m);
+  float reveal = smoothstep(0.16, 0.60, m);
+  vec2  refr   = grad * uRefract;
+
+  vec3 base = texture2D(uBase, coverUV(vUv + refr * 0.4, uBaseSize)).rgb;
+
+  /* channels bend by different amounts, so the rim splits into colour */
+  float dsp = uDispersion;
+  vec3 rev = vec3(
+    texture2D(uReveal, coverUV(vUv - refr * (1.0 + dsp), uRevealSize)).r,
+    texture2D(uReveal, coverUV(vUv - refr,               uRevealSize)).g,
+    texture2D(uReveal, coverUV(vUv - refr * (1.0 - dsp), uRevealSize)).b
+  );
+
+  vec3 col = mix(base, rev, reveal);
+
+  /* rim light + a cold caustic in the studio blue, so it reads as liquid glass */
+  col += vec3(0.88, 0.90, 1.00) * pow(edge, 1.5) * reveal * 0.34;
+  col += vec3(0.18, 0.37, 0.92) * pow(edge, 2.4) * 0.30;
+
+  /* grain keeps the flat areas from banding */
+  col += (hash(vUv * uRes + fract(uTime) * 91.7) - 0.5) * 0.014;
+
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+  /* ---------------------------------------------------------------- *
+   *  gl plumbing
+   * ---------------------------------------------------------------- */
+  function compile(type, src){
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+      console.warn('[FERRO] shader:', gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+  function program(fragSrc){
+    const v = compile(gl.VERTEX_SHADER, VERT);
+    const f = compile(gl.FRAGMENT_SHADER, fragSrc);
+    if (!v || !f) return null;
+    const p = gl.createProgram();
+    gl.attachShader(p, v); gl.attachShader(p, f);
+    gl.bindAttribLocation(p, 0, 'aPos');
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)){
+      console.warn('[FERRO] link:', gl.getProgramInfoLog(p));
+      return null;
+    }
+    const u = {};
+    const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < n; i++){
+      const name = gl.getActiveUniform(p, i).name;
+      u[name] = gl.getUniformLocation(p, name);
+    }
+    return { p, u };
+  }
+
+  const simProg  = program(SIM);
+  const drawProg = program(DRAW);
+  if (!simProg || !drawProg) return;
+
+  const quad = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  function makeTarget(w, h){
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return { tex, fbo, w, h };
+  }
+
+  function loadTexture(src){
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([20, 20, 20, 255]));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const rec = { tex, w: 1, h: 1, ready: false };
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      rec.w = img.naturalWidth; rec.h = img.naturalHeight; rec.ready = true;
+      onTextureReady();
+    };
+    img.src = src;
+    return rec;
+  }
+
+  const baseTex   = loadTexture(BASE_SRC);
+  const revealTex = loadTexture(REVEAL_SRC);
+  function onTextureReady(){
+    if (baseTex.ready && revealTex.ready && baseImg) baseImg.style.opacity = '0';
+  }
+  if (baseImg) baseImg.style.transition = 'opacity .35s ease';
+
+  /* ---------------------------------------------------------------- *
+   *  sizing
+   * ---------------------------------------------------------------- */
+  let W = 0, H = 0, sim = [null, null], simW = 0, simH = 0;
+
   function resize(){
     const r = wrap.getBoundingClientRect();
     if (!r.width || !r.height) return;
-    W = Math.max(1, Math.round(r.width * dpr));
-    H = Math.max(1, Math.round(r.height * dpr));
+    W = Math.max(1, Math.round(r.width * DPR));
+    H = Math.max(1, Math.round(r.height * DPR));
     canvas.width = W; canvas.height = H;
-    canvas.style.width = r.width + 'px'; canvas.style.height = r.height + 'px';
-    cover.width = W; cover.height = H;
-    drawCover();
+    canvas.style.width = r.width + 'px';
+    canvas.style.height = r.height + 'px';
+
+    const k = Math.min(SIM_SCALE, SIM_MAX / Math.max(W, H));
+    const nw = Math.max(2, Math.round(W * k));
+    const nh = Math.max(2, Math.round(H * k));
+    if (nw !== simW || nh !== simH){
+      simW = nw; simH = nh;
+      sim.forEach(t => { if (t){ gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fbo); } });
+      sim = [makeTarget(simW, simH), makeTarget(simW, simH)];
+    }
   }
   new ResizeObserver(resize).observe(wrap);
   resize();
 
-  const points = [];
-  let last = null, idle = 0;
+  /* ---------------------------------------------------------------- *
+   *  pointer + idle autopilot (so a phone visitor sees the effect too)
+   * ---------------------------------------------------------------- */
+  let mx = 0.5, my = 0.5, pmx = 0.5, pmy = 0.5;
+  let painting = false, lastInput = -1e9, inside = false;
 
   addEventListener('pointermove', (e) => {
     const r = canvas.getBoundingClientRect();
     if (!r.width) return;
-    const x = (e.clientX - r.left) * dpr;
-    const y = (e.clientY - r.top) * dpr;
-    if (x < -radius || y < -radius || x > W + radius || y > H + radius){ last = null; return; }
-    if (!last){ last = { x, y }; points.push({ x, y }); return; }
-    const dx = x - last.x, dy = y - last.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const step = Math.max(radius * 0.3, 1);
-    const n = Math.min(Math.ceil(dist / step), 60);
-    for (let i = 1; i <= n; i++) points.push({ x: last.x + (dx * i) / n, y: last.y + (dy * i) / n });
-    last = { x, y };
+    const x = (e.clientX - r.left) / r.width;
+    const y = 1.0 - (e.clientY - r.top) / r.height;
+    inside = x > -0.15 && x < 1.15 && y > -0.15 && y < 1.15;
+    if (!inside) return;
+    mx = x; my = y;
+    painting = true;
+    lastInput = performance.now();
   }, { passive: true });
 
-  function stamp(x, y){
-    bctx.clearRect(0, 0, diam, diam);
-    bctx.globalCompositeOperation = 'source-over';
-    const g = bctx.createRadialGradient(radius, radius, 0, radius, radius, radius);
-    g.addColorStop(0, 'rgba(255,255,255,1)');
-    g.addColorStop(0.55, 'rgba(255,255,255,0.82)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    bctx.fillStyle = g;
-    bctx.fillRect(0, 0, diam, diam);
-    bctx.globalCompositeOperation = 'source-in';
-    bctx.drawImage(cover, x - radius, y - radius, diam, diam, 0, 0, diam, diam);
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(brush, x - radius, y - radius);
+  /* the idle path stays clear of the headline column so it never eats the copy */
+  const AUTO = MOBILE
+    ? { cx: 0.68, ax: 0.22, cy: 0.21, ay: 0.15 }
+    : { cx: 0.60, ax: 0.24, cy: 0.50, ay: 0.24 };
+  let auto = Math.random() * 100;
+  function autopilot(){
+    auto += 0.0075;
+    mx = AUTO.cx + Math.sin(auto * 0.9) * AUTO.ax + Math.sin(auto * 0.37) * AUTO.ax * 0.22;
+    my = AUTO.cy + Math.cos(auto * 0.63) * AUTO.ay + Math.sin(auto * 1.7) * AUTO.ay * 0.18;
+    painting = true;
   }
 
-  function tick(){
-    requestAnimationFrame(tick);
-    const drawing = points.length > 0;
-    if (drawing) idle = 0;
-    else { idle++; if (idle > FADE_FRAMES) return; }
-    const fade = drawing ? DECAY : Math.min(DECAY + idle * 0.004, 0.5);
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = 'rgba(0,0,0,' + fade + ')';
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalCompositeOperation = 'source-over';
-    if (drawing){ for (const p of points) stamp(p.x, p.y); points.length = 0; }
-    if (!drawing && idle === FADE_FRAMES) ctx.clearRect(0, 0, W, H);
+  /* ---------------------------------------------------------------- *
+   *  frame
+   * ---------------------------------------------------------------- */
+  let visible = true;
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; }, { threshold: 0 }).observe(wrap);
+
+  const t0 = performance.now();
+  function frame(now){
+    requestAnimationFrame(frame);
+    if (!visible || !simW || document.hidden) return;
+
+    const time = (now - t0) / 1000;
+    if (now - lastInput > 1400) autopilot(time);
+
+    /* --- pass 1: ink simulation --- */
+    const src = sim[0], dst = sim[1];
+    gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fbo);
+    gl.viewport(0, 0, simW, simH);
+    gl.useProgram(simProg.p);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, src.tex);
+    gl.uniform1i(simProg.u.uPrev, 0);
+    gl.uniform2f(simProg.u.uTexel, 1 / simW, 1 / simH);
+    gl.uniform2f(simProg.u.uMouse, mx, my);
+    gl.uniform2f(simProg.u.uPrevMouse, pmx, pmy);
+    gl.uniform1f(simProg.u.uAspect, simW / simH);
+    gl.uniform1f(simProg.u.uRadius, MOBILE ? 0.11 : 0.115);
+    gl.uniform1f(simProg.u.uDecay, 0.978);
+    gl.uniform1f(simProg.u.uTime, time);
+    gl.uniform1f(simProg.u.uPaint, painting ? 1 : 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    pmx = mx; pmy = my;
+    painting = false;
+    sim = [dst, src];
+
+    /* --- pass 2: composite --- */
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, W, H);
+    gl.useProgram(drawProg.p);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, baseTex.tex);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, revealTex.tex);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, dst.tex);
+    gl.uniform1i(drawProg.u.uBase, 0);
+    gl.uniform1i(drawProg.u.uReveal, 1);
+    gl.uniform1i(drawProg.u.uMask, 2);
+    gl.uniform2f(drawProg.u.uRes, W, H);
+    gl.uniform2f(drawProg.u.uBaseSize, baseTex.w, baseTex.h);
+    gl.uniform2f(drawProg.u.uRevealSize, revealTex.w, revealTex.h);
+    gl.uniform2f(drawProg.u.uTexel, 1 / simW, 1 / simH);
+    gl.uniform1f(drawProg.u.uTime, time);
+    gl.uniform1f(drawProg.u.uRefract, 0.62);
+    gl.uniform1f(drawProg.u.uDispersion, 0.09);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
-  requestAnimationFrame(tick);
+  requestAnimationFrame(frame);
 })();
 
 /* ============================================================
