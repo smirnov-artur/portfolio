@@ -9,27 +9,100 @@
 <link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/">
 <link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/en/">
 <link rel="alternate" hreflang="x-default" href="https://smirnov-artur.github.io/portfolio/en/">
+<link rel="preload" href="assets/fonts/geologica-var-cyr.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/golos-var-cyr.woff2" as="font" type="font/woff2" crossorigin>
 <style>*{box-sizing:border-box}html,body{margin:0;padding:0}img,video{max-width:100%}</style>
+<link rel="stylesheet" href="css/motion.css">
+<script src="js/motion.js"></script>
 </head>
 <body>
 <title>Инженерные веб-инструменты — каталог работ</title>
 <style>
+  /* ---------- шрифты: self-hosted woff2, subset по unicode-range ----------
+     Geologica   — дисплейный технический гротеск (заголовки)
+     Golos Text  — текстовый гротеск (проза, значения спецификаций)
+     IBM Plex Mono — технические подписи и индексы
+     Все три с кириллицей, нарисованной, а не сгенерированной из латиницы. */
+
+  @font-face {
+    font-family: "Geologica";
+    src: url("assets/fonts/geologica-var-cyr.woff2") format("woff2");
+    font-weight: 100 900; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "Geologica";
+    src: url("assets/fonts/geologica-var-lat.woff2") format("woff2");
+    font-weight: 100 900; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "Golos Text";
+    src: url("assets/fonts/golos-var-cyr.woff2") format("woff2");
+    font-weight: 400 900; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "Golos Text";
+    src: url("assets/fonts/golos-var-lat.woff2") format("woff2");
+    font-weight: 400 900; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("assets/fonts/plexmono-400-cyr.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("assets/fonts/plexmono-400-lat.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
   :root {
     --paper: #EDEEEA;
     --panel: #E4E6E1;
-    --ink: #12161B;
-    --graphite: #59616B;
-    --rule: #C9CCC5;
-    --rule-strong: #A8ADA4;
+    --ink: #12161B;      /* 15.6:1 — основной текст            */
+    --ink-2: #3E4650;    /*  8.2:1 — вторичная проза           */
+    --graphite: #59616B; /*  5.4:1 — только моно-подписи       */
+    --rule: #D3D6CF;
+    --rule-strong: #ADB2A9;
     --blue: #1B34C4;
-    --blue-soft: #1B34C41A;
+    --blue-soft: #1B34C414;
 
-    --f-display: "Bahnschrift", "Archivo Narrow", "Franklin Gothic Medium", "Arial Narrow", system-ui, sans-serif;
-    --f-body: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-    --f-mono: "Cascadia Mono", "Consolas", ui-monospace, "SFMono-Regular", "Menlo", monospace;
+    --f-display: "Geologica", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --f-body: "Golos Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, monospace;
 
-    --gap: clamp(1rem, 2.4vw, 2rem);
-    --edge: clamp(1.1rem, 4vw, 3.5rem);
+    /* Шкала: 7 ступеней вместо прежних 12 почти одинаковых размеров.
+       Верх взят по замерам basement.studio (h1 87px) и CIAO Energy (108px). */
+    --t-d1: clamp(2.6rem, 6.2vw, 5.5rem);       /* 41.6 → 88px    */
+    --t-d2: clamp(1.6rem, 3vw, 2.6rem);         /* 25.6 → 41.6px  */
+    --t-d3: clamp(1.3rem, 2.1vw, 1.85rem);      /* 20.8 → 29.6px  */
+    --t-lede: clamp(1.125rem, 1.5vw, 1.375rem); /* 18 → 22px      */
+    --t-body: 1rem;                             /* 16px           */
+    --t-small: 0.9375rem;                       /* 15px           */
+    --t-label: 0.6875rem;                       /* 11px           */
+
+    --gap: clamp(1rem, 2vw, 1.75rem);
+    --edge: clamp(1.25rem, 4.4vw, 4rem);        /* на 1440 суммарное поле 143px — как у CIAO Energy */
+    --s-section: clamp(3.5rem, 8vw, 7.5rem);    /* 56 → 115px     */
+    --s-block: clamp(1.5rem, 3vw, 2.5rem);
+
+    /* Тайминги сняты с топов: hover 0.16s · смена состояния 0.4s · раскрытие 0.7s */
+    --t-fast: 160ms; --e-fast: cubic-bezier(0.4, 0, 0.2, 1);
+    --t-mid: 400ms;  --e-mid: cubic-bezier(0.4, 0, 0.1, 1);
+    --t-slow: 700ms; --e-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Акцент в Display-P3 там, где экран его умеет — приём Lusion и 21hrs */
+  @supports (color: color(display-p3 1 1 1)) {
+    @media (color-gamut: p3) { :root { --blue: color(display-p3 0.086 0.196 0.769); } }
   }
 
   @media (prefers-color-scheme: dark) {
@@ -37,32 +110,38 @@
       --paper: #0E1116;
       --panel: #151A21;
       --ink: #E7E9E5;
+      --ink-2: #B4BAC2;
       --graphite: #939CA6;
       --rule: #262C34;
       --rule-strong: #39424C;
       --blue: #7C93FF;
-      --blue-soft: #7C93FF1F;
+      --blue-soft: #7C93FF16;
+    }
+    @supports (color: color(display-p3 1 1 1)) {
+      @media (color-gamut: p3) { :root { --blue: color(display-p3 0.486 0.576 1); } }
     }
   }
   :root[data-theme="dark"] {
     --paper: #0E1116;
     --panel: #151A21;
     --ink: #E7E9E5;
+    --ink-2: #B4BAC2;
     --graphite: #939CA6;
     --rule: #262C34;
     --rule-strong: #39424C;
     --blue: #7C93FF;
-    --blue-soft: #7C93FF1F;
+    --blue-soft: #7C93FF16;
   }
   :root[data-theme="light"] {
     --paper: #EDEEEA;
     --panel: #E4E6E1;
     --ink: #12161B;
+    --ink-2: #3E4650;
     --graphite: #59616B;
-    --rule: #C9CCC5;
-    --rule-strong: #A8ADA4;
+    --rule: #D3D6CF;
+    --rule-strong: #ADB2A9;
     --blue: #1B34C4;
-    --blue-soft: #1B34C41A;
+    --blue-soft: #1B34C414;
   }
 
   * { box-sizing: border-box; }
@@ -72,22 +151,26 @@
     background: var(--paper);
     color: var(--ink);
     font-family: var(--f-body);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: var(--t-body);
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
   }
 
   .wrap {
-    max-width: 1180px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0 var(--edge) clamp(3rem, 8vw, 6rem);
+    padding: 0 var(--edge) clamp(3.5rem, 9vw, 7rem);
   }
 
   .eyebrow {
     font-family: var(--f-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.18em;
+    font-size: var(--t-label);
+    line-height: 1.45;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
+    font-feature-settings: "case" 1;
     color: var(--graphite);
     margin: 0;
   }
@@ -96,10 +179,10 @@
 
   .masthead {
     border-bottom: 1px solid var(--rule-strong);
-    padding: clamp(1.8rem, 4.6vw, 3.4rem) 0 0;
+    padding: clamp(1.6rem, 3.4vw, 2.6rem) 0 0;
     display: flex;
     flex-direction: column;
-    gap: clamp(1.4rem, 3.2vw, 2.3rem);
+    gap: clamp(1.8rem, 4.4vw, 3.4rem);
   }
 
   .masthead-top {
@@ -117,6 +200,15 @@
     gap: 0.4rem 1.2rem;
   }
 
+  /* Первый экран: заголовок слева, лид прижат к базовой линии справа —
+     так правая половина холста перестаёт пустовать (приём Exo Ape / Lusion) */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: end;
+    gap: clamp(1.4rem, 3vw, 2.4rem) clamp(2rem, 5vw, 4.5rem);
+  }
+
   /* ---------- переключатель языка ---------- */
 
   .lang {
@@ -124,32 +216,34 @@
     align-items: baseline;
     gap: 0.5rem;
     font-family: var(--f-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.14em;
+    font-size: var(--t-label);
+    letter-spacing: 0.16em;
     text-transform: uppercase;
   }
 
   .lang a {
-    color: var(--blue);
+    color: var(--ink-2);
     text-decoration: none;
     border-bottom: 1px solid transparent;
+    transition: color var(--t-fast) var(--e-fast), border-color var(--t-fast) var(--e-fast);
   }
 
-  .lang a:hover { border-bottom-color: var(--blue); }
+  .lang a:hover { color: var(--blue); border-bottom-color: var(--blue); }
   .lang a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
   .lang .current { color: var(--graphite); }
   .lang .sep { color: var(--rule-strong); }
 
+  /* Оптическая компенсация веса: чем крупнее кегль, тем легче начертание.
+     88px — 500, 42px — 500, 30px и мельче — 600. */
   h1 {
     font-family: var(--f-display);
-    font-weight: 600;
-    font-size: clamp(2.3rem, 6.4vw, 4.4rem);
-    line-height: 0.98;
-    letter-spacing: -0.015em;
-    text-transform: uppercase;
+    font-weight: 500;
+    font-size: var(--t-d1);
+    line-height: 0.92;
+    letter-spacing: -0.04em;   /* ровно как h1 basement.studio на 87px */
     text-wrap: balance;
     margin: 0;
-    max-width: 16ch;
+    max-width: 15ch;
   }
 
   h1 em {
@@ -158,36 +252,49 @@
   }
 
   .lede {
-    max-width: 62ch;
-    font-size: clamp(1rem, 1.6vw, 1.15rem);
-    color: var(--ink);
+    max-width: 44ch;           /* Exo Ape держит вводный абзац в 44ch */
+    font-size: var(--t-lede);
+    line-height: 1.4;
+    color: var(--ink-2);
     margin: 0;
+    padding-bottom: 0.35em;
   }
 
+  /* Штамп чертежа вместо трёх одинаковых карточек */
   .offers {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 1px;
-    background: var(--rule);
-    border-top: 1px solid var(--rule);
-    margin-top: 0.6rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule);
   }
 
   .offer {
-    background: var(--paper);
-    padding: 1.2rem 0 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    padding: 0.95rem clamp(0.9rem, 2vw, 1.6rem) 1.05rem 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-content: start;
+    column-gap: 0.85rem;
+    row-gap: 0.3rem;
   }
 
-  .offer + .offer { padding-left: var(--gap); }
+  .offer + .offer {
+    border-left: 1px solid var(--rule);
+    padding-left: clamp(0.9rem, 2vw, 1.6rem);
+  }
+
+  .offer .idx {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.1em;
+    color: var(--graphite);
+    padding-top: 0.28em;
+    font-variant-numeric: tabular-nums;
+  }
 
   .offer h2 {
     font-family: var(--f-display);
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-    font-size: 1.12rem;
+    letter-spacing: -0.015em;
+    font-size: 1.0625rem;
     font-weight: 600;
     margin: 0;
     line-height: 1.15;
@@ -195,14 +302,16 @@
 
   .offer p {
     margin: 0;
-    color: var(--graphite);
-    font-size: 0.9rem;
+    grid-column: 2;
+    color: var(--ink-2);
+    font-size: var(--t-small);
+    line-height: 1.45;
   }
 
   /* ---------- флагманские демо ---------- */
 
   .flagships {
-    margin-top: clamp(1.9rem, 4vw, 2.8rem);
+    margin-top: clamp(2.4rem, 5vw, 4rem);
   }
 
   .flagships-head {
@@ -210,7 +319,7 @@
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
     gap: 0.9rem clamp(1.5rem, 4vw, 3.2rem);
     align-items: end;
-    margin-bottom: clamp(1.2rem, 2.6vw, 1.9rem);
+    margin-bottom: clamp(1.4rem, 3vw, 2.4rem);
   }
 
   .flagships-id {
@@ -224,20 +333,20 @@
 
   .flagships h2 {
     font-family: var(--f-display);
-    text-transform: uppercase;
-    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
-    font-weight: 600;
-    letter-spacing: -0.005em;
-    line-height: 1.06;
+    font-size: var(--t-d2);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
     margin: 0;
     text-wrap: balance;
   }
 
   .flagships-note {
     margin: 0;
-    color: var(--graphite);
-    font-size: 0.95rem;
-    max-width: 52ch;
+    color: var(--ink-2);
+    font-size: var(--t-small);
+    line-height: 1.5;
+    max-width: 48ch;
   }
 
   .cases {
@@ -255,7 +364,7 @@
     color: inherit;
     text-decoration: none;
     position: relative;
-    transition: border-color 0.18s ease;
+    transition: border-color var(--t-fast) var(--e-fast);
   }
 
   .case:nth-child(-n + 2) { grid-column: span 3; }
@@ -269,7 +378,7 @@
     height: 3px;
     background: var(--blue);
     z-index: 2;
-    transition: width 0.32s cubic-bezier(0.2, 0.7, 0.3, 1);
+    transition: width var(--t-slow) var(--e-out);
   }
 
   .case:hover, .case:focus-visible { border-color: var(--blue); }
@@ -289,7 +398,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+    transition: transform var(--t-slow) var(--e-out);
   }
 
   .case:hover .case-shot img { transform: scale(1.035); }
@@ -298,8 +407,8 @@
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.9rem clamp(0.85rem, 1.5vw, 1.15rem) 0.95rem;
+    gap: 0.45rem;
+    padding: 1rem clamp(0.9rem, 1.5vw, 1.25rem) 1.05rem;
   }
 
   .case-meta {
@@ -311,45 +420,49 @@
   .case h3 {
     font-family: var(--f-display);
     text-transform: uppercase;
-    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    font-size: clamp(1.25rem, 2.2vw, 1.75rem);
     font-weight: 600;
-    letter-spacing: 0.005em;
-    line-height: 1.06;
-    margin: 0;
+    letter-spacing: -0.01em;
+    line-height: 1.04;
+    margin: 0.1rem 0 0;
   }
 
   .case p {
     margin: 0;
-    color: var(--graphite);
-    font-size: 0.9rem;
+    color: var(--ink-2);
+    font-size: var(--t-small);
+    line-height: 1.45;
   }
 
   .case-open {
     margin-top: auto;
-    padding-top: 0.75rem;
+    padding-top: 0.85rem;
     border-top: 1px solid var(--rule);
     font-family: var(--f-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.14em;
+    font-size: var(--t-label);
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--blue);
+    color: var(--graphite);
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
+    transition: color var(--t-fast) var(--e-fast);
   }
+
+  .case:hover .case-open { color: var(--blue); }
 
   .case-open .arrow {
-    transition: transform 0.22s ease;
+    transition: transform var(--t-mid) var(--e-mid);
   }
 
-  .case:hover .case-open .arrow { transform: translateX(5px); }
+  .case:hover .case-open .arrow { transform: translateX(6px); }
 
   /* ---------- разделитель каталога ---------- */
 
   .rail {
     border-top: 1px solid var(--rule-strong);
-    margin-top: clamp(3rem, 7vw, 5rem);
+    margin-top: var(--s-section);
     padding-top: 1.1rem;
     display: flex;
     flex-direction: column;
@@ -365,11 +478,10 @@
 
   .rail h2 {
     font-family: var(--f-display);
-    text-transform: uppercase;
-    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
-    font-weight: 600;
-    letter-spacing: -0.005em;
-    line-height: 1.06;
+    font-size: var(--t-d2);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
     margin: 0;
     text-wrap: balance;
   }
@@ -388,8 +500,8 @@
 
   .plate {
     border-top: 1px solid var(--rule);
-    padding-top: 1.1rem;
-    margin-top: clamp(2.6rem, 6vw, 4.5rem);
+    padding-top: 1.2rem;
+    margin-top: clamp(3rem, 6.5vw, 5.5rem);
     display: grid;
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
     gap: var(--gap) clamp(1.5rem, 4vw, 3.2rem);
@@ -403,7 +515,7 @@
     left: 0;
     width: 46px;
     height: 3px;
-    background: var(--blue);
+    background: var(--rule-strong);
   }
 
   .plate-head {
@@ -421,19 +533,19 @@
 
   .plate h3 {
     font-family: var(--f-display);
-    text-transform: uppercase;
-    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    font-size: var(--t-d3);
     font-weight: 600;
-    letter-spacing: -0.005em;
-    line-height: 1.06;
+    letter-spacing: -0.02em;
+    line-height: 1.12;
     margin: 0;
     text-wrap: balance;
   }
 
   .plate-sub {
     margin: 0;
-    color: var(--graphite);
-    font-size: 0.95rem;
+    color: var(--ink-2);
+    font-size: var(--t-small);
+    line-height: 1.5;
     max-width: 46ch;
   }
 
@@ -441,25 +553,26 @@
     margin: 0;
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
-    gap: 0.05rem 1.1rem;
-    font-size: 0.86rem;
+    gap: 0.05rem 1.25rem;
+    font-size: var(--t-small);
     align-content: start;
   }
 
   dl.spec dt {
     font-family: var(--f-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
+    font-size: var(--t-label);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--graphite);
-    padding-top: 0.42rem;
+    padding-top: 0.5rem;
     white-space: nowrap;
   }
 
   dl.spec dd {
     margin: 0;
-    padding: 0.3rem 0;
+    padding: 0.38rem 0;
     border-bottom: 1px solid var(--rule);
+    color: var(--ink-2);
     font-variant-numeric: tabular-nums;
   }
 
@@ -487,7 +600,7 @@
   }
 
   .zoom-hint {
-    color: var(--blue);
+    color: var(--graphite);
   }
 
   /* ---------- lightbox ---------- */
@@ -533,8 +646,8 @@
     width: 100%;
     max-width: 1100px;
     font-family: var(--f-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.12em;
+    font-size: var(--t-label);
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: #9AA3AE;
   }
@@ -555,11 +668,11 @@
 
   .screen figcaption {
     font-family: var(--f-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
+    font-size: var(--t-label);
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--graphite);
-    padding-top: 0.55rem;
+    padding-top: 0.65rem;
     display: flex;
     justify-content: space-between;
     gap: 1rem;
@@ -613,8 +726,8 @@
 
   .ab-row .ab-label {
     font-family: var(--f-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
+    font-size: var(--t-label);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--graphite);
     display: flex;
@@ -628,8 +741,9 @@
 
   .ab-note {
     margin: 0;
-    font-size: 0.85rem;
-    color: var(--graphite);
+    font-size: var(--t-small);
+    line-height: 1.5;
+    color: var(--ink-2);
     border-top: 1px solid var(--rule);
     padding-top: 0.9rem;
   }
@@ -638,26 +752,26 @@
 
   .terms {
     border-top: 1px solid var(--rule-strong);
-    margin-top: clamp(3rem, 8vw, 5.5rem);
-    padding-top: 1.6rem;
+    margin-top: var(--s-section);
+    padding-top: 1.8rem;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: var(--gap);
+    gap: var(--s-block) clamp(1.5rem, 4vw, 3.2rem);
   }
 
   .terms h2 {
     font-family: var(--f-display);
-    text-transform: uppercase;
-    font-size: 1.05rem;
+    font-size: 1.0625rem;
     font-weight: 600;
-    margin: 0 0 0.5rem;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.55rem;
   }
 
-  .terms p { margin: 0; color: var(--graphite); font-size: 0.9rem; }
+  .terms p { margin: 0; color: var(--ink-2); font-size: var(--t-small); line-height: 1.5; max-width: 40ch; }
 
   .contact {
-    margin-top: clamp(2.2rem, 5vw, 3.4rem);
-    padding: 1.5rem var(--gap);
+    margin-top: clamp(2.6rem, 5.5vw, 4rem);
+    padding: clamp(1.4rem, 3vw, 2rem) clamp(1.2rem, 2.6vw, 2rem);
     background: var(--blue-soft);
     border-left: 3px solid var(--blue);
     display: flex;
@@ -671,16 +785,35 @@
 
   .contact .handle {
     font-family: var(--f-display);
-    font-size: clamp(1.4rem, 3.4vw, 2rem);
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
+    font-size: clamp(1.7rem, 3.6vw, 2.6rem);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1;
     color: var(--blue);
+  }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: minmax(0, 1fr); align-items: start; }
+    h1 { max-width: 13ch; }
+    .lede { max-width: 52ch; padding-bottom: 0; }
+  }
+
+  /* На узком экране подзаголовок в шапке дублирует h1 и съедает 60px первого кадра */
+  @media (max-width: 640px) {
+    .masthead-aside .eyebrow { display: none; }
   }
 
   @media (max-width: 760px) {
     .plate { grid-template-columns: minmax(0, 1fr); }
-    .offer + .offer { padding-left: 0; }
-    .offers { gap: 1px; }
+    .offers { grid-template-columns: minmax(0, 1fr); border-bottom: 0; }
+    .offer { padding: 0.85rem 0 0.95rem; }
+    .offer + .offer { border-left: 0; border-top: 1px solid var(--rule); padding-left: 0; }
+  }
+
+  @media (max-width: 420px) {
+    dl.spec { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    dl.spec dt { border-bottom: 0; padding-top: 0.7rem; white-space: normal; }
+    dl.spec dd { padding-top: 0.1rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -703,24 +836,28 @@
       </div>
     </div>
 
-    <h1>Считаю <em>оборудование</em> прямо в браузере</h1>
+    <div class="hero">
+      <h1>Считаю <em>оборудование</em> прямо в браузере</h1>
 
-    <p class="lede">
-      Делаю то, что веб-студии обычно не берут: инженерные калькуляторы и 3D-конфигураторы,
-      автоматизацию документооборота, обучающие платформы, серверную часть под мобильные
-      приложения. Ниже — пять интерактивных демо и четырнадцать рабочих проектов.
-    </p>
+      <p class="lede">
+        Делаю то, что веб-студии обычно не берут: расчёт, 3D и документооборот
+        внутри браузера. Ниже — пять интерактивных демо и четырнадцать рабочих проектов.
+      </p>
+    </div>
 
     <div class="offers">
       <div class="offer">
+        <span class="idx" aria-hidden="true">01</span>
         <h2>Калькуляторы подбора</h2>
         <p>Расчёт по характеристикам оборудования, подбор из каталога, выдача спецификации.</p>
       </div>
       <div class="offer">
+        <span class="idx" aria-hidden="true">02</span>
         <h2>3D-конфигураторы</h2>
         <p>Сборка изделия в браузере на Three.js, стыковка элементов, смета в реальном времени.</p>
       </div>
       <div class="offer">
+        <span class="idx" aria-hidden="true">03</span>
         <h2>B2B-каталоги</h2>
         <p>Магазин с ценами, остатками, расчётом доставки и запросом КП. Интеграция с Битрикс24.</p>
       </div>
@@ -856,7 +993,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a0.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a0-poster.jpg" data-full="assets/a0.mp4">
+          <source media="(max-width: 640px)" src="assets/a0-ld.mp4" type="video/mp4">
+          <source src="assets/a0-md.mp4" type="video/mp4">
+        </video>
         <div class="shots">
           <img src="assets/a1.jpg" alt="Главная: девять расчётных модулей и счётчики перенесённой базы 63 таблицы, 3471 запись">
         </div>
@@ -886,7 +1026,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a2.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a2-poster.jpg" data-full="assets/a2.mp4">
+          <source media="(max-width: 640px)" src="assets/a2-ld.mp4" type="video/mp4">
+          <source src="assets/a2-md.mp4" type="video/mp4">
+        </video>
         <figcaption><span>Экран подбора</span><span>9 c · без звука</span></figcaption>
       </figure>
     </section>
@@ -910,7 +1053,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a3.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a3-poster.jpg" data-full="assets/a3.mp4">
+          <source media="(max-width: 640px)" src="assets/a3-ld.mp4" type="video/mp4">
+          <source src="assets/a3-md.mp4" type="video/mp4">
+        </video>
         <figcaption><span>Сборка изделия</span><span>9 c · без звука</span></figcaption>
       </figure>
     </section>
@@ -990,7 +1136,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a7.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a7-poster.jpg" data-full="assets/a7.mp4">
+          <source media="(max-width: 640px)" src="assets/a7-ld.mp4" type="video/mp4">
+          <source src="assets/a7-md.mp4" type="video/mp4">
+        </video>
         <figcaption><span>Глобус с маршрутами</span><span>9 c · без звука</span></figcaption>
       </figure>
     </section>
@@ -1013,7 +1162,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a8.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a8-poster.jpg" data-full="assets/a8.mp4">
+          <source media="(max-width: 640px)" src="assets/a8-ld.mp4" type="video/mp4">
+          <source src="assets/a8-md.mp4" type="video/mp4">
+        </video>
         <figcaption><span>Первый экран</span><span>9 c · без звука</span></figcaption>
       </figure>
     </section>
@@ -1039,7 +1191,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a9.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a9-poster.jpg" data-full="assets/a9.mp4">
+          <source media="(max-width: 640px)" src="assets/a9-ld.mp4" type="video/mp4">
+          <source src="assets/a9-md.mp4" type="video/mp4">
+        </video>
         <figcaption><span>Свет ведут по фактуре, затем меняют покрытие</span><span>Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
@@ -1065,7 +1220,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a10.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a10-poster.jpg" data-full="assets/a10.mp4">
+          <source media="(max-width: 640px)" src="assets/a10-ld.mp4" type="video/mp4">
+          <source src="assets/a10-md.mp4" type="video/mp4">
+        </video>
         <figcaption><span>Один экран: гость видит витрину, дилер — кабинет</span><span>Нажмите, чтобы развернуть</span></figcaption>
       </figure>
     </section>
@@ -1089,7 +1247,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a11.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a11-poster.jpg" data-full="assets/a11.mp4">
+          <source media="(max-width: 640px)" src="assets/a11-ld.mp4" type="video/mp4">
+          <source src="assets/a11-md.mp4" type="video/mp4">
+        </video>
         <figcaption><span>Оверлей в работе</span><span>9 c · без звука</span></figcaption>
       </figure>
     </section>
@@ -1116,7 +1277,10 @@
         </dl>
       </div>
       <figure class="screen">
-        <video autoplay muted loop playsinline preload="metadata" src="assets/a12.mp4"></video>
+        <video muted loop playsinline preload="none" data-autoplay poster="assets/a12-poster.jpg" data-full="assets/a12.mp4">
+          <source media="(max-width: 640px)" src="assets/a12-ld.mp4" type="video/mp4">
+          <source src="assets/a12-md.mp4" type="video/mp4">
+        </video>
         <div class="shots">
           <img src="assets/a13.jpg" alt="Прогресс: калибровка уверенности — совпадает ли заявленная уверенность с реальной точностью">
         </div>
@@ -1256,8 +1420,7 @@
           v.setAttribute("controls", "");
         } else {
           v.removeAttribute("controls");
-          var p = v.play();
-          if (p && p.catch) { p.catch(function () {}); }
+          /* воспроизведение ведёт motion.js по вхождению в кадр */
         }
       });
     }
@@ -1294,7 +1457,7 @@
       title.textContent = v.getAttribute("data-title") || "";
       bigImg.hidden = true;
       big.hidden = false;
-      big.src = v.currentSrc || v.src;
+      big.src = v.currentSrc || v.getAttribute("data-full") || v.src;
       big.currentTime = v.currentTime || 0;
       show();
       if (!reduce.matches) {
