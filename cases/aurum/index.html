@@ -864,6 +864,43 @@ function updateSparks(elapsed) {
 /* ------------------------------------------------------------------ *
  *  bronze horse
  * ------------------------------------------------------------------ */
+
+/* Fresnel rim with per-channel dispersion, injected into the standard PBR
+   material rather than replacing it — shadows and lighting stay, and the metal
+   gets the prismatic edge that separates cast bronze from grey plastic. */
+const bronzeUniforms = {
+    uFresnelPow:  { value: 4.6 },  //js {range: [1, 8]}
+    uDispersion:  { value: 0.45 }, //js {range: [0, 1]}
+    uRimStrength: { value: 0.44 }, //js {range: [0, 2]}
+    uRimColor:    { value: new THREE.Color('#ffcf94') }
+};
+
+function applyBronzeDispersion(mat) {
+    mat.onBeforeCompile = (shader) => {
+        Object.assign(shader.uniforms, bronzeUniforms);
+        shader.fragmentShader =
+            'uniform float uFresnelPow;\n' +
+            'uniform float uDispersion;\n' +
+            'uniform float uRimStrength;\n' +
+            'uniform vec3  uRimColor;\n' +
+            shader.fragmentShader.replace(
+                '#include <colorspace_fragment>',
+                [
+                    '{',
+                    '    vec3  V = normalize(vViewPosition);',
+                    '    float fres = pow(1.0 - clamp(dot(V, normal), 0.0, 1.0), uFresnelPow);',
+                    '    /* red bends least, blue most — the edge splits into colour */',
+                    '    vec3 split = vec3(pow(fres, 1.0 - uDispersion), fres, pow(fres, 1.0 + uDispersion));',
+                    '    gl_FragColor.rgb += split * uRimColor * uRimStrength;',
+                    '}',
+                    '#include <colorspace_fragment>'
+                ].join('\n')
+            );
+    };
+    mat.customProgramCacheKey = () => 'aurum-bronze-dispersion';
+    mat.needsUpdate = true;
+}
+
 function loadModel() {
     const draco = new DRACOLoader();
     draco.setDecoderPath(ASSET_BASE_URL + '/draco/');
@@ -889,7 +926,7 @@ function loadModel() {
                         if (mat.map) mat.map.anisotropy = 16;
                         mat.transparent = true;
                         mat.opacity = 0;
-                        mat.needsUpdate = true;
+                        applyBronzeDispersion(mat);
                         modelMaterials.push(mat);
                     });
                 }
