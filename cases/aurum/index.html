@@ -392,7 +392,7 @@ body {
 </div>
 
 <div class="slide-image-mask" id="slide-2-img">
-    <img src="./assets/1.png" alt="Editorial Concept">
+    <img src="./assets/1.webp" alt="Editorial Concept" width="760" height="757" loading="lazy" decoding="async">
 </div>
 
 <div class="grid-horizontal-line"></div>
@@ -419,18 +419,14 @@ body {
     <span class="cta-dot"></span>Want this? <span class="cta-handle">@smirnovarturr</span>
 </a>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js"
-  }
-}
-</script>
-
 <script type="module">
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+/* three r160 + GLTFLoader + DRACOLoader + EffectComposer, bundled and minified
+   into one self-hosted file — no third-party origin, one request instead of ~40 */
+import * as THREE from './assets/three-bundle.js';
+import {
+    GLTFLoader, DRACOLoader,
+    EffectComposer, RenderPass, ShaderPass, UnrealBloomPass
+} from './assets/three-bundle.js';
 
 const ASSET_BASE_URL = "./assets";
 
@@ -438,6 +434,7 @@ const ASSET_BASE_URL = "./assets";
  *  state
  * ------------------------------------------------------------------ */
 let scene, camera, renderer, canvas;
+let composer, bloomPass, gradePass;
 let bgMaterial, bgMesh;
 let sparks, sparkGeometry, sparkVelocities = [];
 let model = null, pivot = null;
@@ -506,6 +503,8 @@ function splitTitlesIntoChars() {
     });
 }
 
+const EXPOSURE = 2.2;
+
 /* ------------------------------------------------------------------ *
  *  liquid-bronze background wave shader
  * ------------------------------------------------------------------ */
@@ -524,6 +523,7 @@ uniform float uTime;
 uniform vec2  uResolution;
 uniform vec2  uMouse;
 uniform float uScroll;
+uniform float uPostGain;   //js {value: 0.6 / EXPOSURE}
 
 varying vec2 vUv;
 
@@ -612,9 +612,14 @@ void main() {
     col *= 1.0 - dot(uv, uv) * 0.12;
 
     /* keep it a background, never a subject */
-    col *= 0.42;
+    col *= 0.68;
 
-    gl_FragColor = vec4(max(col, 0.0), 1.0);
+    /* the composer works in linear HDR, so hand it linear values pre-divided by
+       the exposure the grade pass will apply — the palette above stays authored
+       in display space where it was tuned */
+    col = pow(max(col, 0.0), vec3(2.2)) * uPostGain;
+
+    gl_FragColor = vec4(col, 1.0);
 }
 `;
 
@@ -627,7 +632,8 @@ function createBackgroundShader() {
             uTime:       { value: 0 },
             uResolution: { value: new THREE.Vector2(sizes.width, sizes.height) },
             uMouse:      { value: new THREE.Vector2(0, 0) },
-            uScroll:     { value: 0 }
+            uScroll:     { value: 0 },
+            uPostGain:   { value: 0.6 / EXPOSURE }
         },
         depthWrite: false,
         depthTest: false,
@@ -639,6 +645,100 @@ function createBackgroundShader() {
     bgMesh.frustumCulled = false;
     camera.add(bgMesh);
 }
+
+/* ------------------------------------------------------------------ *
+ *  final grade — ACES, lens aberration, vignette, film grain.
+ *  Everything the composer produced lands here in linear HDR and leaves
+ *  as the sRGB frame you actually see.
+ * ------------------------------------------------------------------ */
+const GradeShader = {
+    uniforms: {
+        tDiffuse:    { value: null },
+        uResolution: { value: new THREE.Vector2(1, 1) },
+        uTime:       { value: 0 },
+        uExposure:   { value: EXPOSURE },
+        uVignette:   { value: 0.30 },  //js {range: [0, 1]}
+        uGrain:      { value: 0.026 }, //js {range: [0, 0.1]}
+        uAberration: { value: 1.0 }    //js {range: [0, 4]}
+    },
+    vertexShader: /* glsl */`
+varying vec2 vUv;
+void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`,
+    fragmentShader: /* glsl */`
+precision highp float;
+
+uniform sampler2D tDiffuse;
+uniform vec2  uResolution;
+uniform float uTime;
+uniform float uExposure;
+uniform float uVignette;
+uniform float uGrain;
+uniform float uAberration;
+
+varying vec2 vUv;
+
+/* the exact ACES fit three ships, so the grade matches what the scene was lit for */
+const mat3 ACES_IN = mat3(
+    0.59719, 0.07600, 0.02840,
+    0.35458, 0.90834, 0.13383,
+    0.04823, 0.01566, 0.83777
+);
+const mat3 ACES_OUT = mat3(
+     1.60475, -0.10208, -0.00327,
+    -0.53108,  1.10813, -0.07276,
+    -0.07367, -0.00605,  1.07602
+);
+vec3 rrtOdtFit(vec3 v) {
+    vec3 a = v * (v + 0.0245786) - 0.000090537;
+    vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
+    return a / b;
+}
+vec3 acesFilmic(vec3 c) {
+    c *= uExposure / 0.6;
+    c = ACES_IN * c;
+    c = rrtOdtFit(c);
+    c = ACES_OUT * c;
+    return clamp(c, 0.0, 1.0);
+}
+
+vec3 linearToSRGB(vec3 c) {
+    return mix(c * 12.92, 1.055 * pow(max(c, 0.0), vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+}
+
+float hash21(vec2 p) {
+    p = fract(p * vec2(443.897, 441.423));
+    p += dot(p, p + 19.19);
+    return fract(p.x * p.y);
+}
+
+void main() {
+    vec2 d = vUv - 0.5;
+    float r2 = dot(d, d);
+
+    /* lateral chromatic aberration: zero in the centre, grows to the corners */
+    vec2 off = d * r2 * uAberration * 0.006;
+    vec3 col = vec3(
+        texture2D(tDiffuse, vUv + off).r,
+        texture2D(tDiffuse, vUv).g,
+        texture2D(tDiffuse, vUv - off).b
+    );
+
+    col = acesFilmic(col);
+    col *= mix(1.0, smoothstep(1.45, 0.12, r2 * 2.0), uVignette);
+    col = linearToSRGB(col);
+
+    /* grain sits heavier in the shadows, the way film actually behaves */
+    float g = hash21(vUv * uResolution + fract(uTime) * 137.0) - 0.5;
+    col += g * uGrain * (1.0 - 0.55 * dot(col, vec3(0.3333)));
+
+    gl_FragColor = vec4(col, 1.0);
+}
+`
+};
 
 /* ------------------------------------------------------------------ *
  *  forge sparks
@@ -697,7 +797,9 @@ function createSparks() {
         size: 0.025,
         map: createSparkTexture(),
         transparent: true,
-        opacity: 0.85,
+        /* the composer target is half-float, so additive sparks no longer clamp
+           at 1.0 and bloom picks them up — they need less base opacity than before */
+        opacity: 0.5,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         vertexColors: true,
@@ -738,7 +840,11 @@ function updateSparks(elapsed) {
  *  bronze horse
  * ------------------------------------------------------------------ */
 function loadModel() {
+    const draco = new DRACOLoader();
+    draco.setDecoderPath(ASSET_BASE_URL + '/draco/');
+    draco.setDecoderConfig({ type: 'wasm' });
     const loader = new GLTFLoader();
+    loader.setDRACOLoader(draco);
     loader.load(
         ASSET_BASE_URL + '/bronze_horse.glb',
         (gltf) => {
@@ -780,10 +886,12 @@ function loadModel() {
             pivot.add(model);
             pivot.position.y = -0.4;
             scene.add(pivot);
+            draco.dispose();
         },
         undefined,
         (err) => {
             console.warn('[AURUM] bronze_horse.glb failed to load:', err && err.message ? err.message : err);
+            draco.dispose();
         }
     );
 }
@@ -875,16 +983,48 @@ function initScene() {
 
     renderer = new THREE.WebGLRenderer({
         canvas: canvas,
-        antialias: true,
+        antialias: false,          /* MSAA comes from the composer target instead */
         alpha: false,
+        stencil: false,
         powerPreference: "high-performance"
     });
     renderer.setSize(sizes.width, sizes.height);
     renderer.setPixelRatio(dprCap());
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 2.2;
+    /* the grade pass does ACES itself, so the renderer must not do it twice */
+    renderer.toneMapping = THREE.NoToneMapping;
+
+    initComposer();
+}
+
+/* ------------------------------------------------------------------ *
+ *  post chain: render (MSAA, half-float) -> bloom -> grade
+ * ------------------------------------------------------------------ */
+function initComposer() {
+    const mobile = isMobile();
+    const target = new THREE.WebGLRenderTarget(sizes.width, sizes.height, {
+        type: THREE.HalfFloatType,
+        samples: mobile ? 0 : 4
+    });
+
+    composer = new EffectComposer(renderer, target);
+    composer.setPixelRatio(dprCap());
+    composer.setSize(sizes.width, sizes.height);
+
+    composer.addPass(new RenderPass(scene, camera));
+
+    const bloomRes = new THREE.Vector2(
+        sizes.width  * (mobile ? 0.5 : 1),
+        sizes.height * (mobile ? 0.5 : 1)
+    );
+    bloomPass = new UnrealBloomPass(bloomRes, mobile ? 0.24 : 0.38, 0.62, 0.92);
+    composer.addPass(bloomPass);
+
+    gradePass = new ShaderPass(GradeShader);
+    gradePass.material.toneMapped = false;
+    gradePass.renderToScreen = true;
+    composer.addPass(gradePass);
 }
 
 function initLights() {
@@ -975,10 +1115,18 @@ function animate() {
         );
     }
 
+    if (gradePass) {
+        gradePass.uniforms.uTime.value = elapsed;
+        gradePass.uniforms.uResolution.value.set(
+            sizes.width * renderer.getPixelRatio(),
+            sizes.height * renderer.getPixelRatio()
+        );
+    }
+
     updateSlides(currentScroll);
     updateGridDots(currentScroll);
 
-    renderer.render(scene, camera);
+    composer.render();
 }
 
 /* ------------------------------------------------------------------ *
@@ -1002,6 +1150,14 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(sizes.width, sizes.height);
     renderer.setPixelRatio(dprCap());
+    if (composer) {
+        composer.setPixelRatio(dprCap());
+        composer.setSize(sizes.width, sizes.height);
+    }
+    if (bloomPass) {
+        const s = isMobile() ? 0.5 : 1;
+        bloomPass.setSize(sizes.width * s, sizes.height * s);
+    }
 });
 
 /* ------------------------------------------------------------------ *
