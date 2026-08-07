@@ -400,6 +400,17 @@ input[type=range]:hover::-webkit-slider-thumb{ box-shadow:0 0 18px rgba(22,224,2
 }
 .corner-cta .cta-handle{ color:rgba(255,255,255,.92); font-weight:600; }
 
+/* На телефоне плашка висит поверх текста: делаем её мельче, непрозрачной
+   и отодвигаем от неё низ страницы, чтобы она не съедала последний блок. */
+@media (max-width: 640px){
+  .corner-cta{
+    bottom:max(10px, env(safe-area-inset-bottom) + 4px); right:10px;
+    padding:6px 11px; font-size:10.5px; gap:6px;
+    background:rgba(6,8,12,.94);
+  }
+  body{ padding-bottom:56px; }
+}
+
 /* ---------- entrance ---------- */
 .rise{ opacity:0; transform:translateY(14px); }
 .ready .rise{ animation:rise .68s cubic-bezier(.16,.84,.34,1) forwards; }
