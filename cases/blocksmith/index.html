@@ -1,0 +1,2726 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>BLOCKSMITH — a site that builds itself</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Страница-чертёж, которую строит блок за блоком живой строитель: живая смета, шахта по скроллу и мир, который живёт под листом.">
+<meta property="og:title" content="BLOCKSMITH — сайт, который строит себя">
+<meta property="og:description" content="Живая смета, которую можно потянуть, и мир, который живёт под чертежом, — страница собирает себя у вас на глазах.">
+<meta property="og:type" content="website">
+<!-- голова строителя пиксельной решёткой: иконка без файла и без запроса -->
+<link id="ikonka" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><rect width='8' height='8' fill='%23b5825d'/><rect width='8' height='2' fill='%233a2a1c'/><rect y='2' width='1' height='2' fill='%233a2a1c'/><rect x='7' y='2' width='1' height='2' fill='%233a2a1c'/><rect x='1' y='3' width='1' height='1' fill='%233b4fa0'/><rect x='2' y='3' width='1' height='1' fill='%23e9e9ef'/><rect x='5' y='3' width='1' height='1' fill='%23e9e9ef'/><rect x='6' y='3' width='1' height='1' fill='%233b4fa0'/><rect x='3' y='4' width='2' height='1' fill='%23a3714e'/><rect x='2' y='5' width='4' height='1' fill='%236b4a2f'/><rect x='3' y='6' width='2' height='1' fill='%23522f1c'/></svg>">
+<style>
+@font-face{font-family:'Geologica';src:url('../../assets/fonts/geologica-var-cyr.woff2') format('woff2');font-weight:100 900;unicode-range:U+0400-04FF,U+2013-2014;font-display:swap}
+@font-face{font-family:'Geologica';src:url('../../assets/fonts/geologica-var-lat.woff2') format('woff2');font-weight:100 900;unicode-range:U+0000-00FF;font-display:swap}
+@font-face{font-family:'Plex Mono';src:url('../../assets/fonts/plexmono-400-cyr.woff2') format('woff2');font-weight:400;unicode-range:U+0400-04FF;font-display:swap}
+@font-face{font-family:'Plex Mono';src:url('../../assets/fonts/plexmono-400-lat.woff2') format('woff2');font-weight:400;unicode-range:U+0000-00FF;font-display:swap}
+
+:root{
+  --ink:#141518;          /* чернила чертежа */
+  --paper:#f2f1ec;        /* бумага */
+  --line:#d8d6cd;         /* сетка */
+  --pencil:#a7a49a;       /* карандашный контур */
+  --accent:#2f6df0;       /* синька */
+  --grass:#5fae3f;        /* блок-трава */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:auto}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Geologica','Segoe UI',sans-serif;
+  overflow-x:hidden;
+  transition:background-color 1.2s linear,color 1.2s linear;
+}
+/* ночь мира — лист переворачивается в светлое по тёмному, чернила и бумага меняются местами */
+body.noch{
+  --ink:#f2f1ec;
+  --paper:#141518;
+  --line:#2f3138;
+  --pencil:#6b6e78;
+}
+body.noch .geroy .pod,body.noch .tgstat{color:#c6c3b9}
+body.noch .printsipy p{color:#b4b1a7}
+body.noch .zhivye .prim,body.noch .pole .metka,body.noch .pole .edin,body.noch .chasy{color:#9b988e}
+body.noch footer,body.noch footer a{color:#a5a29a}
+body.noch .final a{background:#1b1d21}
+body.noch .final a:hover{background:var(--ink);color:var(--paper)}
+body.noch .final a.tg{background:var(--ink);color:var(--paper)}
+body.noch .final a.tg:hover{background:var(--accent);color:#f2f1ec}
+body.noch .rabota{background:#0a0b0e}
+body.noch .skidka{color:#e08573;border-color:#e08573}
+body.noch .propustit{background:rgba(20,21,24,.85)}
+/* мир-фон: живёт под страницей и после пролога */
+#fon{position:fixed;inset:0;z-index:0;pointer-events:none}
+/* вуаль: мягкая дымка под текстовыми зонами — читаемость без плашек.
+   Слоёв два — дневной и ночной; их opacity сводит цикл рендера (глубина шахты × ночь) */
+.vual{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity 1.2s;
+  background:
+    radial-gradient(1000px 640px at 30% 36%, rgba(242,241,236,.72), transparent 68%),
+    linear-gradient(180deg, rgba(242,241,236,.5), rgba(242,241,236,.12) 45%, rgba(242,241,236,.28));}
+.vual.nochnaya{opacity:0;
+  background:
+    radial-gradient(1000px 640px at 30% 36%, rgba(20,21,24,.66), transparent 68%),
+    linear-gradient(180deg, rgba(20,21,24,.55), rgba(20,21,24,.22) 45%, rgba(20,21,24,.44));}
+body:not(.prolog) .vual{opacity:1}
+body:not(.prolog) .vual.nochnaya{opacity:0}
+/* рамка листа со штампом как на чертеже */
+.list-ramka{position:fixed;inset:14px;border:1.5px solid var(--ink);pointer-events:none;z-index:1;opacity:.85}
+.shtamp{position:fixed;right:14px;bottom:14px;border:1.5px solid var(--ink);border-right:0;border-bottom:0;
+  background:var(--paper);padding:7px 12px;z-index:2;
+  font:400 9.5px/1.6 'Plex Mono',monospace;letter-spacing:.08em;color:var(--ink)}
+.shtamp b{font-weight:400;color:var(--accent)}
+
+main{position:relative;z-index:2;max-width:1060px;margin:0 auto;padding:0 40px}
+
+/* ── блок-секция: два состояния — контур и построено ──
+   вертикальный шаг листа — 28px, все отступы ниже кратны ему */
+.blok{position:relative;margin:112px 0;min-height:120px}
+.blok .kontur{
+  position:absolute;inset:0;border:1.5px dashed var(--pencil);border-radius:2px;
+  color:var(--pencil);display:grid;place-items:center;
+  font:400 10.5px/1 'Plex Mono',monospace;letter-spacing:.28em;
+}
+/* размерные выноски у контура */
+.blok .kontur::before{
+  content:attr(data-razmer);
+  position:absolute;top:-22px;left:0;right:0;text-align:center;
+  font:400 9px/1 'Plex Mono',monospace;letter-spacing:.12em;color:var(--pencil);
+  border-bottom:1px solid var(--pencil);padding-bottom:4px;
+}
+.blok .telo{
+  opacity:0;transform:translateY(22px) scale(.975);
+  transition:opacity 1s cubic-bezier(.2,.9,.25,1), transform 1.2s cubic-bezier(.2,1.3,.3,1);
+}
+.blok.postroen .kontur{opacity:0;transition:opacity .3s}
+.blok.postroen .telo{opacity:1;transform:none;animation:vstal .9s cubic-bezier(.2,1.5,.3,1)}
+@keyframes vstal{
+  0%{transform:translateY(30px) scale(.95)}
+  55%{transform:translateY(-7px) scale(1.025)}
+  100%{transform:none}
+}
+
+/* ── шапка ── */
+.shapka{display:flex;justify-content:space-between;align-items:center;padding:28px 0 0}
+.brand{font:400 13px/1 'Plex Mono',monospace;letter-spacing:.34em}
+.brand i{font-style:normal;color:var(--accent)}
+.shapka nav{display:flex;gap:26px}
+.shapka a{color:var(--ink);text-decoration:none;font:400 11px/1 'Plex Mono',monospace;letter-spacing:.16em;
+  border-bottom:1px solid transparent}
+.shapka a:hover{border-color:var(--ink)}
+.chasy{font:400 11px/1 'Plex Mono',monospace;letter-spacing:.1em;color:#78756c}
+
+/* ── герой ── */
+.geroy{padding:84px 0 28px;min-height:46vh}
+h1{font-weight:830;font-variation-settings:'wght' 830;letter-spacing:-.03em;
+  font-size:clamp(46px,7.6vw,108px);line-height:.95}
+h2{font-variation-settings:'wght' 760;line-height:1.12}
+.geroy .pod{margin-top:28px;max-width:520px;font-weight:300;font-size:17px;line-height:1.55;color:#4c4a44}
+.plashka{display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+  font:400 10px/1 'Plex Mono',monospace;letter-spacing:.18em;color:#54524b;padding:7px 0}
+.plashka::before{content:'';width:7px;height:7px;background:var(--grass);display:inline-block}
+
+/* ── принципы (3 колонки) ── */
+.printsipy{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.printsipy>div{padding:0}
+.printsipy h3{font-weight:640;font-size:19px;letter-spacing:-.01em;margin-bottom:10px}
+.printsipy p{font-weight:300;font-size:13.5px;line-height:1.55;color:#54524b}
+.printsipy .nomer{font:400 10px/1 'Plex Mono',monospace;color:var(--accent);letter-spacing:.2em;display:block;margin-bottom:14px}
+
+/* ── живые числа ── */
+.zhivye{padding:0}
+.zhivye h2{font-weight:760;font-size:clamp(24px,3vw,36px);letter-spacing:-.02em;margin-bottom:8px}
+.zhivye .prim{font:400 10.5px/1.6 'Plex Mono',monospace;color:#8b887e;letter-spacing:.06em;margin-bottom:28px}
+.tablo{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.pole .metka{font:400 10px/1 'Plex Mono',monospace;letter-spacing:.18em;color:#8b887e;margin-bottom:10px}
+.pole .znach{font:400 clamp(26px,3.4vw,42px)/1 'Plex Mono',monospace;color:var(--ink);
+  border-bottom:2px solid var(--accent);display:inline-block;padding-bottom:6px;cursor:ew-resize;user-select:none}
+.pole .znach.itog{border-color:var(--grass);cursor:default}
+.pole .edin{font:400 12px/1 'Plex Mono',monospace;color:#8b887e;margin-left:6px}
+.podskazka{margin-top:28px;font:400 10.5px/1.5 'Plex Mono',monospace;color:var(--accent);letter-spacing:.08em}
+.skidka{margin-top:28px;display:inline-block;font:400 13px/1 'Plex Mono',monospace;letter-spacing:.2em;
+  color:#a03a2e;border:1.5px dashed #a03a2e;padding:10px 16px}
+.skidka span{display:inline-block}
+.tgstat{margin-top:12px;font:400 10px/1 'Plex Mono',monospace;letter-spacing:.2em;color:#54524b}
+.tgstat b{font-weight:400;color:#3f9e4f}
+
+/* ── построенные работы ── */
+.raboty{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.rabota{border:1.5px solid var(--ink);background:#101114;color:#ece9e2;padding:30px 28px;
+  text-decoration:none;display:block;position:relative;transition:transform .3s cubic-bezier(.2,1.3,.3,1)}
+.rabota:hover{transform:translateY(-4px)}
+.rabota .god{font:400 9.5px/1 'Plex Mono',monospace;letter-spacing:.22em;color:#8f8c84;display:block;margin-bottom:44px}
+.rabota h3{font-weight:700;font-size:26px;letter-spacing:-.01em;color:#f2efe8}
+.rabota p{margin-top:8px;font-weight:300;font-size:13px;line-height:1.5;color:#a5a29a}
+.rabota .strelka{position:absolute;top:24px;right:26px;color:#f2efe8}
+
+/* ── финал ── */
+.final{text-align:center;padding:28px 0 0}
+.final h2{font-weight:760;font-size:clamp(30px,4.6vw,52px);letter-spacing:-.025em}
+.final .knopki{margin-top:28px;display:flex;gap:14px;justify-content:center}
+.final a{font:400 12px/1 'Plex Mono',monospace;letter-spacing:.16em;text-decoration:none;
+  padding:16px 28px;border:1.5px solid var(--ink);color:var(--ink);background:#fff;
+  transition:background .25s,color .25s}
+.final a:hover{background:var(--ink);color:var(--paper)}
+.final a.tg{background:var(--ink);color:var(--paper)}
+.final a.tg:hover{background:var(--accent);border-color:var(--accent)}
+
+/* ── хотбар ── */
+.hotbar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:40;
+  display:flex;gap:4px;padding:5px;background:rgba(20,21,24,.9);border:2px solid #3a3b40;border-radius:4px}
+.slot{width:46px;height:46px;border:2px solid #55565c;background:#232428;display:grid;place-items:center;position:relative}
+.slot .ikona{width:26px;height:26px;image-rendering:pixelated}
+.slot .cifra{position:absolute;right:3px;bottom:1px;font:400 9px/1 'Plex Mono',monospace;color:#cfccc4}
+.slot.aktiv{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.slot .yarlyk{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  font:400 9px/1 'Plex Mono',monospace;letter-spacing:.14em;color:#fff;background:rgba(20,21,24,.92);
+  padding:5px 8px;border:1px solid #55565c;opacity:0;pointer-events:none;transition:opacity .2s}
+.slot:hover .yarlyk{opacity:1}
+
+/* ── канвас Стива (3D) ── */
+#stiv{position:fixed;inset:0;pointer-events:none;z-index:30}
+/* пролог: канвас непрозрачен и поверх всего, страница спрятана */
+body.prolog main, body.prolog .hotbar, body.prolog footer{visibility:hidden}
+body.prolog #stiv{z-index:50}
+.propustit{position:fixed;right:26px;bottom:24px;z-index:60;cursor:pointer;
+  font:400 10px/1 'Plex Mono',monospace;letter-spacing:.2em;color:#8b887e;
+  background:rgba(242,241,236,.85);border:1px solid var(--line);padding:9px 14px;display:none}
+body.prolog .propustit{display:block}
+.propustit:hover{color:var(--ink);border-color:var(--ink)}
+/* вспышка-переход «упали на лист» */
+.vspyshka{position:fixed;inset:0;background:var(--paper);opacity:0;pointer-events:none;z-index:55;transition:opacity .18s}
+
+/* A5: микро-титры актов пролога — левый нижний угол, чертёжным моно */
+.titr{position:fixed;left:28px;bottom:28px;z-index:52;display:none;
+  font:400 10px/1 'Plex Mono',monospace;letter-spacing:.28em;color:#8b887e;
+  text-shadow:0 0 6px rgba(242,241,236,.8);
+  opacity:0;transition:opacity .5s;pointer-events:none}
+body.prolog .titr{display:block}
+
+/* пиксельные крошки */
+.kroshka{position:fixed;width:6px;height:6px;z-index:29;pointer-events:none;image-rendering:pixelated}
+
+/* ── шахта: скролл ниже финала уводит под землю ── */
+.shahta{position:relative;z-index:2;height:260vh;pointer-events:none}
+.sh-metka{position:absolute;left:8%;
+  font:400 12px/1 'Plex Mono',monospace;letter-spacing:.3em;color:#cfccc2}
+.sh-metka b{font-weight:400;color:#7ec7ff}
+.sh-metka.almaz b{color:#6fe3e0}
+.sh-dno{position:absolute;bottom:8vh;left:0;right:0;text-align:center;pointer-events:auto}
+.sh-dno .nadpis{font:400 11px/1.8 'Plex Mono',monospace;letter-spacing:.24em;color:#8f8c82;margin-bottom:18px}
+.sh-dno a{display:inline-block;font:400 13px/1 'Plex Mono',monospace;letter-spacing:.18em;
+  color:#0c0d10;background:#6fe3e0;text-decoration:none;padding:18px 34px}
+.sh-dno a:hover{background:#9ff0ee}
+.sh-schyot{position:fixed;top:22px;right:30px;z-index:3;opacity:0;transition:opacity .4s;
+  font:400 11px/1 'Plex Mono',monospace;letter-spacing:.22em;color:#cfccc2}
+
+footer{position:relative;z-index:2;text-align:center;padding:28px 20px 56px;
+  font:400 10px/1.8 'Plex Mono',monospace;letter-spacing:.14em;color:#54524b}
+footer a{color:#54524b}
+
+/* ── прелоадер: лист бумаги поверх всего, пока не отрисован первый кадр ── */
+#zagruzka{position:fixed;inset:0;z-index:200;background:var(--paper);
+  display:grid;place-items:center;align-content:center;gap:20px;transition:opacity .4s}
+#zagruzka.ushla{opacity:0;pointer-events:none}
+#zagruzka .nadpis{font:400 11px/1 'Plex Mono',monospace;letter-spacing:.28em;color:#8b887e}
+/* полоса из десяти кубиков 8×8: заполняется ступенями, без промежуточных состояний */
+#zagruzka .polosa{position:relative;width:98px;height:8px;
+  background-image:linear-gradient(90deg,#dcdad1 0 8px,transparent 8px 10px);background-size:10px 8px}
+#zagruzka .polosa i{position:absolute;left:0;top:0;bottom:0;width:0;
+  background-image:linear-gradient(90deg,var(--grass) 0 8px,transparent 8px 10px);background-size:10px 8px;
+  animation:kubiki 1.5s steps(10,start) infinite}
+@keyframes kubiki{from{width:0}to{width:100px}}
+
+/* ── кнопка звука: над штампом, тем же чертёжным языком ── */
+/* z-index выше канваса Стива (в прологе он 50): звук глушится и во время пролога */
+.zvuk-knopka{position:fixed;right:14px;bottom:58px;z-index:61;width:30px;height:30px;
+  display:grid;place-items:center;padding:0;cursor:pointer;
+  background:var(--paper);border:1.5px solid var(--ink);color:var(--ink);
+  transition:background .2s,color .2s}
+.zvuk-knopka:hover{background:var(--ink);color:var(--paper)}
+.zvuk-knopka:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.zvuk-knopka svg{display:block;shape-rendering:crispEdges;fill:currentColor}
+.zvuk-knopka .krest{opacity:0}
+.zvuk-knopka.tiho .volny{opacity:0}
+.zvuk-knopka.tiho .krest{opacity:1}
+
+@media (max-width:840px){
+  .printsipy{grid-template-columns:1fr}
+  .tablo{grid-template-columns:repeat(2,1fr)}
+  .raboty{grid-template-columns:1fr}
+  main{padding:0 22px}
+}
+</style>
+</head>
+<body class="prolog">
+<div id="zagruzka">
+  <div class="nadpis">ЗАГРУЗКА МИРА…</div>
+  <div class="polosa"><i></i></div>
+</div>
+<script>
+/* прелоадер снимается первым кадром цикла; здесь — только страховка:
+   без WebGPU модуль не поднимется вовсе, и лист нельзя оставить под белым экраном */
+window.__snyatZagruzku = function(){
+  const z = document.getElementById('zagruzka');
+  if (!z || z.classList.contains('ushla')) return;
+  z.classList.add('ushla');
+  setTimeout(() => z.remove(), 600);
+};
+setTimeout(window.__snyatZagruzku, 15000);
+addEventListener('error', () => setTimeout(window.__snyatZagruzku, 900), true);
+</script>
+<canvas id="fon"></canvas>
+<div class="vual"></div>
+<div class="vual nochnaya"></div>
+<div class="list-ramka"></div>
+<div class="shtamp">ЛИСТ 01 · МАСШТАБ 1:1 · <b>SMIRNOV ARTUR</b> · CONCEPT DEMO / FAN ART</div>
+
+<main>
+  <div class="blok" data-sek="shapka" style="min-height:70px">
+    <div class="kontur" data-razmer="1060 × 70">БЛОК 01 · ШАПКА</div>
+    <div class="telo">
+      <div class="shapka">
+        <div class="brand">BLOCK<i>SMITH</i></div>
+        <nav>
+          <a href="#printsipy">МЕТОД</a>
+          <a href="#chisla">РАСЧЁТ</a>
+          <a href="#raboty">ПОСТРОЕНО</a>
+          <a href="en/">EN</a>
+        </nav>
+        <div class="chasy" id="chasy">00:00:00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blok" data-sek="geroy" style="min-height:340px">
+    <div class="kontur" data-razmer="1060 × 340">БЛОК 02 · ЗАГОЛОВОК</div>
+    <div class="telo">
+      <div class="geroy">
+        <h1 id="zagolovok">Сайт, который<br>строится у вас<br>на глазах</h1>
+        <p class="pod">Каждый блок этой страницы поставлен на место строителем — прямо сейчас,
+           пока вы смотрите. Так же собираю настоящие работающие сайты и системы: блок за блоком, без магии, по чертежу.</p>
+        <div class="plashka">КОНЦЕПТ-ДЕМО · ПЕРСОНАЖ — ДРУЖЕСКИЙ ФАН-АРТ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blok" id="printsipy" data-sek="printsipy" style="min-height:230px">
+    <div class="kontur" data-razmer="1060 × 230">БЛОК 03 · МЕТОД</div>
+    <div class="telo">
+      <div class="printsipy">
+        <div><span class="nomer">01</span><h3>Чертёж до кода</h3><p>Сначала контур и размеры, потом блок. Ни один элемент не появляется без места и причины — вы видели это только что.</p></div>
+        <div><span class="nomer">02</span><h3>Блок за блоком</h3><p>Шапка, заголовок, расчёт — страница складывается из готовых выверенных блоков. Ошибся — переставил, а не переделал всё.</p></div>
+        <div><span class="nomer">03</span><h3>Живые числа</h3><p>Числа на моих страницах не картинки: потяните любое в расчёте ниже — пересчитается вся смета.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blok" id="chisla" data-sek="zhivye" style="min-height:300px">
+    <div class="kontur" data-razmer="1060 × 300">БЛОК 04 · ЖИВОЙ РАСЧЁТ</div>
+    <div class="telo">
+      <div class="zhivye">
+        <h2>Смета, которую можно потянуть</h2>
+        <div class="prim">потяните синее число влево-вправо — пересчёт мгновенный</div>
+        <div class="tablo">
+          <div class="pole"><div class="metka">БЛОКОВ НА СТРАНИЦЕ</div><span class="znach" id="chBloki" data-min="3" data-max="24" data-shag="1">6</span></div>
+          <div class="pole"><div class="metka">ЧАСОВ НА БЛОК</div><span class="znach" id="chChasy" data-min="1" data-max="12" data-shag="0.5">3</span><span class="edin">ч</span></div>
+          <div class="pole"><div class="metka">СТАВКА</div><span class="znach" id="chStavka" data-min="25" data-max="120" data-shag="5">65</span><span class="edin">$/ч</span></div>
+          <div class="pole"><div class="metka">ИТОГО РАБОТ</div><span class="znach itog" id="chItog">$936</span></div>
+        </div>
+        <div class="skidka">СКИДКА НЕДЕЛИ −<span id="skidkaCifra">2</span>0%</div>
+        <div class="podskazka" id="itogStroka">6 блоков × 3 ч × $65 − 20% = $936 · срок ≈ 3 рабочих дня</div>
+        <div class="prim">6 блоков — это ЭТА страница; подставьте объём вашего проекта — цена пересчитается</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blok" id="raboty" data-sek="raboty" style="min-height:230px">
+    <div class="kontur" data-razmer="1060 × 230">БЛОК 05 · ПОСТРОЕНО РАНЬШЕ</div>
+    <div class="telo">
+      <div class="raboty">
+        <a class="rabota" href="../aurum/index.html">
+          <span class="god">КЕЙС · БРОНЗА</span><span class="strelka">↗</span>
+          <h3>AURUM</h3><p>Памятник, точно оживший в цифре: материал и свет переключаются в один клик — три пресета бронзы.</p>
+        </a>
+        <a class="rabota" href="../ferro/index.html">
+          <span class="god">КЕЙС · СТУДИЯ</span><span class="strelka">↗</span>
+          <h3>FERRO</h3><p>Студийная страница с линзой второй реальности: линза следует за курсором и показывает каркас страницы под обложкой.</p>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="blok" data-sek="final" style="min-height:200px">
+    <div class="kontur" data-razmer="1060 × 200">БЛОК 06 · КОНТАКТ</div>
+    <div class="telo">
+      <div class="final">
+        <h2>Постройка вашего проекта —<br>с первого блока до сдачи</h2>
+        <div class="knopki">
+          <a class="tg" href="https://t.me/smirnovarturr" rel="noopener">TELEGRAM — ОБСУДИТЬ</a>
+          <a href="../../index.html">ВСЕ РАБОТЫ</a>
+        </div>
+        <div class="tgstat" id="tgStatus"><b>●</b> В СЕТИ — СОБИРАЕТ СТРАНИЦУ</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<section class="shahta" id="shahtaZona">
+  <div class="sh-metka" style="top:14%">— 8 м · <b>УГОЛЬ</b></div>
+  <div class="sh-metka" style="top:46%">— 19 м · <b>ЖЕЛЕЗО</b></div>
+  <div class="sh-metka almaz" style="top:76%">— 34 м · <b>АЛМАЗЫ</b></div>
+  <div class="sh-dno">
+    <div class="nadpis">ВЫ ДОКОПАЛИСЬ ДО ДНА ПОРТФОЛИО</div>
+    <a href="https://t.me/smirnovarturr" rel="noopener">ЗАБРАТЬ АЛМАЗ — НАПИСАТЬ В TELEGRAM</a>
+  </div>
+</section>
+<div class="sh-schyot" id="shSchyot">УГОЛЬ 0 · ЖЕЛЕЗО 0 · АЛМАЗЫ 0</div>
+
+<footer>SMIRNOV ARTUR · ДИЗАЙН, ФРОНТ, БЕКЕНД · <a href="https://t.me/smirnovarturr">@smirnovarturr</a><br>
+персонаж-строитель — фан-оммаж, не аффилирован с правообладателем</footer>
+
+<button class="zvuk-knopka" id="zvukKnopka" type="button" aria-label="Звук" aria-pressed="true">
+  <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+    <rect x="0" y="4" width="2" height="4"/><rect x="2" y="3" width="1" height="6"/><rect x="3" y="2" width="1" height="8"/>
+    <g class="volny"><rect x="6" y="4" width="1" height="4"/><rect x="8" y="2" width="1" height="8"/></g>
+    <g class="krest"><rect x="6" y="4" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="8" y="6" width="1" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/></g>
+  </svg>
+</button>
+<div class="hotbar" id="hotbar"></div>
+<canvas id="stiv"></canvas>
+<div class="propustit" id="propustit">ПРОПУСТИТЬ ▸</div>
+<div class="vspyshka" id="vspyshka"></div>
+<div class="titr" id="titr"></div>
+
+<script type="module">
+/* ═══ BLOCKSMITH ═══
+   Фаза 1 «пролог»: мастерская. Стив спрыгивает, срывает бумажную ширму,
+   работает у верстака спиной; камера подглядывает сверху; он замечает,
+   подходит вплотную, качает головой и толкает камеру — мы падаем на лист.
+   Фаза 2 «стройка»: на чертёжном листе Стив собирает страницу по блокам. */
+const T = await import('../../assets/three-2026.js');
+const Q = new URLSearchParams(location.search);
+
+const canvas = document.getElementById('stiv');
+const renderer = new T.WebGPURenderer({ canvas, antialias: true, alpha: true });
+await renderer.init();
+renderer.setPixelRatio(Math.max(1, Math.min(devicePixelRatio || 1, 2)));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = T.AgXToneMapping;
+renderer.toneMappingExposure = 1.15;
+/* тени: шаг 1 из трёх — рендерер */
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = T.PCFSoftShadowMap;
+
+/* второй рендер: мир-фон ПОД страницей во время стройки */
+const fonCanvas = document.getElementById('fon');
+const renderer2 = new T.WebGPURenderer({ canvas: fonCanvas, antialias: true });
+await renderer2.init();
+renderer2.setPixelRatio(Math.max(1, Math.min(devicePixelRatio || 1, 2)));
+renderer2.setSize(innerWidth, innerHeight);
+renderer2.toneMapping = T.AgXToneMapping;
+renderer2.toneMappingExposure = 1.15;
+renderer2.shadowMap.enabled = true;
+renderer2.shadowMap.type = T.PCFSoftShadowMap;
+
+const scene = new T.Scene();
+/* две камеры: кино-перспектива для пролога, орто-экран для стройки */
+const cam3 = new T.PerspectiveCamera(34, innerWidth / innerHeight, 1, 6000);
+const camO = new T.OrthographicCamera(0, innerWidth, 0, -innerHeight, -2000, 2000);
+function razmer(){
+  renderer.setSize(innerWidth, innerHeight);
+  renderer2.setSize(innerWidth, innerHeight);
+  cam3.aspect = innerWidth / innerHeight; cam3.updateProjectionMatrix();
+  camO.right = innerWidth; camO.bottom = -innerHeight; camO.updateProjectionMatrix();
+  if (typeof stavProlognyFon === 'function') stavProlognyFon();
+}
+addEventListener('resize', razmer);
+
+/* свет — светит обоим слоям (миру и Стиву-оверлею) */
+const gemi = new T.HemisphereLight(0xfff2df, 0x6d6a60, 1.0); scene.add(gemi);
+const klyuch = new T.DirectionalLight(0xffe4bd, 1.7); klyuch.position.set(0.6, 0.9, 0.55); scene.add(klyuch);
+const kontr = new T.DirectionalLight(0xb9cdff, 0.5); kontr.position.set(-0.7, 0.25, 0.4); scene.add(kontr);
+[gemi, klyuch, kontr].forEach(s => s.layers.enable(1));
+/* шахта: срез слишком тёмный (sh-05) — +15% базовой освещённости, включается только в глубине */
+const shAmbient = new T.AmbientLight(0xfff2df, 0);
+scene.add(shAmbient);
+
+/* ── пиксельные текстуры, все нарисованы кодом ── */
+const CV = {
+  skin:'#c8926b', skinT:'#bd8760', hair:'#43301c', hairT:'#382614',
+  glazB:'#f4f4f4', glaz:'#4a3a8c', rot:'#9c6a47', nos:'#b5815d',
+  teal:'#1ea69f', tealT:'#188f89', blue:'#3d4fa4', blueT:'#354490', bot:'#5f6268', botT:'#54575d'
+};
+function pixTex(w, h, risuy, povtor){
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  risuy(c.getContext('2d'), w, h);
+  const tex = new T.CanvasTexture(c);
+  tex.magFilter = T.NearestFilter; tex.minFilter = T.NearestFilter;
+  tex.colorSpace = T.SRGBColorSpace;
+  if (povtor){ tex.wrapS = tex.wrapT = T.RepeatWrapping; tex.repeat.set(povtor[0], povtor[1]); }
+  return tex;
+}
+function zalivka(g, w, h, cvet, cvetT, dolya = 0.22){
+  g.fillStyle = cvet; g.fillRect(0, 0, w, h);
+  g.fillStyle = cvetT;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++)
+    if (((x * 7 + y * 13 + x * y) % 17) < 17 * dolya) g.fillRect(x, y, 1, 1);
+}
+function mat(tex){ return new T.MeshStandardNodeMaterial({ map: tex, roughness: 0.92, metalness: 0 }); }
+
+/* Стив */
+const litso = pixTex(8, 8, g => {
+  zalivka(g, 8, 8, CV.skin, CV.skinT, 0.18);
+  g.fillStyle = CV.hair; g.fillRect(0, 0, 8, 2); g.fillRect(0, 2, 1, 1); g.fillRect(7, 2, 1, 1);
+  g.fillStyle = CV.glazB; g.fillRect(1, 4, 2, 1); g.fillRect(5, 4, 2, 1);
+  g.fillStyle = CV.glaz;  g.fillRect(2, 4, 1, 1); g.fillRect(5, 4, 1, 1);
+  g.fillStyle = CV.nos;   g.fillRect(3, 5, 2, 1);
+  g.fillStyle = CV.rot;   g.fillRect(3, 6, 2, 1);
+});
+/* A3: та же голова, но с закрытыми глазами — полоска кожи вместо белков/зрачков, для моргания в прологе */
+const litsoZakryto = pixTex(8, 8, g => {
+  zalivka(g, 8, 8, CV.skin, CV.skinT, 0.18);
+  g.fillStyle = CV.hair; g.fillRect(0, 0, 8, 2); g.fillRect(0, 2, 1, 1); g.fillRect(7, 2, 1, 1);
+  g.fillStyle = CV.skin;  g.fillRect(1, 4, 2, 1); g.fillRect(5, 4, 2, 1);
+  g.fillStyle = CV.nos;   g.fillRect(3, 5, 2, 1);
+  g.fillStyle = CV.rot;   g.fillRect(3, 6, 2, 1);
+});
+const golovaBok  = pixTex(8, 8, g => { zalivka(g, 8, 8, CV.skin, CV.skinT, 0.18); g.fillStyle = CV.hair; g.fillRect(0, 0, 8, 3); });
+const golovaZad  = pixTex(8, 8, g => zalivka(g, 8, 8, CV.hair, CV.hairT, 0.3));
+const golovaVerh = pixTex(8, 8, g => zalivka(g, 8, 8, CV.hair, CV.hairT, 0.3));
+const golovaNiz  = pixTex(8, 8, g => zalivka(g, 8, 8, CV.skin, CV.skinT, 0.18));
+const futbolka   = pixTex(8, 12, g => { zalivka(g, 8, 12, CV.teal, CV.tealT); g.fillStyle = CV.tealT; g.fillRect(0, 11, 8, 1); });
+const rukaTex    = pixTex(4, 12, g => { zalivka(g, 4, 12, CV.skin, CV.skinT, 0.18); zalivka(g, 4, 4, CV.teal, CV.tealT); });
+const nogaTex    = pixTex(4, 12, g => { zalivka(g, 4, 12, CV.blue, CV.blueT); g.fillStyle = CV.bot; g.fillRect(0, 10, 4, 2); g.fillStyle = CV.botT; g.fillRect(0, 10, 2, 1); });
+/* торцы конечностей: плечо сверху — рукав, ступня снизу — подошва */
+const rukavVerh  = pixTex(4, 4, g => zalivka(g, 4, 4, CV.teal, CV.tealT));
+const kozhaNiz   = pixTex(4, 4, g => zalivka(g, 4, 4, CV.skin, CV.skinT, 0.18));
+const shtanyVerh = pixTex(4, 4, g => zalivka(g, 4, 4, CV.blue, CV.blueT));
+const podoshva   = pixTex(4, 4, g => zalivka(g, 4, 4, CV.bot, CV.botT));
+
+const U = 4.6;
+function kub(w, h, d, materialy, sdvigY = 0){
+  const geo = new T.BoxGeometry(w * U, h * U, d * U);
+  geo.translate(0, sdvigY * U, 0);
+  return new T.Mesh(geo, materialy);
+}
+function m6(bok, pered, verh, niz){ return [mat(bok), mat(bok), mat(verh), mat(niz), mat(pered), mat(bok)]; }
+
+const stivG = new T.Group();
+const tors = kub(8, 12, 4, m6(futbolka, futbolka, futbolka, futbolka)); tors.position.y = 18 * U;
+const golova = kub(8, 8, 8, [mat(golovaBok), mat(golovaBok), mat(golovaVerh), mat(golovaNiz), mat(litso), mat(golovaZad)]);
+golova.position.y = 28 * U;
+/* A3: два набора материалов головы — открытые/закрытые глаза, свап делает моргание в прологе */
+const golovaMatOtkryto = golova.material;
+const golovaMatZakryto = golovaMatOtkryto.map((m, i) => i === 4 ? mat(litsoZakryto) : m);
+const rukaL = kub(4, 12, 4, m6(rukaTex, rukaTex, rukavVerh, kozhaNiz), -4.5); rukaL.position.set(-6 * U, 22.5 * U, 0);
+const rukaR = kub(4, 12, 4, m6(rukaTex, rukaTex, rukavVerh, kozhaNiz), -4.5); rukaR.position.set( 6 * U, 22.5 * U, 0);
+const nogaL = kub(4, 12, 4, m6(nogaTex, nogaTex, shtanyVerh, podoshva), -6);   nogaL.position.set(-2 * U, 12 * U, 0);
+const nogaR = kub(4, 12, 4, m6(nogaTex, nogaTex, shtanyVerh, podoshva), -6);   nogaR.position.set( 2 * U, 12 * U, 0);
+stivG.add(tors, golova, rukaL, rukaR, nogaL, nogaR);
+/* Стив — слой 1: в прологе его видят обе камеры, в стройке — только оверлей */
+stivG.traverse(o => { if (o.isMesh) o.castShadow = true; o.layers.set(1); });
+const ROST = 32 * U;
+scene.add(stivG);
+cam3.layers.enable(1);
+camO.layers.set(1);
+
+/* блок-«трава» в руке на стройке */
+const blokTex = pixTex(8, 8, g => zalivka(g, 8, 8, '#5fae3f', '#4f9a33', 0.3));
+const blokZem = pixTex(8, 8, g => zalivka(g, 8, 8, '#7a5636', '#6b4a2d', 0.3));
+const vBlok = new T.Mesh(new T.BoxGeometry(5 * U, 5 * U, 5 * U),
+  [mat(blokZem), mat(blokZem), mat(blokTex), mat(blokZem), mat(blokZem), mat(blokZem)]);
+vBlok.visible = false;
+vBlok.position.set(0, -10.5 * U, 3 * U);   /* прямо в кисти поднятой руки */
+vBlok.layers.set(1);
+rukaR.add(vBlok);
+
+/* ── мир: квадратный парящий ландшафт, соразмерный Стиву ── */
+const mir = new T.Group(); scene.add(mir);
+const KUB = 16 * U;   /* блок = 1 м оригинала: Стив ростом ровно 2 блока */
+
+const kamen = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#6f7275', '#63666a', 0.3);
+  g.fillStyle = '#55585c';
+  g.fillRect(0, 5, 7, 1); g.fillRect(9, 3, 7, 1); g.fillRect(4, 11, 8, 1);
+  g.fillRect(4, 0, 1, 5); g.fillRect(11, 4, 1, 7); g.fillRect(7, 11, 1, 5);
+});
+const travaVerh = pixTex(16, 16, g => zalivka(g, 16, 16, '#6fae42', '#5f9c36', 0.35));
+const zemlya    = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#7a5636', '#6b4a2d', 0.35);
+  g.fillStyle = '#8f6a44'; g.fillRect(3, 4, 2, 2); g.fillRect(10, 9, 2, 2); g.fillRect(6, 12, 2, 2);
+});
+const travaBok = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#7a5636', '#6b4a2d', 0.35);
+  zalivka(g, 16, 4, '#6fae42', '#5f9c36', 0.35);
+  g.fillStyle = '#5f9c36'; g.fillRect(2, 4, 2, 1); g.fillRect(7, 4, 3, 1); g.fillRect(13, 4, 2, 1);
+});
+const kora = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#6b4a2d', '#5d3f25', 0.3);
+  g.fillStyle = '#4e3620';
+  g.fillRect(2, 0, 1, 16); g.fillRect(6, 0, 1, 16); g.fillRect(11, 0, 1, 16); g.fillRect(14, 0, 1, 16);
+});
+const listva = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#4e8f2f', '#427c27', 0.4);
+  g.fillStyle = '#3a6e22';
+  g.fillRect(1, 2, 2, 2); g.fillRect(8, 5, 2, 2); g.fillRect(13, 1, 2, 2); g.fillRect(4, 11, 2, 2); g.fillRect(11, 12, 2, 2);
+});
+const doski = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#8a6238', '#7c5730', 0.3);
+  g.fillStyle = '#6b4a28';
+  for (let y = 0; y < 16; y += 4) g.fillRect(0, y, 16, 1);
+  g.fillRect(7, 1, 1, 3); g.fillRect(3, 5, 1, 3); g.fillRect(11, 9, 1, 3); g.fillRect(5, 13, 1, 3);
+});
+
+/* ландшафт до горизонта: 40×40 клеток с рельефом; центр ровный под сцену,
+   дальний край тонет в тумане — мир читается безграничным */
+function vysotaKletki(ix, iz){
+  const r = Math.hypot(ix, iz);
+  if (r < 3) return 0;                         /* пятачок высадки ровный */
+  let h;
+  if (r <= 10){
+    /* будущая деревня: лёгкие холмики — Стив их расчистит */
+    h = Math.max(0, Math.round((Math.sin(ix * 0.9) + Math.cos(iz * 0.75)) * 0.7 + 0.2));
+    return Math.min(2, h);
+  }
+  h = Math.round((Math.sin(ix * 0.7) + Math.cos(iz * 0.55) + Math.sin((ix + iz) * 0.33)) * 0.8 + 0.5);
+  h += Math.round((r - 10) * 0.5);             /* холмы к горизонту прячут край */
+  /* южная сторона (перед камерой) остаётся низкой — вид на деревню открыт */
+  if (iz > 6) h = Math.min(h, 1);
+  return Math.max(0, Math.min(7, h));
+}
+let поле = null;                       /* верхний слой травы */
+let zemlyaIM = null;                   /* столбы земли под травой */
+const kletkiIndeksy = new Map();
+const tekVysota = new Map();           /* живая карта высот: расчистка и шахта пишут сюда */
+const zemPoKletke = new Map();         /* индексы земляных кубов клетки — прячутся при расчистке */
+{
+  const N = 40, POLU = (N - 1) / 2;
+  const geo = new T.BoxGeometry(KUB, KUB, KUB);
+  let travCount = 0, zemCount = 0;
+  for (let ix = 0; ix < N; ix++) for (let iz = 0; iz < N; iz++){
+    const h = vysotaKletki(ix - POLU, iz - POLU);
+    travCount++; zemCount += h + 1;
+  }
+  const trava = new T.InstancedMesh(geo,
+    [mat(travaBok), mat(travaBok), mat(travaVerh), mat(zemlya), mat(travaBok), mat(travaBok)], travCount);
+  const zeml = new T.InstancedMesh(geo, mat(zemlya), zemCount);
+  trava.receiveShadow = true; trava.castShadow = true;
+  zeml.receiveShadow = true;
+  const m4 = new T.Matrix4();
+  let ti = 0, zi = 0;
+  for (let ix = 0; ix < N; ix++) for (let iz = 0; iz < N; iz++){
+    const kx = ix - POLU, kz = iz - POLU;
+    const gx = kx * KUB, gz = kz * KUB;
+    const h = vysotaKletki(kx, kz);
+    const klyuch = `${kx},${kz}`;
+    kletkiIndeksy.set(klyuch, ti);
+    tekVysota.set(klyuch, h);
+    m4.setPosition(gx, h * KUB - KUB / 2, gz);
+    trava.setMatrixAt(ti++, m4);
+    const stolb = [];
+    for (let у = 0; у <= h; у++){
+      m4.setPosition(gx, (h - 1 - у) * KUB - KUB / 2, gz);
+      stolb.push(zi);
+      zeml.setMatrixAt(zi++, m4);
+    }
+    zemPoKletke.set(klyuch, stolb);
+  }
+  mir.add(trava, zeml);
+  поле = trava; zemlyaIM = zeml;
+}
+/* сплошное дно — у опускающегося занавеса-мира нет дыр снизу */
+{
+  const plita = new T.Mesh(new T.BoxGeometry(40 * KUB, KUB * 2, 40 * KUB), mat(zemlya));
+  plita.position.y = -KUB * 2;
+  mir.add(plita);
+}
+
+/* дерево: ствол в 3 куба + крона; Стив его срубит */
+const derevo = new T.Group();
+const stvolKubi = [];
+for (let i = 0; i < 3; i++){
+  const s = new T.Mesh(new T.BoxGeometry(KUB, KUB, KUB), mat(kora));
+  s.position.y = KUB * (0.5 + i);
+  s.castShadow = true;
+  derevo.add(s); stvolKubi.push(s);
+}
+{
+  const lm = mat(listva);
+  for (let dy = 0; dy < 2; dy++)
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++){
+      if (dy === 0 && dx === 0 && dz === 0) continue;  /* тут ствол */
+      const l = new T.Mesh(new T.BoxGeometry(KUB, KUB, KUB), lm);
+      l.position.set(dx * KUB, KUB * (3.5 + dy), dz * KUB);
+      l.castShadow = true;
+      derevo.add(l);
+    }
+  for (const [dx, dz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]){
+    const l = new T.Mesh(new T.BoxGeometry(KUB, KUB, KUB), lm);
+    l.position.set(dx * KUB, KUB * 5.5, dz * KUB);
+    l.castShadow = true;
+    derevo.add(l);
+  }
+}
+derevo.position.set(-KUB * 2.2, 0, -KUB * 1.4);
+mir.add(derevo);
+let derevoKach = 0;
+/* роща: лес не из одного дерева */
+const derevyaMira = [];   /* реестр для симуляции: валка в пятне, посадка по живому рельефу */
+function posaditDerevo(ix, iz){
+  const d = new T.Group();
+  const vys = 3 + ((Math.abs(ix) * 7 + Math.abs(iz) * 13) % 2);
+  const lm2 = mat(listva);
+  for (let i = 0; i < vys; i++){
+    const s = new T.Mesh(new T.BoxGeometry(KUB, KUB, KUB), mat(kora));
+    s.position.y = KUB * (0.5 + i); s.castShadow = true; d.add(s);
+  }
+  for (let dy = 0; dy < 2; dy++)
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++){
+      if (dy === 0 && dx === 0 && dz === 0) continue;
+      const l = new T.Mesh(new T.BoxGeometry(KUB, KUB, KUB), lm2);
+      l.position.set(dx * KUB, KUB * (vys + 0.5 + dy), dz * KUB);
+      l.castShadow = true; d.add(l);
+    }
+  const vr = new T.Mesh(new T.BoxGeometry(KUB, KUB, KUB), lm2);
+  vr.position.set(0, KUB * (vys + 2.5), 0); d.add(vr);
+  d.position.set(ix * KUB, vysotaKletki(ix, iz) * KUB, iz * KUB);
+  mir.add(d);
+  derevyaMira.push({ ix, iz, g: d, srubleno: false });
+}
+[[-12, -8], [11, -10], [13, 4], [-13, 6], [8, -13], [-8, 13], [15, -2], [-15, -4], [12, 9], [-11, 11]]
+  .forEach(p => posaditDerevo(p[0], p[1]));
+/* летящий к Стиву блок-дрова после рубки */
+const drova = new T.Mesh(new T.BoxGeometry(KUB * 0.45, KUB * 0.45, KUB * 0.45), mat(kora));
+drova.visible = false; mir.add(drova);
+
+/* небо — часть занавеса-мира: плоскость-задник, солнце и луна как в игре */
+const neboPlane = new T.Mesh(new T.PlaneGeometry(5600, 3200),
+  new T.MeshBasicNodeMaterial({ color: 0x7ec7ff }));
+neboPlane.position.set(0, 500, -1450);
+mir.add(neboPlane);
+const solnceMesh = new T.Mesh(new T.PlaneGeometry(150, 150),
+  new T.MeshBasicNodeMaterial({ color: 0xfff9dc }));
+const lunaC = document.createElement('canvas'); lunaC.width = 8; lunaC.height = 8;
+const lunaG = lunaC.getContext('2d');
+const lunaTex = new T.CanvasTexture(lunaC);
+lunaTex.magFilter = T.NearestFilter; lunaTex.minFilter = T.NearestFilter;
+const lunaMesh = new T.Mesh(new T.PlaneGeometry(115, 115),
+  new T.MeshBasicNodeMaterial({ map: lunaTex, transparent: true }));
+mir.add(solnceMesh, lunaMesh);
+const zvyozdy = new T.InstancedMesh(new T.BoxGeometry(6, 6, 6),
+  new T.MeshBasicNodeMaterial({ color: 0xffffff }), 46);
+{
+  const m4 = new T.Matrix4();
+  for (let i = 0; i < 46; i++){
+    const a = (i * 137.5) % 360 * Math.PI / 180, r = 1500 + (i % 5) * 60;
+    const y = 250 + ((i * 73) % 600);
+    m4.setPosition(Math.cos(a) * r, y, Math.sin(a) * r * 0.55 - 500);
+    zvyozdy.setMatrixAt(i, m4);
+  }
+}
+mir.add(zvyozdy);
+const oblaka = [];
+for (let i = 0; i < 4; i++){
+  const o = new T.Mesh(new T.BoxGeometry(150 + i * 30, 14, 70 + i * 15),
+    new T.MeshBasicNodeMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+  o.position.set(-700 + i * 420, 760 + (i % 2) * 80, -950 - i * 130);
+  mir.add(o); oblaka.push(o);
+}
+
+/* солнечный свет с тенями — позицию ведёт obnovitNebo */
+const solnceSvet = new T.DirectionalLight(0xffe9c4, 3.0);
+solnceSvet.castShadow = true;
+solnceSvet.shadow.mapSize.width = 2048; solnceSvet.shadow.mapSize.height = 2048;
+solnceSvet.shadow.camera.near = 10; solnceSvet.shadow.camera.far = 3000;
+solnceSvet.shadow.camera.left = -800; solnceSvet.shadow.camera.right = 800;
+solnceSvet.shadow.camera.top = 600; solnceSvet.shadow.camera.bottom = -600;
+solnceSvet.shadow.bias = -0.0001; solnceSvet.shadow.normalBias = 0.02;
+solnceSvet.layers.enable(1);
+solnceSvet.shadow.camera.layers.enable(1);   /* Стив (слой 1) кастует тень */
+scene.add(solnceSvet, solnceSvet.target);
+
+/* сутки: 10 с на цикл; небо, светила и свет — одной функцией */
+const lerpCvet = (a, b, k) => new T.Color(a).lerp(new T.Color(b), k);
+let poslednieSutki = -1;
+function obnovitNebo(t, sutki = 85){
+  /* СТРОЙКА: день ×4 (68 с), ночь прежняя (17 с) — асимметричные сутки
+     (владелец 12.08: «сделай день длиннее в 4 раза»).
+     ПРОЛОГ зовёт с sutki=34 — его ночная сцена с луной поставлена и не едет. */
+  const tS = t + 0.5;
+  const DOLYA_DNYA = sutki === 34 ? 0.5 : 0.8;   /* 68/85 дня в новых сутках */
+  const sutRaw = (tS / sutki) % 1;
+  const nomerSutok = Math.floor(tS / sutki);
+  /* нелинейный маппинг: солнце над горизонтом первые DOLYA_DNYA цикла */
+  const sut = sutRaw < DOLYA_DNYA
+    ? (sutRaw / DOLYA_DNYA) * 0.5
+    : 0.5 + ((sutRaw - DOLYA_DNYA) / (1 - DOLYA_DNYA)) * 0.5;
+  const ugol = sut * Math.PI * 2;
+  const solnVys = Math.sin(ugol);
+  /* цвет неба */
+  let nebo;
+  if (solnVys > 0.25) nebo = new T.Color('#7ec7ff');
+  else if (solnVys > 0) nebo = lerpCvet('#ff9a4a', '#7ec7ff', solnVys / 0.25);
+  else if (solnVys > -0.25) nebo = lerpCvet('#ff9a4a', '#0c1030', -solnVys / 0.25);
+  else nebo = new T.Color('#0c1030');
+  neboPlane.material.color.copy(nebo);     /* небо — задник занавеса-мира */
+  /* светила по видимой дуге — солнце в кадре весь день */
+  /* солнце ходит ниже — тени длинные и живые весь день */
+  solnceMesh.position.set(Math.cos(ugol) * 950, Math.sin(ugol) * 330 + 70, -1150);
+  lunaMesh.position.set(Math.cos(ugol + Math.PI) * 950, Math.sin(ugol + Math.PI) * 330 + 70, -1150);
+  solnceMesh.visible = solnVys > -0.22; lunaMesh.visible = -solnVys > -0.22;
+  zvyozdy.visible = solnVys < 0.02;
+  /* фаза луны — раз в сутки */
+  if (nomerSutok !== poslednieSutki){
+    poslednieSutki = nomerSutok;
+    lunaG.fillStyle = '#e8e9f2'; lunaG.fillRect(0, 0, 8, 8);
+    lunaG.fillStyle = '#c3c5d4'; lunaG.fillRect(1, 1, 6, 6);
+    /* BAGI#3: кратеры — полная луна без них читалась как незагрузившийся плейсхолдер */
+    lunaG.fillStyle = '#a9abbd'; lunaG.fillRect(2, 2, 1, 1); lunaG.fillRect(5, 4, 2, 1);
+    lunaG.fillStyle = '#c3c5d4'; lunaG.fillRect(0, 5, 1, 2);
+    const faz = (nomerSutok % 4) / 4;
+    lunaG.fillStyle = '#10142e';
+    lunaG.fillRect(8 - Math.round(8 * faz), 0, Math.round(8 * faz), 8);
+    lunaTex.needsUpdate = true;
+  }
+  /* общий свет гаснет к ночи — мир и Стив живут в одних сутках */
+  const dayK = Math.max(0, Math.min(1, solnVys * 3 + 0.15));
+  gemi.intensity = 0.35 + dayK * 0.7;
+  klyuch.intensity = 0.45 + dayK * 1.3;
+  /* свет следует солнцу (ночью — луне, холодный) */
+  if (solnVys > 0){
+    solnceSvet.position.copy(solnceMesh.position).multiplyScalar(0.6);
+    solnceSvet.intensity = 0.8 + solnVys * 2.6;
+    solnceSvet.color.set(solnVys > 0.3 ? 0xffe9c4 : 0xffb066);
+  } else {
+    solnceSvet.position.copy(lunaMesh.position).multiplyScalar(0.6);
+    solnceSvet.intensity = 0.5;
+    solnceSvet.color.set(0x8fa8e8);
+  }
+  solnceSvet.position.y = Math.max(solnceSvet.position.y, 120);
+  tekSolnVys = solnVys; tekDen = nomerSutok;   /* для сценария фоновой жизни */
+}
+/* верстак: куб с característico-столешницей */
+const verstakVerh = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#9a7440', '#8c6938', 0.25);
+  g.strokeStyle = '#6b4a28'; g.lineWidth = 1;
+  g.strokeRect(2.5, 2.5, 11, 11);
+  g.fillStyle = '#b5b8bc'; g.fillRect(4, 4, 3, 1); g.fillRect(4, 5, 1, 2);   /* инструмент */
+  g.fillStyle = '#d97b3a'; g.fillRect(9, 9, 3, 3);                            /* заготовка */
+});
+const verstakBok = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#8a6238', '#7c5730', 0.3);
+  g.fillStyle = '#e8e5dc'; g.fillRect(2, 3, 5, 5); g.fillRect(9, 3, 5, 5);   /* пила и молот — намёк */
+  g.fillStyle = '#6b4a28'; g.fillRect(0, 12, 16, 1);
+});
+const VERSTAK = new T.Mesh(new T.BoxGeometry(KUB, KUB, KUB),
+  [mat(verstakBok), mat(verstakBok), mat(verstakVerh), mat(doski), mat(verstakBok), mat(verstakBok)]);
+VERSTAK.position.set(0, KUB / 2, -KUB * 2);
+VERSTAK.castShadow = true; VERSTAK.receiveShadow = true;
+VERSTAK.visible = false;   /* появится, когда Стив его скрафтит */
+mir.add(VERSTAK);
+/* секрет верстака: табличка с именем. Мы подглядываем именно за этим;
+   заметив нас, Стив прячет её за спину, а вешает уже на странице — в шапку */
+const tablTex = pixTex(96, 28, g => {
+  zalivka(g, 96, 28, '#8a6238', '#7c5730', 0.25);
+  g.fillStyle = '#3a2a18';
+  g.fillRect(0, 0, 96, 2); g.fillRect(0, 26, 96, 2); g.fillRect(0, 0, 2, 28); g.fillRect(94, 0, 2, 28);
+  g.font = 'bold 11px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('SMIRNOV', 48, 9); g.fillText('ARTUR', 48, 20);
+});
+const tablichka = new T.Mesh(new T.BoxGeometry(12 * U, 4 * U, 0.9 * U),
+  [mat(doski), mat(doski), mat(doski), mat(doski), mat(tablTex), mat(doski)]);
+tablichka.rotation.x = -Math.PI / 2;
+tablichka.position.set(VERSTAK.position.x, KUB + 0.5 * U, VERSTAK.position.z);
+tablichka.castShadow = true;
+tablichka.visible = false;   /* появится на верстаке в ходе крафта */
+mir.add(tablichka);
+
+/* топор в правой руке — виден при рубке */
+const topor = new T.Group();
+{
+  const ruch = new T.Mesh(new T.BoxGeometry(1.4 * U, 8 * U, 1.4 * U), mat(doski));
+  ruch.position.y = -1 * U;
+  const lezv = new T.Mesh(new T.BoxGeometry(3.4 * U, 2.6 * U, 1.2 * U), mat(kamen));
+  lezv.position.set(1.4 * U, -4.4 * U, 0);
+  topor.add(ruch, lezv);
+}
+topor.position.set(0, -8 * U, 1.2 * U);
+topor.rotation.x = -0.4;
+topor.visible = false;
+topor.traverse(o => o.layers.set(1));
+rukaR.add(topor);
+
+/* кирка — для копания и расчистки */
+const kirka = new T.Group();
+{
+  const ruch = new T.Mesh(new T.BoxGeometry(1.2 * U, 9 * U, 1.2 * U), mat(doski));
+  ruch.position.y = -1.5 * U;
+  const golovka = new T.Mesh(new T.BoxGeometry(1.4 * U, 1.6 * U, 7 * U), mat(kamen));
+  golovka.position.set(0, -6.2 * U, 0);
+  kirka.add(ruch, golovka);
+}
+kirka.position.set(0, -8 * U, 1.2 * U);
+kirka.rotation.x = -0.5;
+kirka.visible = false;
+kirka.traverse(o => o.layers.set(1));
+rukaR.add(kirka);
+
+/* бумажная ширма-лист: закрывает кадр в начале */
+const shirma = new T.Mesh(
+  new T.PlaneGeometry(4200, 1100),
+  new T.MeshBasicNodeMaterial({ map: pixTex(256, 256, g => {
+    g.fillStyle = '#f2f1ec'; g.fillRect(0, 0, 256, 256);
+    g.strokeStyle = '#d8d6cd'; g.lineWidth = 1;
+    for (let i = 0; i <= 256; i += 32){
+      g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke();
+      g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke();
+    }
+  }, [8, 5]), side: T.DoubleSide })
+);
+shirma.position.set(0, 300, 350);
+shirma.visible = false;   /* старая механика полотна не используется: фон и так лист */
+scene.add(shirma);
+/* шнурок от руки Стива к краю полотна */
+const shnurGeo = new T.BufferGeometry().setFromPoints([new T.Vector3(), new T.Vector3()]);
+const shnur = new T.Line(shnurGeo, new T.LineBasicNodeMaterial({ color: 0x141518 }));
+shnur.visible = false; scene.add(shnur);
+function shnurOt(ax, ay, az, bx, by, bz){
+  const p = shnurGeo.attributes.position;
+  p.setXYZ(0, ax, ay, az); p.setXYZ(1, bx, by, bz);
+  p.needsUpdate = true;
+}
+
+/* ── ШАХТА: подземный разрез под миром — виден при скролле в самый низ ── */
+const kamenTyomny = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#42454a', '#393c41', 0.35);
+  g.fillStyle = '#303338';
+  g.fillRect(0, 5, 7, 1); g.fillRect(9, 3, 7, 1); g.fillRect(4, 11, 8, 1);
+  g.fillRect(4, 0, 1, 5); g.fillRect(11, 4, 1, 7);
+});
+const rudaUgol = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#42454a', '#393c41', 0.35);
+  g.fillStyle = '#17181b';
+  g.fillRect(2, 2, 3, 3); g.fillRect(10, 4, 3, 2); g.fillRect(5, 9, 2, 3); g.fillRect(11, 11, 3, 3);
+});
+const rudaZhel = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#42454a', '#393c41', 0.35);
+  g.fillStyle = '#d8a878';
+  g.fillRect(2, 3, 3, 2); g.fillRect(10, 2, 2, 3); g.fillRect(4, 10, 3, 2); g.fillRect(11, 10, 2, 3);
+});
+const rudaAlmaz = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#42454a', '#393c41', 0.35);
+  g.fillStyle = '#6fe3e0';
+  g.fillRect(2, 2, 3, 3); g.fillRect(10, 5, 3, 3); g.fillRect(5, 10, 3, 3);
+  g.fillStyle = '#c8f7f5'; g.fillRect(3, 3, 1, 1); g.fillRect(11, 6, 1, 1); g.fillRect(6, 11, 1, 1);
+});
+const bedrok = pixTex(16, 16, g => {
+  zalivka(g, 16, 16, '#232426', '#1b1c1e', 0.45);
+  g.fillStyle = '#333539'; g.fillRect(2, 3, 4, 3); g.fillRect(9, 8, 5, 4); g.fillRect(4, 11, 3, 3);
+});
+/* ── ШАХТА-РАЗРЕЗ (владелец 12.08): статичный вертикальный срез мира сбоку,
+   «муравьиная ферма» — НЕ туннель для полёта камеры. Колодец 1×1 у центра
+   среза, Стив копает строго вниз, скролл задаёт целевую глубину. ── */
+const SH = { W: 26, H: 42, y0: -KUB * 2.5 };
+const shKletka = (ix, iy) => [(ix - (SH.W - 1) / 2) * KUB, SH.y0 - iy * KUB];
+const WELL_IX = Math.floor(SH.W / 2);        /* единственный столбец, который роет Стив */
+const [WELL_X] = shKletka(WELL_IX, 0);       /* мировой X колодца — камера и полёт руды держатся на нём */
+const ZEMLYA_RYADOV = 2;                     /* верхние ряды среза — дёрн/земля, как в мире */
+const BEDROK_RYADOV = 2;                     /* нижние ряды — несокрушимый бедрок */
+const DNO_KAMNYA_IY = SH.H - BEDROK_RYADOV - 1;   /* последний ряд камня перед бедроком */
+const CAM_Z_SHAHTA = KUB * 17;               /* дистанция статичной камеры от плоскости среза */
+/* колодец — прямая вертикальная линия от поверхности до дна камня (бедрок несокрушим) */
+const put = [];
+for (let iy = ZEMLYA_RYADOV; iy <= DNO_KAMNYA_IY; iy++) put.push([WELL_IX, iy]);
+/* детерминированный хеш вместо Math.random — позиции руды воспроизводимы между заходами */
+function shHash(a, b){
+  let h = (a * 374761393 + b * 668265263) ^ 0x9e3779b9;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+/* карта типов: руды-вкрапления В ПЛОСКОСТИ среза, у колодца (радиус 2 — Стив
+   выкапывает их боковым замахом), позиции детерминированы хешем */
+const shTip = new Map();
+const RUDA_ZHILY = [
+  { tip: 'ugol', ot: 5, do_: 12, kol: 7 },    /* уголь ≈ −8 м */
+  { tip: 'zhel', ot: 15, do_: 24, kol: 6 },   /* железо ≈ −19 м */
+  { tip: 'almaz', ot: 30, do_: 38, kol: 5 },  /* алмазы ≈ −34 м */
+];
+for (const { tip, ot, do_, kol } of RUDA_ZHILY){
+  let postavleno = 0, popytka = 0;
+  while (postavleno < kol && popytka < 500){
+    popytka++;
+    const iy = ot + Math.floor(shHash(popytka, ot) * (do_ - ot + 1));
+    const dx = 1 + Math.floor(shHash(popytka, do_) * 2);            /* 1..2 колонки — совпадает с радиусом бокового замаха */
+    const znak = shHash(popytka, tip.charCodeAt(0)) < 0.5 ? -1 : 1;
+    const ix = WELL_IX + znak * dx;
+    if (ix < 1 || ix > SH.W - 2 || iy < ZEMLYA_RYADOV || iy > DNO_KAMNYA_IY) continue;
+    const klyuch = `${ix},${iy}`;
+    if (shTip.has(klyuch)) continue;
+    shTip.set(klyuch, tip);
+    postavleno++;
+  }
+}
+/* итоговый тип клетки: дёрн сверху, бедрок снизу, иначе камень/руда */
+function tipKletki(ix, iy){
+  if (iy < ZEMLYA_RYADOV) return 'zemlya';
+  if (iy > DNO_KAMNYA_IY) return 'bedrok';
+  return shTip.get(`${ix},${iy}`) || 'kamen';
+}
+const shахtaGr = new T.Group();
+const shBloki = new Map();   /* "ix,iy" → {im, idx} */
+{
+  const texPo = { kamen: kamenTyomny, ugol: rudaUgol, zhel: rudaZhel, almaz: rudaAlmaz, zemlya, bedrok };
+  const schyot = { kamen: 0, ugol: 0, zhel: 0, almaz: 0, zemlya: 0, bedrok: 0 };
+  for (let ix = 0; ix < SH.W; ix++) for (let iy = 0; iy < SH.H; iy++)
+    schyot[tipKletki(ix, iy)]++;
+  const imPo = {};
+  for (const t of Object.keys(schyot)){
+    imPo[t] = new T.InstancedMesh(new T.BoxGeometry(KUB, KUB, KUB), mat(texPo[t]), schyot[t]);
+    imPo[t].receiveShadow = true;
+    shахtaGr.add(imPo[t]);
+  }
+  const m4 = new T.Matrix4();
+  const ind = { kamen: 0, ugol: 0, zhel: 0, almaz: 0, zemlya: 0, bedrok: 0 };
+  for (let ix = 0; ix < SH.W; ix++) for (let iy = 0; iy < SH.H; iy++){
+    const t = tipKletki(ix, iy);
+    const [x, y] = shKletka(ix, iy);
+    m4.setPosition(x, y, -KUB * 0.5);
+    imPo[t].setMatrixAt(ind[t], m4);
+    shBloki.set(`${ix},${iy}`, { im: imPo[t], idx: ind[t], tip: t, x, y });
+    ind[t]++;
+  }
+  /* задник среза — сплошная темнота в 2.5 KUB за плоскостью: дыры от выкопанных
+     блоков колодца открываются в черноту, а не в небо/задние объекты мира */
+  const [zadX] = shKletka(WELL_IX, 0);
+  const zadY = SH.y0 - ((SH.H - 1) / 2) * KUB;
+  /* верх задника НЕ выше поверхности среза: кромка торчала из рельефа мира
+     и читалась «чёрной дорогой» через всё поле (скрин владельца 12.08) */
+  const zadVysota = (SH.H + 3) * KUB;
+  const zadnik = new T.Mesh(
+    new T.PlaneGeometry((SH.W + 6) * KUB, zadVysota),
+    new T.MeshBasicNodeMaterial({ color: 0x030303 })
+  );
+  const zadVerh = SH.y0 + KUB * 0.45;   /* кромка чуть НИЖЕ верха первого ряда среза */
+  zadnik.position.set(zadX, zadVerh - zadVysota / 2, -KUB - KUB * 2.5);
+  zadnik.visible = false;               /* виден только в шахте — см. цикл (glubina) */
+  shахtaGr.add(zadnik);
+  window.__shZadnik = zadnik;
+}
+/* разрез: рельсы и вагонетка НЕ канон для вертикального колодца — им негде
+   стоять на глубине в один блок шириной. Код сохранён выключенным (владелец 12.08). */
+const RELSY_VKLYUCHENY = false;
+const shVagonetka = new T.Group();
+{
+  const koryto = new T.Mesh(new T.BoxGeometry(KUB * 0.95, KUB * 0.5, KUB * 0.62), mat(kamen));
+  koryto.position.y = KUB * 0.36;
+  const gruz = new T.Mesh(new T.BoxGeometry(KUB * 0.6, KUB * 0.25, KUB * 0.4), mat(rudaAlmaz));
+  gruz.position.y = KUB * 0.66;
+  shVagonetka.add(koryto, gruz);
+  const [vx0, vy0] = shKletka(put[0][0], put[0][1]);
+  shVagonetka.position.set(vx0 + KUB, vy0 - KUB * 0.5, -KUB * 0.5);
+  shVagonetka.visible = RELSY_VKLYUCHENY;
+  shахtaGr.add(shVagonetka);
+}
+/* факелы на стенке колодца, каждые 4 ряда — пул увеличен под глубину 40 рядов */
+const shFakely = [];
+for (let i = 0; i < 10; i++){
+  const gr = new T.Group();
+  const palka = new T.Mesh(new T.BoxGeometry(KUB * 0.13, KUB * 0.42, KUB * 0.13), mat(kora));
+  const ogon = new T.Mesh(new T.BoxGeometry(KUB * 0.2, KUB * 0.2, KUB * 0.2),
+    new T.MeshBasicNodeMaterial({ color: 0xffc44d }));
+  ogon.position.y = KUB * 0.3;
+  const sv = new T.PointLight(0xffa94d, 2.4, KUB * 6, 1.6);
+  sv.position.set(0, KUB * 0.4, KUB * 0.5);
+  gr.add(palka, ogon, sv);
+  gr.visible = false;
+  shахtaGr.add(gr);
+  shFakely.push(gr);
+}
+/* тёплый ореол у факелов ближе всего к камере — пул фиксированного размера
+   (дороже включать сильный свет у всех сразу), сдвигается по глубине */
+const shOreolPul = [];
+for (let i = 0; i < 4; i++){
+  /* ВСЕГДА visible: первое включение PointLight на лету перекомпилирует
+     пайплайн WebGPU — фриз при входе в шахту (владелец: «переход лагает»).
+     Вне шахты интенсивность 0 — света нет, а пайплайн скомпилирован со старта */
+  const sv = new T.PointLight(0xffcf8a, 0, KUB * 6, 1.7);
+  sv.visible = true;
+  shахtaGr.add(sv);
+  shOreolPul.push(sv);
+}
+mir.add(shахtaGr);
+
+/* ── шахта: атмосфера подземелья (F1–F5). Всё создаётся один раз здесь,
+   в цикле() только обновляются позиции/видимость готовых объектов ── */
+
+/* F1: сталактиты и сталагмиты — детерминированные позиции, каждый 7-й шаг маршрута */
+function sozdatSosulku(razmer){
+  return new T.Mesh(new T.BoxGeometry(razmer, razmer, razmer), mat(kamenTyomny));
+}
+const STAL_INDEKSY = [];
+for (let i = 7; i < put.length; i += 7) STAL_INDEKSY.push(i);
+if (STAL_INDEKSY.length > 8) STAL_INDEKSY.length = 8;
+const stalaktityKarta = new Map();
+STAL_INDEKSY.forEach((iPut, k) => {
+  const gr = new T.Group();
+  const stalaktit = new T.Group();               /* висит сверху */
+  const s1 = sozdatSosulku(KUB * 0.3);
+  const s2 = sozdatSosulku(KUB * 0.16); s2.position.y = -KUB * 0.22;
+  stalaktit.add(s1, s2);
+  const stalagmit = new T.Group();                /* растёт снизу */
+  const g1 = sozdatSosulku(KUB * 0.3);
+  const g2 = sozdatSosulku(KUB * 0.16); g2.position.y = KUB * 0.22;
+  stalagmit.add(g1, g2);
+  const rezhim = k % 3;   /* 0 — только сталактит, 1 — только сталагмит, 2 — оба */
+  stalaktit.visible = rezhim !== 1;
+  stalagmit.visible = rezhim !== 0;
+  gr.add(stalaktit, stalagmit);
+  gr.visible = false;
+  shахtaGr.add(gr);
+  stalaktityKarta.set(iPut, gr);
+});
+/* кристальные друзы у алмазного слоя (нижняя треть) */
+const DRUZA_INDEKSY = [];
+for (const [i, [ix, iy]] of put.entries()){
+  if (iy >= 10 && shTip.get(`${ix},${iy}`) === 'almaz') DRUZA_INDEKSY.push(i);
+  if (DRUZA_INDEKSY.length >= 3) break;
+}
+const druzaMat = new T.MeshBasicNodeMaterial({ color: 0x6fe3e0, transparent: true, opacity: 0.8 });
+const druzaSmeshch = [[-0.16, -0.08, 0.14], [0.12, 0.05, -0.1], [0, 0.18, 0.06]];
+const druzaKarta = new Map();
+for (const iPut of DRUZA_INDEKSY){
+  const gr = new T.Group();
+  const chislo = 2 + (iPut % 2);   /* 2 или 3 кристалла в друзе */
+  for (let j = 0; j < chislo; j++){
+    const raz = KUB * (0.1 + 0.04 * (j % 2));
+    const kr = new T.Mesh(new T.BoxGeometry(raz, raz * 1.6, raz), druzaMat);
+    const [dx, dy, dz] = druzaSmeshch[j % druzaSmeshch.length];
+    kr.position.set(dx * KUB, dy * KUB, dz * KUB);
+    kr.rotation.z = j * 0.6;
+    gr.add(kr);
+  }
+  gr.visible = false;
+  shахtaGr.add(gr);
+  druzaKarta.set(iPut, gr);
+}
+
+/* F2: капли с потолка — пул из 4, рождаются в вырытых клетках верхней половины колодца */
+const KAPEL_INDEKSY = put.map((p, i) => i).filter(i => put[i][1] < ZEMLYA_RYADOV + (DNO_KAMNYA_IY - ZEMLYA_RYADOV) / 2);
+const kapliPul = [];
+for (let i = 0; i < 4; i++){
+  const k = new T.Mesh(new T.BoxGeometry(KUB * 0.09, KUB * 0.13, KUB * 0.09),
+    new T.MeshBasicNodeMaterial({ color: 0x6db8e8 }));
+  k.visible = false;
+  shахtaGr.add(k);
+  kapliPul.push({ mesh: k, aktivna: false, t: 0, dur: 0.85, y0: 0, y1: 0 });
+}
+let kaplyTaymer = 0;
+
+/* F3: рельсы — разрез: не канон для вертикального колодца, RELSY_VKLYUCHENY=false выше.
+   Код и пул инстансов сохранены выключенными, count всегда 0 без RELSY_VKLYUCHENY. */
+const RELS_INDEKSY = put.map((p, i) => i).filter(i => put[i][1] >= 7);
+const relsGeom = new T.BoxGeometry(KUB * 0.9, KUB * 0.06, KUB * 0.06);
+const relsMat = mat(kamenTyomny);
+const imShpaly = new T.InstancedMesh(new T.BoxGeometry(KUB * 0.6, KUB * 0.07, KUB * 0.72), mat(kora), Math.max(1, RELS_INDEKSY.length));
+const imRelsL = new T.InstancedMesh(relsGeom, relsMat, Math.max(1, RELS_INDEKSY.length));
+const imRelsR = new T.InstancedMesh(relsGeom, relsMat, Math.max(1, RELS_INDEKSY.length));
+imShpaly.count = 0; imRelsL.count = 0; imRelsR.count = 0;
+imShpaly.visible = imRelsL.visible = imRelsR.visible = RELSY_VKLYUCHENY;
+shахtaGr.add(imShpaly, imRelsL, imRelsR);
+let relsPostavleno = 0;
+/* руда, летящая по дуге вверх — «в счётчик» (цель полёта задаётся в dobytShBlok, пул из 5) */
+const rudaColorPo = { ugol: 0x232326, zhel: 0xd8a878, almaz: 0x6fe3e0 };
+const letRudaPul = [];
+for (let i = 0; i < 5; i++){
+  const m = new T.Mesh(new T.BoxGeometry(KUB * 0.3, KUB * 0.3, KUB * 0.3), new T.MeshBasicNodeMaterial({ color: 0xffffff }));
+  m.visible = false;
+  shахtaGr.add(m);
+  letRudaPul.push({ mesh: m, aktivna: false, t: 0, dur: 0.4, from: new T.Vector3(), to: new T.Vector3() });
+}
+
+/* F4: лава на дне под бедроком — пульсирующее свечение, 2 факела-света, пузыри, гул */
+const lavaC1 = new T.Color(0xff7a1a), lavaC2 = new T.Color(0xd9540f);
+const lavaMat = new T.MeshBasicNodeMaterial({ color: 0xff7a1a });
+const lavaY = SH.y0 - (SH.H + 2) * KUB;
+const lava = new T.Mesh(new T.BoxGeometry(SH.W * KUB, KUB * 0.4, KUB * 1.8), lavaMat);
+lava.position.set(0, lavaY, -KUB);
+shахtaGr.add(lava);
+[-KUB * 2.4, KUB * 2.4].forEach(dx => {
+  const sv = new T.PointLight(0xff8a3d, 3.2, KUB * 7, 1.7);
+  sv.position.set(dx, lavaY + KUB * 0.9, -KUB * 0.5);
+  shахtaGr.add(sv);
+});
+const lavaPuzyri = [];
+for (let i = 0; i < 3; i++){
+  const p = new T.Mesh(new T.BoxGeometry(KUB * 0.12, KUB * 0.12, KUB * 0.12),
+    new T.MeshBasicNodeMaterial({ color: 0xff9a4d }));
+  p.position.set((i - 1) * KUB * 4, lavaY + KUB * 0.2, -KUB);
+  p.visible = false;
+  shахtaGr.add(p);
+  lavaPuzyri.push({ mesh: p, t: 0, zhdat: 1.4 + i * 1.1 });
+}
+
+/* F5: летучие мыши — глубокая зона, срываются один раз за сессию (glubina > 0.45) */
+const MYSHI_INDEKSY = [0.55, 0.65, 0.75].map(k => Math.min(put.length - 1, Math.floor(put.length * k)));
+const myshiPul = MYSHI_INDEKSY.map((idx, i) => {
+  const [ix, iy] = put[idx];
+  const [x, y] = shKletka(ix, iy);
+  const chyorny = new T.MeshBasicNodeMaterial({ color: 0x0c0c0e });
+  const gr = new T.Group();
+  const telo = new T.Mesh(new T.BoxGeometry(KUB * 0.22, KUB * 0.12, KUB * 0.12), chyorny);
+  const kr1 = new T.Mesh(new T.BoxGeometry(KUB * 0.18, KUB * 0.02, KUB * 0.11), chyorny);
+  kr1.position.x = KUB * 0.16;
+  const kr2 = new T.Mesh(new T.BoxGeometry(KUB * 0.18, KUB * 0.02, KUB * 0.11), chyorny);
+  kr2.position.x = -KUB * 0.16;
+  gr.add(telo, kr1, kr2);
+  gr.position.set(x, y + KUB * 0.4, -KUB * 0.5);
+  gr.visible = false;
+  shахtaGr.add(gr);
+  return { gr, kr1, kr2, baseX: x, baseY: y + KUB * 0.4, letit: false, t: 0, faza: i * 2.1 };
+});
+let myshiSorvalis = false;
+
+/* тени: пятно в мире (на полу) и пятно на листе */
+const tenMat = new T.MeshBasicNodeMaterial({ color: 0x141518, transparent: true, opacity: 0.18 });
+const tenMir = new T.Mesh(new T.CircleGeometry(1, 28), tenMat);
+tenMir.rotation.x = -Math.PI / 2; tenMir.scale.set(34, 22, 1); tenMir.position.y = 1.2;
+scene.add(tenMir);
+const tenList = new T.Mesh(new T.CircleGeometry(1, 28), tenMat.clone());
+tenList.scale.set(30, 8, 1); tenList.visible = false;
+tenList.layers.set(1);
+scene.add(tenList);
+
+/* 3D-крошки над верстаком */
+const kroshki3d = [];
+{
+  const g = new T.BoxGeometry(2.6, 2.6, 2.6);
+  for (let i = 0; i < 18; i++){
+    const k = new T.Mesh(g, new T.MeshBasicNodeMaterial({ color: [0xd97b3a, 0x8a6238, 0xb5b8bc][i % 3] }));
+    k.visible = false; k.zhizn = 0; scene.add(k); kroshki3d.push(k);
+  }
+}
+function iskryU(x, y, z){
+  let n = 4;
+  for (const k of kroshki3d){
+    if (k.zhizn > 0 || !n) continue;
+    n--;
+    k.zhizn = 0.65;
+    k.position.set(x + (Math.random() - 0.5) * 24, y, z + (Math.random() - 0.5) * 24);
+    k.skor = new T.Vector3((Math.random() - 0.5) * 180, 120 + Math.random() * 120, 60 + Math.random() * 60);
+    k.visible = true;
+  }
+}
+
+/* пыль приземлений (A4): облачко светлых кубиков — мир и Стив, когда касаются земли */
+const pylPul = [];
+{
+  const g = new T.BoxGeometry(2.2, 2.2, 2.2);
+  for (let i = 0; i < 8; i++){
+    const p = new T.Mesh(g, new T.MeshBasicNodeMaterial({ color: [0xcfccc2, 0xb5b2a8][i % 2] }));
+    p.visible = false; p.zhizn = 0; scene.add(p); pylPul.push(p);
+  }
+}
+function pylU(x, y, z){
+  let n = 6;
+  for (const p of pylPul){
+    if (p.zhizn > 0 || !n) continue;
+    n--;
+    p.zhizn = 0.9;
+    p.position.set(x + (Math.random() - 0.5) * 60, y, z + (Math.random() - 0.5) * 60);
+    p.skor = new T.Vector3((Math.random() - 0.5) * 110, 70 + Math.random() * 60, (Math.random() - 0.5) * 110);
+    p.visible = true;
+  }
+}
+
+/* ── звук ── */
+/* всё звучание идёт через один мастер-гейн: кнопка мутит страницу целиком,
+   выбор помнится между заходами */
+let audio = null, master = null;
+let zvukVkl = localStorage.getItem('blocksmith-zvuk') !== '0';
+function audioVkl(){
+  if (!audio){
+    audio = new (window.AudioContext || window.webkitAudioContext)();
+    master = audio.createGain();
+    master.gain.value = zvukVkl ? 1 : 0;
+    master.connect(audio.destination);
+  }
+  return master;
+}
+const knZvuk = document.getElementById('zvukKnopka');
+function narisovatZvuk(){
+  knZvuk.classList.toggle('tiho', !zvukVkl);
+  knZvuk.setAttribute('aria-pressed', String(zvukVkl));
+  knZvuk.setAttribute('aria-label', zvukVkl ? 'Выключить звук' : 'Включить звук');
+}
+narisovatZvuk();
+knZvuk.addEventListener('click', () => {
+  zvukVkl = !zvukVkl;
+  localStorage.setItem('blocksmith-zvuk', zvukVkl ? '1' : '0');
+  narisovatZvuk();
+  if (audio) master.gain.linearRampToValueAtTime(zvukVkl ? 1 : 0, audio.currentTime + 0.12);
+  if (zvukVkl && audio && audio.state === 'suspended') audio.resume();
+});
+function zvuk(f, dl, tip = 'square', gr = 0.06){
+  try{
+    audioVkl();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = tip; o.frequency.value = f;
+    g.gain.setValueAtTime(gr, audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dl);
+    o.connect(g).connect(master);
+    o.start(); o.stop(audio.currentTime + dl + 0.02);
+  }catch(e){}
+}
+const tuk = () => zvuk(190 + Math.random() * 40, 0.09);
+const stukDereva = () => zvuk(120 + Math.random() * 30, 0.07, 'square', 0.04);
+const boom = () => { zvuk(70, 0.3, 'sine', 0.12); zvuk(50, 0.4, 'sine', 0.1); };
+/* шумовые звуки: установка и крошение блока, стон зомби */
+function shum(dl, chastota, gr){
+  try{
+    audioVkl();
+    const n = Math.floor(audio.sampleRate * dl);
+    const buf = audio.createBuffer(1, n, audio.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const src = audio.createBufferSource(); src.buffer = buf;
+    const f = audio.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = chastota; f.Q.value = 1.2;
+    const g = audio.createGain(); g.gain.value = gr;
+    src.connect(f).connect(g).connect(master);
+    src.start();
+  }catch(e){}
+}
+const zvukStavki = () => { shum(0.09, 700, 0.14); zvuk(210, 0.05, 'square', 0.02); };
+/* стук по стеклу: короткий звонкий тик */
+const zvukStekla = () => { zvuk(1350, 0.045, 'sine', 0.07); zvuk(2100, 0.03, 'sine', 0.035); shum(0.03, 2600, 0.05); };
+const zvukLomki  = () => { shum(0.16, 420, 0.16); shum(0.1, 900, 0.08); };
+const stonZombi  = () => { zvuk(88 + Math.random() * 20, 0.5, 'sawtooth', 0.045); zvuk(64, 0.6, 'sine', 0.03); };
+/* F6: эхо шахты — тот же импульс, что и zvuk, но через повторяющуюся задержку */
+let ehoNodes = null;
+function ehoInit(){
+  if (ehoNodes || !audio) return;
+  const dl = audio.createDelay(1); dl.delayTime.value = 0.25;
+  const fb = audio.createGain(); fb.gain.value = 0.3;
+  dl.connect(fb).connect(dl);
+  dl.connect(master);
+  ehoNodes = { dl, fb };
+}
+function zvukEho(f, dl, tip = 'square', gr = 0.06){
+  try{
+    audioVkl();
+    ehoInit();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = tip; o.frequency.value = f;
+    g.gain.setValueAtTime(gr, audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dl);
+    o.connect(g); g.connect(master); g.connect(ehoNodes.dl);
+    o.start(); o.stop(audio.currentTime + dl + 0.02);
+  }catch(e){}
+}
+/* в шахте (glubina > 0.1) любой шахтный звук уходит с эхом, иначе как обычно */
+const zvShahta = (f, dl, tip, gr) => (glubina > 0.1 ? zvukEho : zvuk)(f, dl, tip, gr);
+/* F4: низкий гул лавы — непрерывный осциллятор, вкл/выкл по глубине */
+let gulOsc = null, gulGain = null;
+function gulVkl(){
+  if (gulOsc) return;
+  try{
+    audioVkl();
+    if (!audio || !master) return;               /* guard: контекст ещё не готов */
+    if (audio.state === 'suspended') audio.resume().catch(() => {});
+    ehoInit();
+    gulOsc = audio.createOscillator(); gulGain = audio.createGain();
+    gulOsc.type = 'sine'; gulOsc.frequency.value = 46;
+    gulGain.gain.value = 0;
+    gulOsc.connect(gulGain);
+    gulGain.connect(master);
+    if (ehoNodes) gulGain.connect(ehoNodes.dl);
+    gulOsc.start();
+    gulGain.gain.linearRampToValueAtTime(0.02, audio.currentTime + 0.8);
+  }catch(e){}
+}
+function gulVykl(){
+  if (!gulOsc) return;
+  try{
+    gulGain.gain.linearRampToValueAtTime(0, audio.currentTime + 0.6);
+    gulOsc.stop(audio.currentTime + 0.7);
+  }catch(e){}
+  gulOsc = null; gulGain = null;
+}
+/* фоновая мелодия — тихая колыбельная в духе игры, ноты с эхом */
+let melodiyaIdyot = false;
+function melodiya(){
+  if (melodiyaIdyot) return;
+  try{
+    audioVkl();
+    melodiyaIdyot = true;
+    const eho = audio.createDelay(1); eho.delayTime.value = 0.42;
+    const ehoG = audio.createGain(); ehoG.gain.value = 0.28;
+    const melG = audio.createGain(); melG.gain.value = 0.032;
+    eho.connect(ehoG).connect(eho);
+    eho.connect(melG); melG.connect(master);
+    const noty = [261.6, 329.6, 392, 440, 523.3, 587.3, 659.3, 784];
+    const hod = [0, 2, 4, 7, 4, 2, 1, 3, 5, 3, 0, 2, 6, 4, 2, 0];
+    let i = 0;
+    setInterval(() => {
+      if (document.hidden) return;
+      if (Math.random() < 0.22){ i++; return; }        /* дыхание пауз */
+      const n = noty[hod[i % hod.length] % noty.length] * (Math.random() < 0.3 ? 0.5 : 1);
+      i++;
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'sine'; o.frequency.value = n;
+      g.gain.setValueAtTime(0.9, audio.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 2.4);
+      o.connect(g); g.connect(melG); g.connect(eho);
+      o.start(); o.stop(audio.currentTime + 2.5);
+    }, 860);
+  }catch(e){}
+}
+addEventListener('pointerdown', melodiya);
+
+/* ── состояние Стива ── */
+const stiv = {
+  x: innerWidth / 2, y: -220,          /* экранные координаты (фаза стройки) */
+  sost: 'idle', flip: false, delo: null, ochered: [], faza: 0,
+  golovaAvto: true
+};
+const kursor = { x: innerWidth / 2, y: innerHeight / 2 };
+addEventListener('pointermove', e => { kursor.x = e.clientX; kursor.y = e.clientY; });
+/* сглаженная цель камеры-режиссёра фоновой сцены */
+const kamCel = { x: 80, z: -60 };
+let kamDist = 1;
+/* шахта по скроллу */
+let glubina = 0, vykopano = 0, lomka = null, fakelovStavleno = 0, statusT = 0;
+const kamSh = { x: 0, y: -KUB * 3 };
+const dobycha = { ugol: 0, zhel: 0, almaz: 0 };
+const shahtaZonaEl = document.getElementById('shahtaZona');
+function dobytShBlok(b, iPut){
+  b.vykopan = true;
+  const m4 = new T.Matrix4();
+  m4.makeScale(0.001, 0.001, 0.001);
+  m4.setPosition(b.x, -9999, 0);
+  b.im.setMatrixAt(b.idx, m4);
+  b.im.instanceMatrix.needsUpdate = true;
+  iskryU(b.x, b.y, -KUB * 0.2);
+  const rudaTip = b.tip === 'ugol' || b.tip === 'zhel' || b.tip === 'almaz';
+  if (!rudaTip) zvukLomki();   /* камень/земля/бедрок — просто ломка, без счётчика */
+  else {
+    zvukLomki();
+    dobycha[b.tip === 'ugol' ? 'ugol' : (b.tip === 'zhel' ? 'zhel' : 'almaz')]++;
+    if (b.tip === 'almaz'){ zvShahta(1250, 0.14, 'sine', 0.06); zvShahta(1650, 0.1, 'sine', 0.04); }
+    else zvShahta(b.tip === 'zhel' ? 900 : 640, 0.1, 'sine', 0.05);
+    document.getElementById('shSchyot').textContent =
+      `УГОЛЬ ${dobycha.ugol} · ЖЕЛЕЗО ${dobycha.zhel} · АЛМАЗЫ ${dobycha.almaz}`;
+    /* руда летит по дуге вверх, к устью колодца — «в счётчик» (вагонетки в разрезе нет) */
+    const svobRuda = letRudaPul.find(r => !r.aktivna);
+    if (svobRuda){
+      svobRuda.aktivna = true; svobRuda.t = 0;
+      svobRuda.mesh.material.color.setHex(rudaColorPo[b.tip] || 0xffffff);
+      svobRuda.mesh.scale.set(1, 1, 1);
+      svobRuda.mesh.visible = true;
+      svobRuda.from.set(b.x, b.y, -KUB * 0.5);
+      svobRuda.to.set(WELL_X, SH.y0 + KUB * 2, -KUB * 0.3);
+    }
+  }
+  /* разрез: сталактиты/сталагмиты и друзы не показываем — колодцу в один блок
+     шириной ими некуда деться, Стив бы шёл прямо сквозь них (владелец 12.08).
+     Карты и объекты оставлены созданными, просто никогда не включаются здесь. */
+  if (iPut !== undefined){
+    /* F3: рельсы — разрез: не канон, см. RELSY_VKLYUCHENY у объявления вагонетки */
+    if (RELSY_VKLYUCHENY){
+      const iyPut = put[iPut][1];
+      if (iyPut >= 7 && relsPostavleno < RELS_INDEKSY.length){
+        const m4r = new T.Matrix4();
+        m4r.setPosition(b.x, b.y - KUB * 0.42, -KUB * 0.5);
+        imShpaly.setMatrixAt(relsPostavleno, m4r);
+        m4r.setPosition(b.x, b.y - KUB * 0.36, -KUB * 0.72);
+        imRelsL.setMatrixAt(relsPostavleno, m4r);
+        m4r.setPosition(b.x, b.y - KUB * 0.36, -KUB * 0.28);
+        imRelsR.setMatrixAt(relsPostavleno, m4r);
+        relsPostavleno++;
+        imShpaly.count = relsPostavleno; imShpaly.instanceMatrix.needsUpdate = true;
+        imRelsL.count = relsPostavleno; imRelsL.instanceMatrix.needsUpdate = true;
+        imRelsR.count = relsPostavleno; imRelsR.instanceMatrix.needsUpdate = true;
+      }
+    }
+  }
+  /* факел на стенку колодца каждые 4 ряда */
+  if (vykopano % 4 === 3 && fakelovStavleno < shFakely.length){
+    const fk = shFakely[fakelovStavleno++];
+    fk.position.set(b.x - KUB * 0.62, b.y - KUB * 0.24, -KUB * 0.1);
+    fk.visible = true;
+    zvukStavki();
+  }
+}
+/* руда в радиусе 2 колонок от колодца на ряду iy, ещё не выкопанная —
+   Стив выкапывает её боковым замахом, не только то, что прямо под ногами */
+function rudaRyadom(iy){
+  for (let dx = 1; dx <= 2; dx++){
+    for (const znak of [1, -1]){
+      const b = shBloki.get(`${WELL_IX + znak * dx},${iy}`);
+      if (b && !b.vykopan && (b.tip === 'ugol' || b.tip === 'zhel' || b.tip === 'almaz')) return b;
+    }
+  }
+  return null;
+}
+function idti(x, y, cb){ stiv.ochered.push({ tip: 'idti', x, y, cb }); }
+function stavit(cb){ stiv.ochered.push({ tip: 'stavit', cb }); }
+function zhdat(ms, cb){ stiv.ochered.push({ tip: 'zhdat', ms, cb }); }
+
+/* DOM-крошки на листе */
+const PYL_CVETA = ['#cfccc2', '#b5b2a8'];   /* пыль приземления — серая, а не строительные крошки */
+function kroshkiDom(x, y, cveta){
+  cveta = cveta || ['#8b887e', '#5fae3f', '#2f6df0', '#c8926b'];
+  for (let i = 0; i < 12; i++){
+    const el = document.createElement('div');
+    el.className = 'kroshka';
+    el.style.background = cveta[i % cveta.length];
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    document.body.appendChild(el);
+    const vx = (Math.random() - 0.5) * 180, vy = -(70 + Math.random() * 170);
+    const t0 = performance.now();
+    (function fly(){
+      const t = (performance.now() - t0) / 1000;
+      if (t > 0.9){ el.remove(); return; }
+      el.style.transform = `translate(${vx * t}px, ${vy * t + 420 * t * t}px)`;
+      el.style.opacity = String(1 - t / 0.9);
+      requestAnimationFrame(fly);
+    })();
+  }
+}
+/* лёгкий вариант kroshkiDom — 3 частицы вместо 12, чтобы буквы не засоряли экран */
+function kroshkiMini(x, y){
+  const cveta = ['#8b887e', '#5fae3f', '#c8926b'];
+  for (let i = 0; i < 3; i++){
+    const el = document.createElement('div');
+    el.className = 'kroshka';
+    el.style.background = cveta[i % cveta.length];
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    document.body.appendChild(el);
+    const vx = (Math.random() - 0.5) * 90, vy = -(40 + Math.random() * 90);
+    const t0 = performance.now();
+    (function fly(){
+      const t = (performance.now() - t0) / 1000;
+      if (t > 0.55){ el.remove(); return; }
+      el.style.transform = `translate(${vx * t}px, ${vy * t + 420 * t * t}px)`;
+      el.style.opacity = String(1 - t / 0.55);
+      requestAnimationFrame(fly);
+    })();
+  }
+}
+
+/* ── хотбар ── */
+const SEKTSII = [
+  { sek: 'shapka',    metka: 'ШАПКА',     cvet: '#8b887e' },
+  { sek: 'geroy',     metka: 'ЗАГОЛОВОК', cvet: '#2f6df0' },
+  { sek: 'printsipy', metka: 'МЕТОД',     cvet: '#5fae3f' },
+  { sek: 'zhivye',    metka: 'РАСЧЁТ',    cvet: '#e2a13c' },
+  { sek: 'raboty',    metka: 'КЕЙСЫ',     cvet: '#141518' },
+  { sek: 'final',     metka: 'КОНТАКТ',   cvet: '#1fa7a0' },
+];
+const hotbar = document.getElementById('hotbar');
+SEKTSII.forEach((s, i) => {
+  const d = document.createElement('div');
+  d.className = 'slot'; d.dataset.sek = s.sek;
+  d.innerHTML = `<canvas class="ikona" width="8" height="8"></canvas><span class="cifra">${i + 1}</span><span class="yarlyk">${s.metka}</span>`;
+  const g = d.querySelector('canvas').getContext('2d');
+  g.fillStyle = s.cvet; g.fillRect(0, 0, 8, 8);
+  g.fillStyle = 'rgba(255,255,255,.28)'; g.fillRect(0, 0, 8, 2); g.fillRect(0, 0, 2, 8);
+  g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(0, 6, 8, 2); g.fillRect(6, 0, 2, 8);
+  hotbar.appendChild(d);
+});
+function aktivSlot(sek){
+  document.querySelectorAll('.slot').forEach(s => s.classList.toggle('aktiv', s.dataset.sek === sek));
+}
+
+/* висячие предлоги: неразрывный пробел ставится ОДИН раз и ДО разбора на буквы
+   и слова — иначе кладка Стива развалит уже склеенные пары */
+(function nerazryvnye(){
+  const NERAZR = String.fromCharCode(160);   /* неразрывный пробел, явно — в исходнике он неотличим */
+  const predlogi = /(?<=^|[\s(«—-])(и|в|с|к|у|о|а|я|на|за|по|из|от|до|не|для|или)\s+/gi;
+  const hod = document.createTreeWalker(document.querySelector('main'), NodeFilter.SHOW_TEXT);
+  const uzly = []; while (hod.nextNode()) uzly.push(hod.currentNode);
+  for (const u of uzly){
+    /* переносы и отступы ИСХОДНИКА схлопываются здесь: дальше кладка Стива
+       разложит текст по спанам с white-space:pre, и перенос застынет разрывом строки */
+    const stalo = u.textContent.replace(/\s+/g, ' ').replace(predlogi, (m, sl) => sl + NERAZR);
+    if (stalo !== u.textContent) u.textContent = stalo;
+  }
+})();
+
+/* заголовок разбирается на буквы; Стив выкладывает их порциями, ударами */
+function obernutBukvy(zag){
+  if (zag.dataset.bukvy) return [...zag.querySelectorAll('span')];
+  zag.dataset.bukvy = '1';
+  const hod = document.createTreeWalker(zag, NodeFilter.SHOW_TEXT);
+  const uzly = []; while (hod.nextNode()) uzly.push(hod.currentNode);
+  for (const u of uzly){
+    const frag = document.createDocumentFragment();
+    for (const ch of u.textContent){
+      const s = document.createElement('span');
+      s.textContent = ch;
+      s.style.cssText = 'display:inline-block;opacity:0;transform:translateY(-46px) scale(1.15)';
+      if (ch === ' ') s.style.whiteSpace = 'pre';
+      frag.appendChild(s);
+    }
+    u.parentNode.replaceChild(frag, u);
+  }
+  return [...zag.querySelectorAll('span')];
+}
+/* абзацы — по словам: слово = удар */
+function obernutSlova(el){
+  if (el.dataset.slova) return [...el.querySelectorAll(':scope > span')];
+  el.dataset.slova = '1';
+  const hod = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const uzly = []; while (hod.nextNode()) uzly.push(hod.currentNode);
+  for (const u of uzly){
+    const frag = document.createDocumentFragment();
+    for (const chast of u.textContent.split(/(\s+)/)){
+      if (!chast) continue;
+      const s = document.createElement('span');
+      s.textContent = chast;
+      if (/^\s+$/.test(chast)){ s.style.whiteSpace = 'pre'; }
+      else s.style.cssText = 'display:inline-block;opacity:0;transform:translateY(-28px)';
+      frag.appendChild(s);
+    }
+    u.parentNode.replaceChild(frag, u);
+  }
+  return [...el.querySelectorAll('span')].filter(s => s.style.opacity === '0');
+}
+
+/* ── постановка блоков страницы ── */
+const bloki = [...document.querySelectorAll('.blok')];
+const postroeno = new Set();
+let stivNaListe = true, prostoj = 0;   /* Стив ОДИН: либо на листе, либо в мире */
+let skidka = 20, skidkaByla = false;
+function smenitSkidku(){
+  const el = document.getElementById('skidkaCifra');
+  const r = el.getBoundingClientRect();
+  /* старая цифра разлетается */
+  const klon = el.cloneNode(true);
+  klon.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;z-index:45;color:#a03a2e;
+    font:400 13px/1 'Plex Mono',monospace;pointer-events:none;transition:transform .7s ease-in, opacity .7s`;
+  document.body.appendChild(klon);
+  requestAnimationFrame(() => {
+    klon.style.transform = `translate(${40 + Math.random() * 60}px, 160px) rotate(140deg)`;
+    klon.style.opacity = '0';
+  });
+  setTimeout(() => klon.remove(), 800);
+  kroshkiDom(r.left + 8, r.top + 8);
+  zvukLomki();
+  el.textContent = '3';
+  el.style.transform = 'translateY(-.4em) scale(1.5)';
+  el.style.transition = 'none';
+  requestAnimationFrame(() => {
+    el.style.transition = 'transform .3s cubic-bezier(.2,1.6,.4,1)';
+    el.style.transform = 'none';
+  });
+  skidka = 30;
+  пересчёт();
+}
+/* очередь держит СОСТАВНЫЕ элементы: {blok, dela:[…], itog} — секция листа,
+   {cel, dela:[…]} — внеблочная сценка (скидка), либо одиночное дело {tip:…}.
+   Группа нужна, чтобы приоритет вьюпорта выбирал между БЛОКАМИ и не рвал
+   связку «подойти → поставить → выложить буквы» одного блока. */
+function stroit(blok){
+  if (postroeno.has(blok)) return;
+  postroeno.add(blok);
+  aktivSlot(blok.dataset.sek);
+  /* итог блока — то, что должно случиться и при мгновенной достройке за экраном */
+  const itog = () => {
+    blok.classList.add('postroen');
+    /* шапку он «вешает» — та самая табличка из пролога уходит из-за спины */
+    if (blok.dataset.sek === 'shapka') tablichka.visible = false;
+    /* через время после сметы Стив вернётся ПОДНЯТЬ СКИДКУ */
+    if (blok.dataset.sek === 'zhivye' && !skidkaByla){
+      skidkaByla = true;
+      setTimeout(() => {
+        const dela = [];
+        if (!stivNaListe) dela.push({ tip: 'poyavitsya', blok });
+        dela.push({ tip: 'kCifre' }, { tip: 'dumaet', ms: 1500 }, { tip: 'stavit', cb: smenitSkidku });
+        /* сценка вне блочной очереди: цель для приоритета — сама цифра, достройке не подлежит */
+        stiv.ochered.push({ cel: document.getElementById('skidkaCifra'), dela });
+      }, 9000);
+    }
+  };
+  const dela = [];
+  if (!stivNaListe) dela.push({ tip: 'poyavitsya', blok });
+  dela.push({ tip: 'kBloku', blok });
+  dela.push({ tip: 'stavit', blok, cb: () => {
+    tuk();
+    const r = blok.getBoundingClientRect();
+    kroshkiDom(Math.min(Math.max(r.left + 120, 140), innerWidth - 140), r.top + Math.min(r.height / 2, 220));
+    itog();
+  } });
+  /* заголовок Стив молотит ПО БУКВЕ, тексты — ПО СЛОВУ: он ставит всё */
+  const zag = blok.querySelector('h1,h2,h3');
+  if (zag) dela.push({ tip: 'kladkaBukv', spany: obernutBukvy(zag) });
+  const teksty = [...blok.querySelectorAll('.pod, .printsipy p, .prim, .podskazka, .rabota p')].slice(0, 4);
+  for (const t of teksty){
+    const slova = obernutSlova(t);
+    if (slova.length) dela.push({ tip: 'kladkaBukv', spany: slova, bystro: true });
+  }
+  stiv.ochered.push({ blok, dela, itog });
+}
+
+/* ── темп: приоритет вьюпорта, долг ускоряет, дальнее достраивается само ── */
+const ZAPAS = 1.5;                 /* экранов от вьюпорта — дальше Стив не ходит */
+let gruppa = null;                 /* взятая группа: её дела идут подряд */
+let uskorenie = 1;                 /* множитель темпа от числа отложенных блоков */
+function celElem(e){
+  if (e.cel) return e.cel;
+  if (e.blok) return e.blok;
+  if (e.tip === 'kladkaBukv' && e.spany && e.spany[0]) return e.spany[0].closest('.blok');
+  return null;                     /* дела без геометрии — вне конкурса */
+}
+function vVidu(el){
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  return r.bottom > 0 && r.top < innerHeight;
+}
+function daleko(el){
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  return r.top > innerHeight * (1 + ZAPAS) || r.bottom < -innerHeight * ZAPAS;
+}
+/* за 1.5 экрана блок встаёт сразу и молча: без Стива, без стука, без крошек */
+function dostroitSrazu(e){
+  e.itog && e.itog();
+  let i = 0;
+  for (const d of e.dela){
+    if (d.tip !== 'kladkaBukv') continue;
+    for (let j = (d.i || 0); j < d.spany.length; j++){
+      const sp = d.spany[j];
+      setTimeout(() => {
+        sp.style.transition = 'transform .22s cubic-bezier(.3,1.5,.5,1), opacity .12s';
+        sp.style.opacity = '1'; sp.style.transform = 'none';
+      }, i * 8);
+      i++;
+    }
+  }
+  e.dela.length = 0;
+}
+function dostroitDalnie(){
+  for (let i = stiv.ochered.length - 1; i >= 0; i--){
+    const e = stiv.ochered[i];
+    if (!e.dela || !e.blok) continue;          /* сценки и одиночные дела не трогаем */
+    if (!daleko(e.blok)) continue;
+    stiv.ochered.splice(i, 1);
+    dostroitSrazu(e);
+  }
+}
+function obnovitUskorenie(){
+  let dolg = 0;
+  for (const e of stiv.ochered) if (e.dela && e.blok) dolg++;
+  uskorenie = Math.min(4, 1 + dolg * 0.6);
+}
+function vzyatDelo(){
+  dostroitDalnie();
+  if (gruppa){
+    /* читатель ушёл от текущего блока дальше 1.5 экрана — доложить его молча */
+    if (gruppa.blok && daleko(gruppa.blok)){ dostroitSrazu(gruppa); gruppa = null; }
+    else if (gruppa.dela.length) return gruppa.dela.shift();
+    else gruppa = null;
+  }
+  if (!stiv.ochered.length) return null;
+  /* одиночные дела (upast, zhdat, uyti) — барьеры: через них не перепрыгиваем,
+     иначе Стив начнёт класть буквы раньше, чем упадёт на лист */
+  let predel = stiv.ochered.findIndex(e => !e.dela);
+  if (predel < 0) predel = stiv.ochered.length;
+  let i = stiv.ochered.slice(0, predel).findIndex(e => vVidu(celElem(e)));
+  if (i < 0) i = 0;
+  const e = stiv.ochered.splice(i, 1)[0];
+  if (!e.dela) return e;
+  gruppa = e;
+  return gruppa.dela.shift() || null;
+}
+function uvertyuraLista(){
+  /* Стив падает на лист сверху — так же, как упали мы */
+  stiv.x = innerWidth * 0.62; stiv.y = -280;
+  stiv.ochered.push({ tip: 'upast', celY: innerHeight * 0.34 });
+  zhdat(400);
+  bloki.slice(0, 2).forEach(b => stroit(b));
+}
+const nablyudatel = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting && faza === 'stroyka') stroit(e.target); });
+}, { threshold: 0.3 });
+
+/* ═══ ПРОЛОГ: таймлайн ═══ */
+let faza = 'prolog';
+/* A3: моргание Стива — свап материала головы на 0.12с, только пока идёт пролог */
+function mignut(){
+  if (faza !== 'prolog') return;
+  golova.material = golovaMatZakryto;
+  setTimeout(() => { if (faza === 'prolog') golova.material = golovaMatOtkryto; }, 120);
+}
+function planMigat(){
+  setTimeout(() => {
+    if (faza !== 'prolog') return;
+    mignut();
+    planMigat();
+  }, 3000 + Math.random() * 2000);
+}
+planMigat();
+/* фон и воздух мастерской — снимаются при переходе на лист */
+/* BAGI#2: не гладкая заливка, а бумага с бледной чертёжной сеткой — иначе кадры 1.4-4.5с почти пусты */
+const prologFonTex = pixTex(56, 56, g => {
+  g.fillStyle = '#f2f1ec'; g.fillRect(0, 0, 56, 56);
+  g.strokeStyle = 'rgba(216,214,205,0.4)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0.5, 0); g.lineTo(0.5, 56); g.moveTo(0, 0.5); g.lineTo(56, 0.5); g.stroke();
+});
+prologFonTex.wrapS = prologFonTex.wrapT = T.RepeatWrapping;
+function stavProlognyFon(){ prologFonTex.repeat.set(innerWidth / 56, innerHeight / 56); }
+stavProlognyFon();
+scene.background = prologFonTex;   /* пустой лист до занавеса */
+mir.position.y = 1600;                       /* мир-занавес поднят за экран */
+mir.visible = false;                         /* и не выглядывает, пока не позовут */
+let tP = parseFloat(Q.get('t') || '0');      /* ?t=сек — прыжок по таймлайну для отладки */
+const lerp = (a, b, k) => a + (b - a) * k;
+const gladko = k => k * k * (3 - 2 * k);
+/* ease-in-out для КАМЕРНЫХ кадров пролога: на стыках нет излома скорости */
+const gladkoIO = k => (k < 0.5 ? 2 * k * k : 1 - ((-2 * k + 2) ** 2) / 2);
+const kadry = [];   /* {t0,t1,fn(k)} */
+const sobytiya = []; /* {t,fn,done} */
+function kadr(t0, t1, fn){ kadry.push({ t0, t1, fn }); }
+function sobytie(t, fn){ sobytiya.push({ t, fn, done: false }); }
+const titrEl = document.getElementById('titr');
+/* A5: смена подписи — короткое затухание, потом новый текст на затухании внутрь */
+function titr(tekst){
+  titrEl.style.opacity = '0';
+  setTimeout(() => { titrEl.textContent = tekst; titrEl.style.opacity = '1'; }, 260);
+}
+function skrytTitr(){ titrEl.style.opacity = '0'; }
+
+/* мировая позиция Стива в прологе — рулит таймлайн */
+const sm = { x: 200, y: 640, z: KUB * 2.8, rotY: 0, rotZ: 0, sost: 'idle', golovaX: 0, golovaY: 0 };
+/* камера пролога: сперва смотрит ровно в центр пустого листа */
+const kam = { x: 0, y: 300, z: 980, cx: 0, cy: 300, cz: 0, kachka: 0 };
+
+/* ── акт 1: пустая страница. Сверху МЕДЛЕННО свешивается перевёрнутая
+   голова Стива крупным планом: смотрит на нас… на экран… на нас ── */
+const seg = (k, a, b) => gladko(Math.min(1, Math.max(0, (k - a) / (b - a))));
+sobytie(0.01, () => { tenMir.visible = false; });
+sobytie(0.8, () => titr('01 · ВЗГЛЯД'));
+/* 0.7–2.9 голова въезжает сверху, перевёрнутая, очень крупно (BAGI#2: раньше на 0.7с — фон не
+   пустует; конец сокращён с 3.5 до 2.9 — иначе к приёмочной t=2.5с голова ещё не входит в кадр
+   при fov 34° и z=820, дистанция от камеры 160: видимый створ по Y тесен) */
+kadr(0.7, 2.9, k => {
+  sm.x = 0; sm.z = 820; sm.rotY = 0; sm.rotZ = Math.PI;
+  sm.y = lerp(660, 448, gladko(k));
+  sm.sost = 'idle';
+});
+sobytie(2.0, () => zvuk(55, 2.5, 'triangle', 0.012));   /* A2: лёгкий ветер в фазе головы */
+sobytie(2.6, () => zvuk(430, 0.14, 'sine', 0.02));
+/* 4.2–8.2 медленные взгляды: на нас → на экран → на нас;
+   в середине — стучит по «стеклу» камеры рукой: тук-тук */
+kadr(4.2, 8.2, k => {
+  sm.rotZ = Math.PI;
+  sm.golovaX = lerp(0, -0.6, seg(k, 0.2, 0.38)) + lerp(0, 0.6, seg(k, 0.6, 0.78));
+});
+kadr(5.7, 6.8, k => { sm.sost = 'stuchit'; });
+sobytie(5.95, () => { zvukStekla(); kam.kachka = 0.14; });
+sobytie(6.2,  () => { zvukStekla(); kam.kachka = 0.14; });
+sobytie(6.45, () => { zvukStekla(); kam.kachka = 0.17; });
+
+/* ── акт 2: срывается вниз мимо мира, тянет полотно второй рукой,
+   пролетает за передний срез, ХВАТАЕТСЯ за кромку и подтягивается ── */
+sobytie(6.95, () => { mir.visible = true; zvuk(120, 0.5, 'sine', 0.05); });
+const KROMKA_Z = 19.5 * KUB + 26;                     /* снаружи южной грани, с зазором на тело */
+const KROMKA_H = vysotaKletki(0, 19) * KUB;
+const VIS_Y = KROMKA_H - 159;                         /* кисти на кромке, глаза чуть ниже травы */
+/* подсветка сцены хвата: тело читается на тёмном срезе */
+const visSvet = new T.PointLight(0xffd9a8, 2.4, 700, 1.7);
+visSvet.position.set(60, 60, KROMKA_Z + 170);
+visSvet.layers.enable(1);
+visSvet.visible = false;
+scene.add(visSvet);
+sobytie(7.0, () => { visSvet.visible = true; });
+sobytie(7.0, () => { zvuk(160, 0.25, 'sine', 0.04); setTimeout(() => zvuk(80, 0.25, 'sine', 0.04), 200); });   /* A2: «вжух» падения — два тона вместо глиссандо */
+sobytie(10.7, () => { visSvet.visible = false; });
+kadr(7.0, 8.5, k => {
+  const g = k * k;
+  sm.sost = 'tyanet';
+  sm.rotZ = Math.PI * (1 - gladko(Math.min(1, k * 1.15)));   /* кувырок в нормаль, без рывка на старте */
+  sm.x = Math.sin(k * Math.PI) * 30;                          /* лёгкая дуга по x в полёте */
+  sm.z = lerp(820, KROMKA_Z, gladko(k));
+  sm.y = lerp(448, VIS_Y, g);                        /* проваливается за срез до хвата */
+  sm.rotY = Math.PI * Math.min(1, k * 1.4);          /* разворачивается грудью к стене */
+  /* мир привязан к руке — падает вслед и садится на место */
+  mir.position.y = Math.max(0, sm.y) * 2.05;
+  shnur.visible = true;
+  shnurOt(sm.x - 5 * U, sm.y + 24 * U, sm.z, 0, mir.position.y + KUB * 4, -KUB * 2);
+});
+sobytie(8.2, () => { stukDereva(); kam.kachka = 0.45; mir.position.y = 0; ozhivitFon(false); pylU(sm.x, 4, sm.z); });
+sobytie(8.2, () => titr('02 · ВЫСАДКА'));
+sobytie(8.5, () => { shnur.visible = false; zvuk(500, 0.06, 'sine', 0.05); });
+/* 8.5–8.9 висит на кромке спиной к нам, 8.9–10.1 ВЛЕЗАЕТ: подтяг →
+   нога на кромку → перевалился на четвереньки → встал, отряхнулся */
+kadr(8.5, 8.9, k => { sm.sost = 'visit'; sm.rotY = Math.PI; sm.y = VIS_Y + Math.sin(k * 9) * 3; });
+kadr(8.9, 10.1, k => {
+  sm.sost = 'vlezaet'; sm.rotY = Math.PI;
+  const p1 = seg(k, 0, 0.38);        /* подтяг корпуса руками */
+  const p2 = seg(k, 0.32, 0.62);     /* правая нога закидывается на край */
+  const p3 = seg(k, 0.56, 0.88);     /* перевалился, на четвереньках */
+  const p4 = seg(k, 0.82, 1);        /* поднялся на ноги */
+  /* перехваты рук: левая хватается на 0.05 раньше правой — «перехватился» */
+  const p1L = seg(k, 0, 0.33);
+  const p1R = seg(k, 0.05, 0.38);
+  const otryah = Math.sin(p4 * Math.PI) * 0.22;   /* короткое отряхивание в конце */
+  sm.y = VIS_Y + 80 * p1 + (KROMKA_H - 40 - VIS_Y - 80) * p2 + 48 * p3 - (KROMKA_H + 8 - KROMKA_H) * p4;
+  sm.z = KROMKA_Z - (KROMKA_Z - 19 * KUB) * (p3 * 0.72 + p4 * 0.28);
+  rukaL.rotation.x = -2.95 + 1.5 * p1L + 1.25 * p3 + otryah;
+  rukaR.rotation.x = -2.95 + 1.3 * p1R + 1.45 * p3 + otryah;
+  nogaR.rotation.x = -2.3 * p2 + 1.85 * p3 + 0.45 * p4;
+  nogaL.rotation.x = 0.3 * p1 - 0.4 * p3 + 0.1 * p4;
+  stivG.rotation.x = 0.5 * p2 - 0.2 * p3 - 0.3 * p4;
+});
+sobytie(10.1, () => { tenMir.visible = true; });
+/* камера отъезжает во время падения — прицел на хват у кромки */
+kadr(7.0, 8.8, k => {
+  const g = gladkoIO(k);
+  kam.z = lerp(980, 2150, g); kam.y = lerp(300, 520, g);
+  kam.cy = lerp(300, -70, g); kam.cz = lerp(0, KROMKA_Z - 200, g);
+});
+kadr(10.1, 11.1, k => {
+  const g = gladkoIO(k);
+  kam.x = lerp(0, 40, g); kam.y = lerp(520, 330, g); kam.z = lerp(2150, 1050, g);
+  kam.cy = lerp(-70, 120, g); kam.cz = lerp(KROMKA_Z - 200, -200, g);
+});
+
+/* ── акт 3: добыча. Спринт к дереву через всё поле, рубка топором ── */
+kadr(10.1, 11.9, k => {
+  const g = gladko(k);
+  sm.sost = 'walk';
+  sm.x = lerp(0, -KUB * 1.45, g);
+  sm.z = lerp(19 * KUB, -KUB * 0.75, g);
+  sm.y = lerp(KROMKA_H, 0, Math.min(1, k * 2));
+  sm.rotY = Math.atan2(-0.35, -1);
+});
+for (let i = 0; i < 4; i++) sobytie(11.0 + i * 0.25, () => zvuk(90, 0.06, 'triangle', 0.02));   /* A2: шаги по траве в спринте */
+sobytie(11.5, () => titr('03 · ДОБЫЧА'));
+kadr(11.9, 14.3, k => { sm.sost = 'rubit'; sm.rotY = Math.atan2(-1.17, -1); });
+for (let i = 0; i < 5; i++) sobytie(12.1 + i * 0.44, () => {
+  tuk(); derevoKach = 1;
+  iskryU(derevo.position.x + KUB * 0.5, KUB * 0.9, derevo.position.z + KUB * 0.3);
+});
+/* ствол срублен: блоки исчезают, дрова летят в руки (крона повисает — как в игре) */
+sobytie(14.3, () => {
+  stvolKubi.forEach(s => s.visible = false);
+  zvukLomki();
+  drova.visible = true;
+});
+kadr(14.3, 14.7, k => {
+  drova.position.set(
+    lerp(derevo.position.x, sm.x, k),
+    lerp(KUB * 0.8, 16 * U, k),
+    lerp(derevo.position.z, sm.z, k));
+  drova.scale.setScalar(1 - k * 0.55);
+});
+sobytie(14.7, () => { drova.visible = false; zvuk(640, 0.07, 'sine', 0.04); });
+/* крона без ствола не висит вечно: осыпается, как в игре */
+sobytie(19.8, () => {
+  for (const ch of derevo.children){
+    if (stvolKubi.includes(ch) || !ch.visible) continue;
+    ch.visible = false;
+    iskryU(derevo.position.x + ch.position.x, ch.position.y, derevo.position.z + ch.position.z);
+  }
+  zvukLomki();
+});
+
+/* ── акт 3.5: расчистка. Срывает ближние холмики под будущую деревню ── */
+kadr(14.7, 15.4, k => {
+  const g = gladko(k);
+  sm.sost = 'walk';
+  sm.x = lerp(-KUB * 1.45, KUB * 2.6, g);
+  sm.z = lerp(-KUB * 0.75, -KUB * 1.5, g);
+  sm.rotY = Math.atan2(1, -0.3);
+});
+kadr(15.4, 17.5, k => { sm.sost = 'kopat'; sm.rotY = Math.atan2(0.6, -0.4); });
+sobytie(15.95, () => zhizn.rovnyat(3, -2));
+sobytie(16.75, () => zhizn.rovnyat(3, -1));
+sobytie(17.3, () => zhizn.rovnyat(2, -2));
+
+/* ── акт 4: крафт. Ставит верстак, делает на нём вещь ── */
+kadr(17.5, 18.4, k => {
+  const g = gladko(k);
+  sm.sost = 'walk';
+  sm.x = lerp(KUB * 2.6, 0, g);
+  sm.z = lerp(-KUB * 1.5, -KUB * 1.2, g);
+  sm.rotY = lerp(Math.atan2(-1, -0.1), Math.PI, g);
+});
+kadr(18.4, 18.85, k => { sm.sost = k < 0.5 ? 'zamah' : 'udar'; sm.rotY = Math.PI; });
+sobytie(18.63, () => {
+  zvukStavki(); kam.kachka = 0.25;
+  VERSTAK.visible = true;
+  iskryU(VERSTAK.position.x, KUB, VERSTAK.position.z);
+});
+kadr(18.63, 19.05, k => {
+  VERSTAK.scale.setScalar(0.25 + 0.75 * (1 - Math.pow(1 - k, 3)) * (1 + Math.sin(k * 6) * 0.08));
+});
+sobytie(19.0, () => titr('04 · ВЕРСТАК'));
+/* 18.45–23.1 работает на верстаке спиной; камера медленно подкрадывается.
+   BAGI: траектория поднята (было y 330→600, z до 70) — камера ниже проходила
+   сквозь овцу, пасущуюся у верстака; трогать зверя нельзя (zhizn.js занят) */
+kadr(19.05, 23.7, k => {
+  sm.sost = 'rabota'; sm.rotY = Math.PI;
+  const g = gladkoIO(k);
+  kam.x = lerp(40, 90, g);
+  kam.y = lerp(400, 680, g);
+  kam.z = lerp(1050, 160, g);
+  kam.cx = 0; kam.cy = lerp(150, 70, g); kam.cz = lerp(-200, -KUB * 2, g);
+});
+for (let i = 0; i < 8; i++) sobytie(19.3 + i * 0.55, () => {
+  tuk(); iskryU(VERSTAK.position.x, KUB * 1.1, VERSTAK.position.z + 12);
+});
+sobytie(21.3, () => { tablichka.visible = true; });   /* вещь рождается на верстаке */
+
+/* ── акт 5: замечен. Прячет вещь, идёт к нам, «не подсматривать», толчок ── */
+kadr(23.7, 24.5, k => {
+  sm.sost = 'idle'; sm.golovaY = lerp(0, 2.6, gladko(k)); /* оглядывается через плечо */
+});
+sobytie(23.9, () => zvuk(700, 0.12, 'sine', 0.03));
+sobytie(24.25, () => {
+  mir.remove(tablichka);
+  stivG.add(tablichka);
+  tablichka.layers.set(1);
+  tablichka.rotation.set(0.06, Math.PI, 0);
+  tablichka.position.set(0, 19 * U, -4.4 * U);
+  tablichka.visible = true;
+});
+sobytie(24.4, () => titr('05 · НЕ ПОДСМАТРИВАТЬ'));
+kadr(24.5, 25.9, k => {
+  const g = gladko(k);
+  const gk = gladkoIO(k);   /* камера — отдельная кривая, тело идёт своей */
+  sm.golovaY = lerp(2.6, 0, Math.min(1, k * 2));
+  sm.sost = 'walk';
+  sm.rotY = lerp(Math.PI, 0, Math.min(1, k * 1.6));
+  sm.z = lerp(-KUB * 1.2, 20, g);
+  sm.x = 0;
+  /* камера опускается к лицу, но держит дистанцию — не входит в Стива */
+  kam.x = lerp(90, 0, gk);
+  kam.y = lerp(600, ROST * 0.88, gk);
+  kam.z = lerp(70, 190, gk);
+  kam.cx = 0; kam.cy = lerp(40, ROST * 0.88, gk); kam.cz = lerp(-KUB * 2, 20, gk);
+});
+kadr(25.9, 27.7, k => {
+  sm.sost = 'grozit';
+  sm.golovaY = Math.sin(k * Math.PI * 5) * 0.5;  /* нет-нет-нет */
+});
+sobytie(26.1, () => zvuk(300, 0.06, 'sine', 0.05));
+sobytie(26.5, () => zvuk(300, 0.06, 'sine', 0.05));
+sobytie(26.9, () => zvuk(300, 0.06, 'sine', 0.05));
+sobytie(27.7, () => boom());
+kadr(27.7, 28.05, k => {
+  sm.sost = 'tolchok';
+  kam.kachka = 1;
+});
+sobytie(28.0, () => skrytTitr());
+/* камера отлетает и падает — мы валимся на лист */
+kadr(28.05, 29.0, k => {
+  const g = gladkoIO(k);
+  sm.sost = 'idle';
+  kam.x = lerp(0, 60, g);
+  kam.y = lerp(ROST * 0.88, -300, g);
+  kam.z = lerp(190, 1500, g);
+  kam.cy = lerp(ROST * 0.88, 700, g);   /* взгляд задирается — кувырок затылком */
+  kam.kachka = 1 - k * 0.5;
+});
+sobytie(28.65, () => { document.getElementById('vspyshka').style.opacity = '1'; });
+sobytie(29.0, () => perekhodKStroyke());
+
+function perekhodKStroyke(){
+  if (faza !== 'prolog') return;
+  faza = 'stroyka';
+  /* сшивка суток: пролог жил циклом 34, стройка живёт 85 — переносим tP в ту же
+     фазу неба нового цикла, чтобы день/ночь не прыгнули в кадре приземления */
+  {
+    const sut34 = ((tP + 0.5) / 34) % 1;
+    const sutRavn = sut34;   /* фаза солнца 0..1 (равномерная в цикле 34) */
+    const rawNov = sutRavn < 0.5 ? sutRavn * 2 * 0.8 : 0.8 + (sutRavn - 0.5) * 2 * 0.2;
+    tP = rawNov * 85 - 0.5;
+  }
+  golova.material = golovaMatOtkryto;   /* A3: страховка — глаза не остаются закрытыми, если моргание попало на стык */
+  document.body.classList.remove('prolog');
+  /* мир НЕ прячется — он остаётся фоном под страницей */
+  mir.visible = true;
+  mir.position.y = 0;                      /* занавес точно на месте */
+  shirma.visible = false; tenMir.visible = false; shnur.visible = false;
+  tenList.visible = true;
+  kroshki3d.forEach(k => k.visible = false);
+  pylPul.forEach(p => p.visible = false);
+  scene.background = null;                 /* верхний слой прозрачен; небо рисует фон-рендер */
+  cam3.layers.disable(1);                  /* Стив уходит из фона — он живёт поверх страницы */
+  cam3.position.set(-140, 700, 2350);
+  cam3.lookAt(80, 20, -60);                /* широкая панорама: деревня, фермы, стена */
+  stivG.scale.setScalar(1.6);
+  tP = Math.max(tP, 35.5);                 /* очнулись утром следующего дня */
+  ozhivitFon(true);                        /* мир заводится: жители, звери, программа города */
+  zhizn.pokazatStiva(false);               /* Стив ОДИН — сейчас он на листе */
+  stiv.golovaAvto = true;
+  const v = document.getElementById('vspyshka');
+  v.style.opacity = '1';
+  setTimeout(() => { v.style.opacity = '0'; }, 240);
+  uvertyuraLista();
+  bloki.slice(2).forEach(b => nablyudatel.observe(b));
+}
+document.getElementById('propustit').addEventListener('click', perekhodKStroyke);
+
+/* ── поза из состояния (общая для двух фаз) ── */
+function poza(sost, f, dt){
+  topor.visible = (sost === 'rubit');
+  kirka.visible = (sost === 'kopat');
+  if (sost === 'vlezaet') return 0;   /* конечностями рулит таймлайн напрямую */
+  let ruL = 0, ruR = 0, noL = 0, noR = 0, naklon = 0, podskok = 0;
+  if (sost === 'walk'){
+    const s = Math.sin(f * 13);
+    ruL = s * 1.1; ruR = -s * 1.1; noL = -s * 0.95; noR = s * 0.95;
+    naklon = 0.1; podskok = Math.abs(Math.cos(f * 13)) * 6;
+  } else if (sost === 'zamah'){ ruR = -2.8; ruL = -0.3; naklon = -0.12; }
+  else if (sost === 'udar'){ ruR = -0.25; naklon = 0.26; }
+  else if (sost === 'rabota'){
+    ruR = -1.15 + Math.sin(f * 16) * 0.55;  /* стучит по верстаку */
+    ruL = -0.5; naklon = 0.14;
+  } else if (sost === 'rubit'){
+    ruR = -1.4 + Math.sin(f * 19) * 0.85;   /* рубит дерево с оттяжкой */
+    ruL = -0.25; naklon = 0.18;
+  } else if (sost === 'vylez'){
+    ruR = -0.55; ruL = -0.2; naklon = 0.16;  /* свесился сверху, держит шнурок */
+    podskok = Math.sin(f * 2.1) * 2;
+  } else if (sost === 'dumaet'){
+    /* таймлапс встал: чешет затылок — «так, добавим скидку» */
+    ruR = -2.7 + Math.sin(f * 2.4) * 0.18;
+    ruL = 0.1; naklon = -0.04;
+  } else if (sost === 'stuchit'){
+    /* тянется к камере и стучит по стеклу костяшками */
+    ruR = -2.5 + Math.max(0, Math.sin(f * 21)) * 0.3;
+    ruL = -0.15;
+  } else if (sost === 'visit'){
+    /* висит на кромке разреза, ноги болтаются */
+    ruL = -2.95; ruR = -2.95;
+    noL = Math.sin(f * 5) * 0.2; noR = -Math.sin(f * 4.4) * 0.2;
+  } else if (sost === 'podtyag'){
+    /* подтягивается на уступ */
+    ruL = -1.3; ruR = -1.5; naklon = 0.28;
+    noL = -0.9; noR = -0.5;
+  } else if (sost === 'grozit'){
+    ruR = -2.9; ruL = 0.15;
+    naklon = -0.03;
+  } else if (sost === 'tolchok'){
+    ruR = -1.5; ruL = -1.5; naklon = -0.14;
+  } else if (sost === 'tyanet'){
+    ruL = -2.6; ruR = -0.6; naklon = -0.1;   /* держит полотно над собой */
+    noL = 0.35 + Math.sin(f * 7) * 0.15; noR = -0.3 + Math.cos(f * 6) * 0.15;
+    podskok = 0;
+  } else if (sost === 'polet'){
+    ruL = -2.6; ruR = -2.6; noL = 0.4; noR = -0.3;
+  } else if (sost === 'prisel'){
+    naklon = 0.3; noL = -1.1; noR = -1.1; podskok = -14; ruL = 0.6; ruR = 0.6;
+  } else {
+    const d = Math.sin(f * 1.7);
+    ruL = d * 0.05; ruR = -d * 0.05; podskok = d * 1.2;
+  }
+  const l = 1 - Math.pow(0.00004, dt);
+  rukaL.rotation.x += (ruL - rukaL.rotation.x) * l;
+  rukaR.rotation.x += (ruR - rukaR.rotation.x) * l;
+  nogaL.rotation.x += (noL - nogaL.rotation.x) * l;
+  nogaR.rotation.x += (noR - nogaR.rotation.x) * l;
+  stivG.rotation.x += (naklon - stivG.rotation.x) * l;
+  return podskok;
+}
+
+/* ═══ фоновая жизнь мира — отдельный модуль zhizn.js ═══ */
+let tekSolnVys = 1, tekDen = 0;
+/* мировая фаза анимаций: растёт с темпом партитуры, иначе на ×7 ноги скользят */
+let fMira = 0;
+const { sozdatZhizn } = await import('./zhizn.js');
+const zhizn = sozdatZhizn({
+  T, mir, KUB, U, mat, pixTex, zalivka, kub, m6,
+  iskryU, zvuk, vysotaKletki, kletkiIndeksy, pole: поле,
+  tekVysota, zemPoKletke, zemlyaIM,
+  tex: { litso, golBok: golovaBok, golZad: golovaZad, golVerh: golovaVerh, golNiz: golovaNiz,
+         tors: futbolka, ruka: rukaTex, rukV: rukavVerh, rukN: kozhaNiz,
+         noga: nogaTex, nogV: shtanyVerh, nogN: podoshva,
+         doski, kamen, kora },
+  kachnutKameru: v => { kam.kachka = Math.max(kam.kachka, v); },
+  derevya: derevyaMira
+});
+const ozhivitFon = p => zhizn.ozhivitFon(p);
+window.__zh = () => zhizn.debug();
+window.__st = () => ({
+  /* очередь наружу отдаётся ПЛОСКИМ списком типов, как была до группировки */
+  ochered: [...(gruppa ? gruppa.dela : []), ...stiv.ochered]
+    .flatMap(e => e.dela ? e.dela.map(d => d.tip) : [e.tip]),
+  delo: stiv.delo && stiv.delo.tip, uskorenie,
+  naListe: stivNaListe, skidkaByla, uEkr: zhizn.uEkrana(),
+  glubina, vykopano, putLen: put.length, dobycha });
+/* деревья и верстак непроходимы для жителей и мобов */
+[[-12, -8], [11, -10], [13, 4], [-13, 6], [8, -13], [-8, 13], [15, -2], [-15, -4], [12, 9], [-11, 11], [-2, -1], [0, -2]]
+  .forEach(p => zhizn.zanyat(p[0], p[1]));
+
+
+/* ── продуктовый слой: иконка, вкладка, прелоадер, вуаль, перф-страховка ── */
+/* иконка рисуется тем же способом, что и всё в этой сцене — пикселями в канвасе;
+   в разметке лежит SVG-двойник, чтобы запроса за файлом не было ни одного */
+{
+  const c = document.createElement('canvas'); c.width = c.height = 16;
+  const g = c.getContext('2d');
+  const px = (x, y, w, h, cv) => { g.fillStyle = cv; g.fillRect(x * 2, y * 2, w * 2, h * 2); };
+  px(0, 0, 8, 8, '#b5825d');                                    /* кожа */
+  px(0, 0, 8, 2, '#3a2a1c'); px(0, 2, 1, 2, '#3a2a1c'); px(7, 2, 1, 2, '#3a2a1c');   /* волосы */
+  px(1, 3, 1, 1, '#3b4fa0'); px(2, 3, 1, 1, '#e9e9ef');         /* левый глаз */
+  px(5, 3, 1, 1, '#e9e9ef'); px(6, 3, 1, 1, '#3b4fa0');         /* правый глаз */
+  px(3, 4, 2, 1, '#a3714e'); px(2, 5, 4, 1, '#6b4a2f'); px(3, 6, 2, 1, '#522f1c');   /* нос, усы, рот */
+  document.getElementById('ikonka').href = c.toDataURL('image/png');
+}
+const bazovyjTitul = document.title;
+let titulMigaet = false;
+/* прелоадер уходит по ПЕРВОМУ отрисованному кадру, не по готовности рендеров */
+function snyatZagruzku(){ window.__snyatZagruzku(); }
+let pervyjKadr = true;
+
+/* вуаль двумя слоями: дневной и ночной сводятся вручную, чтобы шахта
+   (она гасит вуаль целиком) и ночь мира не перетирали друг друга */
+const vualDen = document.querySelector('.vual:not(.nochnaya)');
+const vualNoch = document.querySelector('.vual.nochnaya');
+let nochMira = false, nochK = 0;
+
+/* перф-страховка: средний FPS по окну в 60 кадров; ниже 40 дольше трёх секунд —
+   одноразовая деградация без возврата (мигание туда-сюда хуже низкого FPS).
+   Считается по СЫРОМУ времени кадра: dt в цикле зажат 0.05, и по нему любой
+   провал ниже 20 fps выглядел бы как ровно 20 — страховка опаздывала бы в разы */
+const fpsOkno = new Array(60).fill(1 / 60);
+let fpsI = 0, fpsSum = 1, fpsNiz = 0, degradirovano = false, nomerKadra = 0, fpsKadrov = 0;
+window.__perf = () => ({ degradirovano, sredFps: +(60 / fpsSum).toFixed(1) });
+function degradirovat(){
+  degradirovano = true;
+  renderer.shadowMap.enabled = false;
+  renderer2.shadowMap.enabled = false;
+  solnceSvet.castShadow = false;
+  console.info('BLOCKSMITH: FPS ниже 40 — тени сняты, мир-фон переведён на кадр через кадр');
+}
+
+/* ── цикл ── */
+let prev = performance.now();
+function цикл(){
+  const now = performance.now(), syro = (now - prev) / 1000, dt = Math.min(0.05, syro); prev = now;
+  stiv.faza += dt;
+  const f = stiv.faza;
+  nomerKadra++;
+  /* кадры длиннее полусекунды — это отсутствие вкладки, а не низкий FPS */
+  if (syro < 0.5){
+    fpsSum += syro - fpsOkno[fpsI]; fpsOkno[fpsI] = syro; fpsI = (fpsI + 1) % 60; fpsKadrov++;
+    if (!degradirovano && fpsKadrov > 60){
+      if (60 / fpsSum < 40) fpsNiz += syro; else fpsNiz = 0;
+      if (fpsNiz > 3) degradirovat();
+    }
+  }
+
+  if (faza === 'prolog'){
+    tP += Q.get('stop') ? 0 : dt;   /* ?t=сек&stop=1 — застывший кадр для отладки */
+    for (const s of sobytiya) if (!s.done && tP >= s.t){ s.done = true; s.fn(); }
+    for (const k of kadry) if (tP >= k.t0 && tP <= k.t1) k.fn(Math.min(1, (tP - k.t0) / (k.t1 - k.t0)));
+
+    /* сутки, дрейф облаков, затухание качания дерева, жизнь фона */
+    obnovitNebo(tP, 34);   /* пролог живёт старым 34-с циклом — ночь с луной на месте */
+    for (const o of oblaka){
+      o.position.x += dt * 9;
+      if (o.position.x > 950) o.position.x = -950;
+    }
+    if (derevoKach > 0){
+      derevoKach = Math.max(0, derevoKach - dt * 2.2);
+      derevo.rotation.z = Math.sin(f * 38) * 0.05 * derevoKach;
+    }
+    if (zhizn.estZhiteli()){ fMira += dt; zhizn.zhiznFona(dt, fMira, tekSolnVys, tekDen); }
+
+    const podskok = poza(sm.sost, f, dt);
+    stivG.position.set(sm.x, sm.y + podskok, sm.z);
+    const l = 1 - Math.pow(0.0004, dt);
+    stivG.rotation.y += (sm.rotY - stivG.rotation.y) * l;
+    stivG.rotation.z += (sm.rotZ - stivG.rotation.z) * l;
+    golova.rotation.y += (sm.golovaY - golova.rotation.y) * (1 - Math.pow(0.00008, dt));
+    golova.rotation.x += (sm.golovaX - golova.rotation.x) * l;
+    tenMir.position.set(sm.x, 1.2, sm.z);
+    const vys = Math.max(0, sm.y) / 300;
+    tenMir.scale.set(34 / (1 + vys), 22 / (1 + vys), 1);
+
+    /* 3D-крошки */
+    for (const k of kroshki3d){
+      if (k.zhizn <= 0) continue;
+      k.zhizn -= dt;
+      if (k.zhizn <= 0){ k.visible = false; continue; }
+      k.skor.y -= 900 * dt;
+      k.position.addScaledVector(k.skor, dt);
+      k.rotation.x += dt * 9; k.rotation.z += dt * 7;
+    }
+    /* пыль приземлений — легче и дольше, чем искры */
+    for (const p of pylPul){
+      if (p.zhizn <= 0) continue;
+      p.zhizn -= dt;
+      if (p.zhizn <= 0){ p.visible = false; continue; }
+      p.skor.y -= 500 * dt;
+      p.position.addScaledVector(p.skor, dt);
+      p.rotation.x += dt * 5; p.rotation.z += dt * 4;
+    }
+
+    /* камера с лёгкой ручной дрожью + тряска толчка */
+    const dr = 1.6, tr = kam.kachka * 26;
+    cam3.position.set(
+      kam.x + Math.sin(f * 0.9) * dr + (Math.random() - 0.5) * tr,
+      kam.y + Math.cos(f * 0.7) * dr + (Math.random() - 0.5) * tr,
+      kam.z + (Math.random() - 0.5) * tr * 0.5
+    );
+    cam3.lookAt(kam.cx, kam.cy, kam.cz);
+    if (kam.kachka > 0) kam.kachka = Math.max(0, kam.kachka - dt * 1.4);
+    renderer.render(scene, cam3);
+    if (pervyjKadr && nomerKadra > 1){ pervyjKadr = false; snyatZagruzku(); }
+    requestAnimationFrame(цикл);
+    return;
+  }
+
+  /* ── фаза стройки: очередь дел на листе ── */
+  obnovitUskorenie();
+  if (!stiv.delo && (stiv.ochered.length || (gruppa && gruppa.dela.length))) stiv.delo = vzyatDelo();
+  const o = stiv.delo;
+  if (o){
+    if (o.tip === 'kBloku'){
+      const r = o.blok.getBoundingClientRect();
+      o.x = Math.min(Math.max(r.left + 120, 140), innerWidth - 140);
+      o.y = Math.min(Math.max(r.top + Math.min(r.height / 2, 220), 150), innerHeight - 120);
+      o.tip2 = 'idti';
+    }
+    if (o.tip === 'kCifre'){
+      const r = document.getElementById('skidkaCifra').getBoundingClientRect();
+      o.x = Math.min(Math.max(r.left - 40, 120), innerWidth - 120);
+      o.y = Math.min(Math.max(r.top - 30, 140), innerHeight - 120);
+      o.tip2 = 'idti';
+    }
+    if (o.tip === 'dumaet'){
+      o.t = (o.t || 0) + dt * 1000;
+      stiv.sost = 'dumaet';
+      if (o.t >= o.ms){ stiv.delo = null; stiv.sost = 'idle'; }
+    }
+    if (o.tip === 'kladkaBukv'){
+      if (o.i === undefined){ o.i = 0; o.t = 0; }
+      /* пробелы проявляются даром */
+      while (o.i < o.spany.length && o.spany[o.i].textContent === ' '){
+        o.spany[o.i].style.opacity = '1'; o.spany[o.i].style.transform = 'none'; o.i++;
+      }
+      if (o.i >= o.spany.length){ stiv.delo = null; stiv.sost = 'idle'; }
+      else {
+        const sp = o.spany[o.i];
+        const r = sp.getBoundingClientRect();
+        const letCx = r.left + r.width / 2, litNiz = r.top + r.height;
+        /* Стив НЕ встаёт на место буквы: ниже строки на 55px и в стороне на 34px
+           (зеркально при flip) — тело не закрывает точку, куда падает буква
+           (владелец 12.08, закон «буква перед Стивом») */
+        const budFlip = letCx < stiv.x;
+        const cx = Math.min(Math.max(letCx + (budFlip ? -41 : 41), 60), innerWidth - 60);
+        const cy = Math.min(Math.max(litNiz + 66, 130), innerHeight - 100);
+        stiv.x += (cx - stiv.x) * Math.min(1, dt * 15);
+        stiv.y += (cy - stiv.y) * Math.min(1, dt * 15);
+        stiv.flip = budFlip;
+        o.t += dt;
+        const mah = Math.max(0.05, 0.13 / uskorenie);   /* руки идут в темп кладки */
+        stiv.sost = (o.t % mah) < mah / 2 ? 'zamah' : 'udar';
+        const temp = (o.bystro ? 0.085 : 0.12) / uskorenie;
+        if (o.t > temp){
+          o.t = 0;
+          /* буква падает сверху и встаёт с отскоком — блок, а не проявление */
+          sp.style.transition = 'transform .22s cubic-bezier(.3,1.5,.5,1), opacity .1s';
+          requestAnimationFrame(() => { sp.style.opacity = '1'; sp.style.transform = 'none'; });
+          if (o.i % 3 === 0) tuk();
+          if (o.i % 2 === 0) kroshkiMini(letCx, litNiz - 20);
+          /* дрожь строки при ударе — не чаще раза в 3 буквы, только у заголовка */
+          if (!o.bystro){
+            o.drozhSchyot = (o.drozhSchyot || 0) + 1;
+            if (o.drozhSchyot >= 3){
+              o.drozhSchyot = 0;
+              const zagEl = sp.closest('h1,h2,h3');
+              if (zagEl){
+                zagEl.style.transition = 'transform .08s ease-out';
+                zagEl.style.transform = 'translateY(1px)';
+                setTimeout(() => { zagEl.style.transform = 'none'; }, 80);
+              }
+            }
+          }
+          o.i++;
+        }
+      }
+    }
+    if (o.tip === 'idti' || o.tip2 === 'idti'){
+      const dx = o.x - stiv.x, dy = o.y - stiv.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 6){ stiv.x = o.x; stiv.y = o.y; o.cb && o.cb(); stiv.delo = null; stiv.sost = 'idle'; }
+      else {
+        const hod = 1 + (uskorenie - 1) * 0.5;          /* долг гонит и шаг тоже */
+        const sk = Math.min(dist, 400 * hod * dt + dist * 2.1 * hod * dt);
+        stiv.x += dx / dist * sk; stiv.y += dy / dist * sk;
+        stiv.flip = dx < 0;
+        stiv.sost = 'walk';
+      }
+    } else if (o.tip === 'upast'){
+      o.v = (o.v || 260) + 2400 * dt;
+      stiv.y += o.v * dt;
+      stiv.sost = 'polet';
+      if (stiv.y >= o.celY){
+        stiv.y = o.celY;
+        if (!o.sel){ o.sel = 0; stukDereva(); kroshkiDom(stiv.x, stiv.y + ROST / 2, PYL_CVETA); }
+        o.sel += dt;
+        stiv.sost = o.sel < 0.28 ? 'prisel' : 'idle';
+        if (o.sel > 0.45){ stiv.delo = null; }
+      }
+    } else if (o.tip === 'poyavitsya'){
+      /* в мире Стив строит лестницу к экрану и взбирается; лишь потом входит в лист */
+      if (!o.nachato){
+        if (!o.zvali){ o.zvali = true; zhizn.kLestnice(); }
+        if (!zhizn.uEkrana()){ stiv.sost = 'idle'; }
+        else {
+          o.nachato = true;
+          const r = o.blok.getBoundingClientRect();
+          stiv.x = Math.min(Math.max(r.left + 220, 170), innerWidth - 170);
+          stiv.y = -320;
+          stivG.visible = true; tenList.visible = true;
+          stivNaListe = true;
+          o.v = 260;
+        }
+      }
+      if (o.nachato){
+        o.v += 2400 * dt;
+        stiv.y += o.v * dt;
+        stiv.sost = 'polet';
+        const celY = Math.min(innerHeight * 0.4, 460);
+        if (stiv.y >= celY){
+          stiv.y = celY;
+          stukDereva(); kroshkiDom(stiv.x, stiv.y + ROST * 0.7, PYL_CVETA);
+          stiv.delo = null; stiv.sost = 'idle';
+        }
+      }
+    } else if (o.tip === 'uyti'){
+      /* дела кончились — спрыгивает с листа обратно в свой мир */
+      stiv.sost = 'polet';
+      o.v = (o.v || 140) + 2600 * dt;
+      stiv.y += o.v * dt;
+      if (stiv.y > innerHeight + 400){
+        stivG.visible = false; tenList.visible = false;
+        stivNaListe = false;
+        zhizn.vernulsya();          /* спрыгнул с листа — появился у лестницы в мире */
+        stiv.delo = null; stiv.sost = 'idle';
+      }
+    } else if (o.tip === 'stavit'){
+      if (!o.t) o.t = 0;
+      o.t += dt;
+      stiv.sost = o.t < 0.55 ? 'zamah' : 'udar';
+      vBlok.visible = o.t < 0.58;
+      if (!o.bylCb && o.t >= 0.55){ o.bylCb = true; o.cb && o.cb(); }
+      if (o.t > 1.35){ stiv.delo = null; stiv.sost = 'idle'; vBlok.visible = false; }
+    } else if (o.tip === 'zhdat'){
+      if (!o.t) o.t = 0;
+      o.t += dt * 1000;
+      stiv.sost = 'idle';
+      if (o.t >= o.ms){ o.cb && o.cb(); stiv.delo = null; }
+    }
+    prostoj = 0;
+  } else {
+    stiv.sost = 'idle';
+    /* постоял без дела — ушёл в мир заниматься деревней */
+    if (stivNaListe){
+      prostoj += dt;
+      if (prostoj > 2.4){ prostoj = 0; stiv.ochered.push({ tip: 'uyti' }); }
+    }
+  }
+
+  const podskok = poza(stiv.sost, f, dt);
+  const l = 1 - Math.pow(0.0004, dt);
+  const celY = stiv.sost === 'walk' ? (stiv.flip ? 0.65 : -0.65) : -0.35;
+  stivG.rotation.y += (celY - stivG.rotation.y) * l;
+  if (stiv.golovaAvto){
+    /* Стив следит за курсором читателя */
+    const gx = Math.max(-0.7, Math.min(0.7, (kursor.x - stiv.x) / 520));
+    const gy = Math.max(-0.3, Math.min(0.35, (kursor.y - stiv.y) / 640));
+    golova.rotation.y += (gx - stivG.rotation.y * 0.6 - golova.rotation.y) * l;
+    golova.rotation.x += (gy - golova.rotation.x) * l;
+  }
+  const M = 1.6;   /* на листе Стив крупнее — герой, а не фигурка */
+  stivG.position.set(stiv.x, -(stiv.y + ROST * M / 2) - podskok * M, 0);
+  tenList.position.set(stiv.x, -(stiv.y + ROST * M / 2) - 6, -40);
+  tenList.scale.set(30 * M - podskok * 1.6, 8 * M - podskok * 0.4, 1);
+
+  /* мир-фон живёт ТАЙМЛАПСОМ: рутина ×7, режиссёрские моменты партитура
+     роняет в ×1 (решение владельца 12.08 — никто не смотрит мир 20 минут) */
+  const tempoMira = zhizn.tempo(dt);
+  tP += dt * 0.55 * tempoMira;
+  obnovitNebo(tP);
+  /* живой статус у кнопки Telegram */
+  statusT += dt;
+  if (statusT > 0.7){
+    statusT = 0;
+    const boj = zhizn.rezhim() === 'boj';
+    const el = document.getElementById('tgStatus');
+    if (el){
+      let txt;
+      if (glubina > 0.08) txt = '<b>●</b> В ШАХТЕ — КОПАЕТ РЯДОМ С ВАМИ';
+      else if (boj) txt = '<b style="color:#a03a2e">●</b> ОТБИВАЕТ НАБЕГ — ОТВЕТИТ ПОСЛЕ БОЯ';
+      else if (stivNaListe) txt = '<b>●</b> В СЕТИ — СОБИРАЕТ СТРАНИЦУ';
+      else txt = '<b>●</b> В СЕТИ — СТРОИТ ГОРОД НИЖЕ';
+      if (el.innerHTML !== txt) el.innerHTML = txt;
+    }
+    /* бой видно и с закрытой вкладкой — заголовок мигает тем же редким тактом */
+    if (boj){
+      titulMigaet = !titulMigaet;
+      document.title = titulMigaet ? '⚔ идёт набег…' : bazovyjTitul;
+    } else if (document.title !== bazovyjTitul){
+      titulMigaet = false;
+      document.title = bazovyjTitul;
+    }
+  }
+  for (const o of oblaka){ o.position.x += dt * 9 * tempoMira; if (o.position.x > 950) o.position.x = -950; }
+  fMira += dt * tempoMira;
+  zhizn.zhiznFona(dt * tempoMira, fMira, tekSolnVys, tekDen);
+
+  /* ── шахта-разрез по скроллу: статичный боковой срез, Стив копает КОЛОДЕЦ строго
+     вниз по центру; камера не летит по туннелю, только следует по Y (владелец 12.08) ── */
+  let shP = 0;
+  {
+    const rz = shahtaZonaEl.getBoundingClientRect();
+    if (rz.top < innerHeight * 0.7)
+      shP = Math.min(1, Math.max(0, (innerHeight * 0.7 - rz.top) / (rz.height - innerHeight * 0.3)));
+  }
+  glubina += (shP - glubina) * (1 - Math.pow(0.05, dt));
+  /* ночь МИРА переворачивает тему листа — с гистерезисом, чтобы на рассвете не дёргалось */
+  if (!nochMira && tekSolnVys < -0.05){ nochMira = true; document.body.classList.add('noch'); }
+  else if (nochMira && tekSolnVys > 0.05){ nochMira = false; document.body.classList.remove('noch'); }
+  nochK += ((nochMira ? 1 : 0) - nochK) * (1 - Math.pow(0.2, dt));
+  /* глубина шахты гасит вуаль целиком, ночь лишь перекладывает её из бумажной в чернильную */
+  const vualBaza = Math.max(0, 1 - glubina * 3);
+  vualDen.style.opacity = String(vualBaza * (1 - nochK));
+  vualNoch.style.opacity = String(vualBaza * nochK);
+  document.getElementById('shSchyot').style.opacity = glubina > 0.05 ? '1' : '0';
+  /* в шахте Стив один — экранный прячется на время спуска */
+  const vShahte = glubina > 0.03;
+  /* задник среза виден только при спуске — из мира его кромка читалась «чёрной дорогой» */
+  if (window.__shZadnik) window.__shZadnik.visible = glubina > 0.015;
+  stivG.visible = !vShahte && stivNaListe;
+  tenList.visible = !vShahte && stivNaListe;
+  if (glubina > 0.01){
+    /* целевой ряд от скролла: glubina 0..1 → ряд 0..40, зажат длиной колодца */
+    const nCel = Math.max(0, Math.min(put.length - 1, Math.floor(glubina * 40)));
+    if (!lomka){
+      /* сперва руда в радиусе 2 от текущего ряда — боковой замах, только
+         когда рядом нет руды Стив бьёт вниз и спускается на ряд (закон 2: по одному блоку) */
+      const tekRyad = put[Math.max(0, Math.min(vykopano, put.length - 1))][1];
+      const rudaB = rudaRyadom(tekRyad);
+      if (rudaB) lomka = { b: rudaB, t: 0, bok: true };
+      else if (nCel > vykopano){
+        const [ix, iy] = put[vykopano + 1];
+        lomka = { b: shBloki.get(`${ix},${iy}`), t: 0, bok: false };
+      }
+    }
+    if (lomka){
+      lomka.t += dt;
+      const b = lomka.b;
+      if (b && !b.vykopan){
+        const dj = 1 + Math.sin(lomka.t * 55) * 0.07;
+        const m4 = new T.Matrix4();
+        m4.makeScale(dj, 2 - dj, 1);
+        m4.setPosition(b.x, b.y, -KUB * 0.5);
+        b.im.setMatrixAt(b.idx, m4);
+        b.im.instanceMatrix.needsUpdate = true;
+      }
+      const bystro = !lomka.bok && (nCel - vykopano) > 2;
+      const porog = lomka.bok ? 0.2 : (bystro ? 0.07 : 0.28);
+      if (lomka.t > porog){
+        const iPut = lomka.bok ? undefined : (vykopano + 1);
+        if (b && !b.vykopan) dobytShBlok(b, iPut);
+        if (!lomka.bok) vykopano = iPut;
+        lomka = null;
+      }
+    }
+    /* Стив в колодце на текущей глубине: бьёт вниз по центру, а при боковом
+       замахе на миг сдвигается и разворачивается к руде — тело в колодце,
+       на месте, никогда не идёт сквозь стену (закон 3) */
+    const [wix, wiy] = put[Math.max(0, Math.min(vykopano, put.length - 1))];
+    const [sx, sy] = shKletka(wix, wiy);
+    let stX = sx, rotY = Math.PI;
+    if (lomka && lomka.bok && lomka.b){
+      stX = sx + (lomka.b.x > sx ? KUB * 0.55 : -KUB * 0.55);
+      rotY = lomka.b.x > sx ? Math.PI / 2 : -Math.PI / 2;
+    }
+    zhizn.shahtyor({ x: stX, y: sy - KUB * 0.5, z: KUB * 0.18, rotY });
+    /* камера: X/Z зафиксированы на колодце, лерп только по Y вслед за глубиной Стива */
+    kamSh.x = WELL_X;
+    kamSh.y += (sy - kamSh.y) * (1 - Math.pow(0.08, dt));
+    /* ореол у ближайших к камере факелов + база освещённости среза (sh-05: было слишком темно) */
+    shAmbient.intensity = 0.15;
+    const vidimyeFakely = shFakely.filter(f => f.visible);
+    vidimyeFakely.sort((a, b) => Math.abs(a.position.y - kamSh.y) - Math.abs(b.position.y - kamSh.y));
+    shOreolPul.forEach((sv, i) => {
+      const fk = vidimyeFakely[i];
+      if (fk){ sv.position.copy(fk.position); sv.intensity = 1.6; }
+      else sv.intensity = 0;
+    });
+  } else {
+    zhizn.shahtyor(null);
+    shAmbient.intensity = 0;
+    shOreolPul.forEach(sv => { sv.intensity = 0; });
+  }
+  /* ── шахта: обновление атмосферных деталей (F2 капли, F3 руда в полёте, F4 лава/гул, F5 мыши) ── */
+  /* капли: рождаются в вырытых клетках верхней половины, не чаще раза в 1.2 с */
+  if (glubina > 0.05){
+    kaplyTaymer += dt;
+    if (kaplyTaymer > 1.2){
+      const svobKaplya = kapliPul.find(k => !k.aktivna);
+      const dostupno = svobKaplya ? KAPEL_INDEKSY.filter(i => i <= vykopano) : null;
+      if (svobKaplya && dostupno && dostupno.length){
+        kaplyTaymer = 0;
+        const [kix, kiy] = put[dostupno[Math.floor(Math.random() * dostupno.length)]];
+        const [cx, cy] = shKletka(kix, kiy);
+        svobKaplya.aktivna = true; svobKaplya.t = 0;
+        svobKaplya.y0 = cy + KUB * 0.42; svobKaplya.y1 = cy - KUB * 0.42;
+        svobKaplya.mesh.position.set(cx, svobKaplya.y0, -KUB * 0.5);
+        svobKaplya.mesh.visible = true;
+      }
+    }
+  }
+  for (const k of kapliPul){
+    if (!k.aktivna) continue;
+    k.t += dt;
+    const p = Math.min(1, k.t / k.dur);
+    k.mesh.position.y = k.y0 + (k.y1 - k.y0) * p * p;
+    if (p >= 1){
+      k.aktivna = false; k.mesh.visible = false;
+      zvShahta(1900 + Math.random() * 300, 0.05, 'sine', 0.02);
+    }
+  }
+  /* F3: добытая руда летит по дуге в вагонетку */
+  for (const r of letRudaPul){
+    if (!r.aktivna) continue;
+    r.t += dt;
+    const p = Math.min(1, r.t / r.dur);
+    r.mesh.position.lerpVectors(r.from, r.to, p);
+    r.mesh.position.y += Math.sin(Math.PI * p) * KUB * 0.7;
+    if (p > 0.75) r.mesh.scale.setScalar(1 - (p - 0.75) / 0.25);
+    if (p >= 1){ r.aktivna = false; r.mesh.visible = false; }
+  }
+  /* F4: лава — пульсация цвета, редкие пузыри, гул ниже бедрока */
+  lavaMat.color.lerpColors(lavaC1, lavaC2, (Math.sin(f * 1.4) + 1) / 2);
+  if (glubina > 0.5){
+    for (const p of lavaPuzyri){
+      p.t += dt;
+      if (!p.mesh.visible){
+        if (p.t > p.zhdat){
+          p.t = 0; p.mesh.visible = true; p.mesh.scale.setScalar(1);
+          p.mesh.position.y = lavaY + KUB * 0.2;
+        }
+      } else {
+        const pr = Math.min(1, p.t / 0.9);
+        p.mesh.position.y = lavaY + KUB * 0.2 + pr * KUB * 0.4;
+        if (pr >= 1){ p.mesh.visible = false; p.t = 0; p.zhdat = 1.5 + Math.random() * 2.5; }
+      }
+    }
+  }
+  if (glubina > 0.6 && !gulOsc) gulVkl();
+  else if (glubina <= 0.6 && gulOsc) gulVykl();
+  /* F5: летучие мыши срываются один раз за сессию при первом достижении глубины */
+  if (!myshiSorvalis && glubina > 0.45){
+    myshiSorvalis = true;
+    for (const m of myshiPul){ m.gr.visible = true; m.letit = true; m.t = 0; }
+  }
+  for (const m of myshiPul){
+    if (!m.letit) continue;
+    m.t += dt;
+    if (m.t > 6){ m.letit = false; m.gr.visible = false; continue; }
+    const off = m.t + m.faza;
+    m.gr.position.x = m.baseX + Math.sin(off * 1.3) * KUB * 0.9;
+    m.gr.position.y = m.baseY + Math.sin(off * 0.9) * KUB * 0.35;
+    const vzmakh = Math.sin(m.t * 9 * Math.PI * 2) * 0.7;
+    m.kr1.rotation.z = vzmakh;
+    m.kr2.rotation.z = -vzmakh;
+  }
+  /* камера-режиссёр: наезд на событие, отъезд на панораму */
+  const ti = zhizn.tochkaInteresa();
+  kamCel.x += ((ti.blizko ? ti.x : 80) - kamCel.x) * (1 - Math.pow(0.2, dt));
+  kamCel.z += ((ti.blizko ? ti.z : -60) - kamCel.z) * (1 - Math.pow(0.2, dt));
+  kamDist += ((ti.blizko ? 0.45 : 1) - kamDist) * (1 - Math.pow(0.3, dt));
+  cam3.position.set(
+    -140 * kamDist + kamCel.x * (1 - kamDist) + Math.sin(f * 0.13) * 30,
+    240 + 760 * kamDist + Math.sin(f * 0.09) * 12,
+    2350 * kamDist + 520 * (1 - kamDist));
+  /* камера-режиссёр: минимальная дистанция наезда — не нырять в крыши на blizko */
+  if (ti.blizko){
+    const dxK = cam3.position.x - kamCel.x, dzK = cam3.position.z - kamCel.z;
+    const gorDist = Math.hypot(dxK, dzK), minGor = KUB * 7;
+    if (gorDist < minGor){
+      const k2 = gorDist > 0.001 ? minGor / gorDist : 1;
+      cam3.position.x = kamCel.x + (gorDist > 0.001 ? dxK * k2 : minGor);
+      cam3.position.z = kamCel.z + (gorDist > 0.001 ? dzK * k2 : 0);
+    }
+    cam3.position.y = Math.max(cam3.position.y, KUB * 5);
+  }
+  cam3.lookAt(kamCel.x * (1 - kamDist * 0.6) + 80 * kamDist, 30 * (1 - kamDist), kamCel.z);
+  /* спуск в шахту перебивает надземную камеру: статичный боковой срез —
+     X/Z камеры фиксированы на колодце, едет только Y (владелец 12.08, не полёт) */
+  if (glubina > 0.001){
+    const g = gladko(Math.min(1, glubina * 5));
+    const fokusY = kamSh.y + KUB * 2.2;   /* Стив в кадре по центру-низу, не по центру */
+    cam3.position.set(
+      cam3.position.x * (1 - g) + kamSh.x * g,
+      cam3.position.y * (1 - g) + fokusY * g,
+      cam3.position.z * (1 - g) + CAM_Z_SHAHTA * g);
+    cam3.lookAt(kamSh.x * g, fokusY * g + 30 * (1 - g), -KUB * 0.5 * g);
+  }
+  /* после деградации мир-фон рисуется через кадр — его ЛОГИКА при этом идёт каждый */
+  if (!degradirovano || (nomerKadra & 1) === 0) renderer2.render(scene, cam3);
+
+  renderer.render(scene, camO);
+  if (pervyjKadr && nomerKadra > 1){ pervyjKadr = false; snyatZagruzku(); }
+  requestAnimationFrame(цикл);
+}
+
+/* ── живые числа ── */
+function зн(id){ return document.getElementById(id); }
+function пересчёт(){
+  const b = parseFloat(зн('chBloki').textContent);
+  const c = parseFloat(зн('chChasy').textContent);
+  const s = parseFloat(зн('chStavka').textContent);
+  const полн = Math.round(b * c * s);
+  const итог = Math.round(полн * (1 - skidka / 100));
+  зн('chItog').textContent = '$' + итог.toLocaleString('en-US').replace(/,/g, ' ');
+  const дни = Math.max(1, Math.round(b * c / 8));
+  зн('itogStroka').textContent =
+    `${b} блоков × ${c} ч × $${s} − ${skidka}% = $${итог.toLocaleString('en-US').replace(/,/g, ' ')} · срок ≈ ${дни} рабочих ${дни === 1 ? 'день' : (дни < 5 ? 'дня' : 'дней')}`;
+}
+document.querySelectorAll('.znach:not(.itog)').forEach(el => {
+  let startX = 0, startV = 0, tyanem = false;
+  const min = parseFloat(el.dataset.min), max = parseFloat(el.dataset.max), шагЧ = parseFloat(el.dataset.shag);
+  el.addEventListener('pointerdown', e => {
+    tyanem = true; startX = e.clientX; startV = parseFloat(el.textContent);
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!tyanem) return;
+    let v = startV + Math.round((e.clientX - startX) / 14) * шагЧ;
+    v = Math.min(max, Math.max(min, v));
+    el.textContent = (шагЧ < 1 && v % 1) ? v.toFixed(1) : String(v);
+    пересчёт();
+  });
+  el.addEventListener('pointerup', () => tyanem = false);
+});
+пересчёт();
+
+/* при старте с ?t=сек — доиграть прошедшие кадры до их финала (только в прологе) */
+if (Q.get('list') === '1') perekhodKStroyke();
+if (faza === 'prolog' && tP > 0){
+  for (const k of kadry) if (k.t1 <= tP) k.fn(1);
+}
+
+/* живые часы в шапке */
+setInterval(() => {
+  const t = new Date();
+  const ч = зн('chasy');
+  if (ч) ч.textContent = t.toLocaleTimeString('ru-RU');
+}, 1000);
+
+цикл();
+</script>
+</body>
+</html>
