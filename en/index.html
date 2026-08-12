@@ -1,20 +1,20 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Interactive 3D for the web — selected work</title>
-<meta name="description" content="Three.js product configurators, hand-written GLSL scenes and browser tools with real engineering logic behind them. Six live demos and fourteen shipped projects.">
+<meta name="description" content="Three.js product configurators, hand-written GLSL scenes and browser tools with real engineering logic behind them. Seven live demos and fourteen working projects.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%93%90%3C%2Ftext%3E%3C%2Fsvg%3E">
-<meta name="robots" content="noindex">
+
 <link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/">
 <link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/en/">
 <link rel="alternate" hreflang="x-default" href="https://smirnov-artur.github.io/portfolio/en/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://smirnov-artur.github.io/portfolio/en/">
 <meta property="og:title" content="Interactive 3D for the web — selected work">
-<meta property="og:description" content="Three.js product configurators, hand-written GLSL scenes and browser tools with real engineering logic behind them. Six live demos, fourteen shipped projects.">
-<meta property="og:image" content="https://smirnov-artur.github.io/portfolio/assets/thumbs/aurum.jpg">
+<meta property="og:description" content="Three.js product configurators, hand-written GLSL scenes and browser tools with real engineering logic behind them. Seven live demos, fourteen working projects.">
+<meta property="og:image" content="https://smirnov-artur.github.io/portfolio/assets/thumbs/slowlight.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="../assets/fonts/geologica-var-lat.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/golos-var-lat.woff2" as="font" type="font/woff2" crossorigin>
@@ -36,7 +36,7 @@
     src: url("../assets/fonts/geologica-var-lat.woff2") format("woff2");
     font-weight: 100 900; font-style: normal; font-display: swap;
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
   }
   @font-face {
     font-family: "Golos Text";
@@ -49,7 +49,7 @@
     src: url("../assets/fonts/golos-var-lat.woff2") format("woff2");
     font-weight: 400 900; font-style: normal; font-display: swap;
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
   }
   @font-face {
     font-family: "IBM Plex Mono";
@@ -62,7 +62,7 @@
     src: url("../assets/fonts/plexmono-400-lat.woff2") format("woff2");
     font-weight: 400; font-style: normal; font-display: swap;
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
   }
 
   :root {
@@ -874,9 +874,26 @@
     .screen figcaption { flex-wrap: wrap; gap: 0.3rem 1rem; }
     .screen figcaption > :first-child { flex: 1 1 100%; }
   }
+
+  .tg-chip {
+    position: fixed; right: 18px; bottom: 18px; z-index: 60;
+    font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; text-decoration: none;
+    color: var(--ink); background: var(--paper);
+    border: 1px solid var(--ink); padding: 10px 14px;
+    box-shadow: 4px 4px 0 var(--blue);
+  }
+  .tg-chip:hover { background: var(--blue); color: var(--paper); border-color: var(--blue); }
+  @media (max-width: 720px) { .tg-chip { right: 10px; bottom: 10px; padding: 8px 11px; } }
+
+  @media print {
+    .m-armed, .m-line, .offer, .case, .plate-head, .screen, .terms > div,
+    .masthead, .plate, .flagships-head { opacity: 1 !important; visibility: visible !important; transform: none !important; }
+    .zoom-hint, dialog, .tg-chip { display: none !important; }
+  }
 </style>
 <link rel="stylesheet" href="../css/motion.css">
-<script src="../js/motion.js"></script>
+<script defer src="../js/motion.js"></script>
 </head>
 <body>
 
@@ -896,12 +913,12 @@
     </div>
 
     <div class="hero">
-      <h1>WebGL, shaders and the <em>math</em> underneath</h1>
+      <h1>WebGL, shaders and the <em>maths</em> underneath</h1>
 
       <p class="lede">
         Product configurators on Three.js, scenes written on raw GLSL, and the domain
-        logic that turns a demo into something people order from. Six demos below,
-        fourteen shipped projects under them.
+        logic that turns a demo into something people order from. Seven demos below,
+        fourteen working projects under them.
       </p>
     </div>
 
@@ -932,7 +949,7 @@
           <p class="eyebrow">Flagships</p>
           <p class="eyebrow">Live pages, not screen recordings</p>
         </div>
-        <h2 id="flagships-title">Six demos — better opened than described</h2>
+        <h2 id="flagships-title">Seven demos — better opened than described</h2>
         <p class="flagships-note">
           Heavy graphics inside a browser tab: raw WebGL shaders, cursor physics,
           parametric geometry. Each demo is a page of its own — nothing to install.
@@ -948,11 +965,28 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Demo · new</span>
+              <span class="eyebrow">Demo 01 · new</span>
               <span class="eyebrow">WebGL · one shader</span>
             </div>
             <h3>SLOWLIGHT</h3>
             <p>The biography of one photon: a scroll essay from the sun&#8217;s core to your retina, drawn entirely by a single hand-written shader — not one image on the page.</p>
+            <span class="case-open"><span>Open demo</span><span class="arrow">→</span></span>
+          </div>
+        </a>
+
+        
+        <a class="case" href="../cases/blocksmith/en/">
+          <figure class="case-shot">
+            <img src="../assets/thumbs/blocksmith.jpg" width="1000" height="562" decoding="async"
+                 alt="BLOCKSMITH: a drafting sheet whose heading hangs over a live minecraft world — Steve building a village in timelapse">
+          </figure>
+          <div class="case-body">
+            <div class="case-meta">
+              <span class="eyebrow">Demo 02</span>
+              <span class="eyebrow">WebGPU · living world</span>
+            </div>
+            <h3>BLOCKSMITH</h3>
+            <p>A page a character assembles letter by letter while a whole village grows beneath it in timelapse — down to a discount hidden at the bottom of a mine.</p>
             <span class="case-open"><span>Open demo</span><span class="arrow">→</span></span>
           </div>
         </a>
@@ -964,7 +998,7 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Demo 01</span>
+              <span class="eyebrow">Demo 03</span>
               <span class="eyebrow">WebGL · shaders</span>
             </div>
             <h3>AURUM</h3>
@@ -980,7 +1014,7 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Demo 02</span>
+              <span class="eyebrow">Demo 04</span>
               <span class="eyebrow">Cursor · masking</span>
             </div>
             <h3>Ferro</h3>
@@ -996,7 +1030,7 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Demo 03</span>
+              <span class="eyebrow">Demo 05</span>
               <span class="eyebrow">Video · cursor</span>
             </div>
             <h3>Fluxwave</h3>
@@ -1012,11 +1046,11 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Demo 04</span>
+              <span class="eyebrow">Demo 06</span>
               <span class="eyebrow">Shader · generative</span>
             </div>
             <h3>SIGNAL</h3>
-            <p>Type a ticker and the coin's geometry and palette rebuild around it on the fly.</p>
+            <p>Type a ticker and the coin’s geometry and palette rebuild around it on the fly.</p>
             <span class="case-open"><span>Open demo</span><span class="arrow">→</span></span>
           </div>
         </a>
@@ -1028,7 +1062,7 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Demo 05</span>
+              <span class="eyebrow">Demo 07</span>
               <span class="eyebrow">Data · WebGL</span>
             </div>
             <h3>VAULT</h3>
@@ -1045,7 +1079,7 @@
         <p class="eyebrow">All work</p>
         <p class="eyebrow">Sheets 01—14</p>
       </div>
-      <h2>Fourteen projects that shipped</h2>
+      <h2>Fourteen projects from real briefs</h2>
       <p class="rail-note">
         Production work for manufacturers and suppliers — the screens are shown in the
         language their users actually work in.
@@ -1075,7 +1109,7 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="../assets/a4.jpg" loading="lazy" decoding="async" alt="STANDES configurator: a room of shelving in 3D with the catalogue, the running quote and the send-as-brief action">
+          <img src="../assets/a4.jpg" width="1400" height="680" loading="lazy" decoding="async" alt="STANDES configurator: a room of shelving in 3D with the catalogue, the running quote and the send-as-brief action">
         </div>
         <figcaption><span>Shelving laid out in 3D with a live quote</span><span class="zoom-hint">Click to expand</span></figcaption>
       </figure>
@@ -1279,7 +1313,7 @@
           <source src="../assets/a0-md.mp4" type="video/mp4">
         </video>
         <div class="shots">
-          <img src="../assets/a1.jpg" loading="lazy" decoding="async" alt="Home screen: nine calculation modules with counters for the migrated database — 63 tables, 3,471 records">
+          <img src="../assets/a1.jpg" width="1366" height="1546" loading="lazy" decoding="async" alt="Home screen: nine calculation modules with counters for the migrated database — 63 tables, 3,471 records">
         </div>
         <figcaption><span>Live selection: input → calculation → curve with the operating point</span><span>video and screens</span></figcaption>
       </figure>
@@ -1308,8 +1342,8 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="../assets/a5.jpg" loading="lazy" decoding="async" alt="Input: a project page — a standards-formatted table of ventilation system parameters">
-          <img src="../assets/a6.jpg" loading="lazy" decoding="async" alt="Output: 33 clean line items, ducting in metres and fittings in pieces">
+          <img src="../assets/a5.jpg" width="1400" height="990" loading="lazy" decoding="async" alt="Input: a project page — a standards-formatted table of ventilation system parameters">
+          <img src="../assets/a6.jpg" width="1400" height="760" loading="lazy" decoding="async" alt="Output: 33 clean line items, ducting in metres and fittings in pieces">
         </div>
         <figcaption><span>The project on the left, the extracted specification on the right</span><span class="zoom-hint">Click to expand</span></figcaption>
       </figure>
@@ -1370,7 +1404,7 @@
           <source src="../assets/a12-md.mp4" type="video/mp4">
         </video>
         <div class="shots">
-          <img src="../assets/a13.jpg" loading="lazy" decoding="async" alt="Progress view: confidence calibration — whether stated confidence matches real accuracy">
+          <img src="../assets/a13.jpg" width="1366" height="850" loading="lazy" decoding="async" alt="Progress view: confidence calibration — whether stated confidence matches real accuracy">
         </div>
         <figcaption><span>A live pass: card → confidence → answer → exam</span><span>video and screens</span></figcaption>
       </figure>
@@ -1391,15 +1425,15 @@
         <dl class="spec">
           <dt>Practice</dt><dd>built-in editor, code run in a sandbox, output checked</dd>
           <dt>Exam</dt><dd>answers scored against rubrics, reference breakdown: core / deeper / trap</dd>
-          <dt>Memory</dt><dd>spaced repetition (FSRS); cards written from the judge's verdict</dd>
+          <dt>Memory</dt><dd>spaced repetition (FSRS); cards written from the judge’s verdict</dd>
           <dt>Track</dt><dd>a single path, 8 stages, progress by node</dd>
           <dt>Stack</dt><dd>Go backend, React, execution sandbox, external AI judge</dd>
         </dl>
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="../assets/a14.jpg" loading="lazy" decoding="async" alt="Exercise view: code editor, run and check, output matched">
-          <img src="../assets/a15.jpg" loading="lazy" decoding="async" alt="Exam view: rubric scoring, the judge's verdict and a reference breakdown">
+          <img src="../assets/a14.jpg" width="1400" height="788" loading="lazy" decoding="async" alt="Exercise view: code editor, run and check, output matched">
+          <img src="../assets/a15.jpg" width="1400" height="875" loading="lazy" decoding="async" alt="Exam view: rubric scoring, the judge’s verdict and a reference breakdown">
         </div>
         <figcaption><span>Practice with a live code run, and an exam with a breakdown</span><span class="zoom-hint">Click to expand</span></figcaption>
       </figure>
@@ -1427,7 +1461,7 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="../assets/a16.jpg" loading="lazy" decoding="async" alt="REST API map: 9 domains, 53 endpoints, 51 tables, 5 external integrations">
+          <img src="../assets/a16.jpg" width="1400" height="582" loading="lazy" decoding="async" alt="REST API map: 9 domains, 53 endpoints, 51 tables, 5 external integrations">
         </div>
         <figcaption><span>API map drawn from the project specification</span><span class="zoom-hint">Click to expand</span></figcaption>
       </figure>
@@ -1439,13 +1473,13 @@
           <p class="eyebrow">Sheet 14</p>
           <p class="eyebrow">Speech synthesis</p>
         </div>
-        <h3>Voice clone — the model speaks a language its owner doesn't</h3>
+        <h3>Voice clone — the model speaks a language its owner doesn’t</h3>
         <p class="plate-sub">
           The model was trained on recordings of one person. Judge for yourself: on top, a
           real recording; below, English speech they never said. Same voice.
         </p>
         <dl class="spec">
-          <dt>Training</dt><dd>on the voice owner's own recordings</dd>
+          <dt>Training</dt><dd>on the voice owner’s own recordings</dd>
           <dt>Input</dt><dd>arbitrary text</dd>
           <dt>Output</dt><dd>speech in a language absent from the training data</dd>
           <dt>Use</dt><dd>voiceover, live stream interaction, role-gated access</dd>
@@ -1478,7 +1512,7 @@
       <p>Scope and price are fixed in writing before anything starts. 30–50% up front, or the job split into stages with each stage paid on delivery.</p>
     </div>
     <div>
-      <h2>If we haven't worked before</h2>
+      <h2>If we haven’t worked before</h2>
       <p>The first stage can be deliberately small — two or three days and a modest sum — so you are not betting on a stranger. Escrow is fine by me.</p>
     </div>
     <div>
@@ -1513,6 +1547,8 @@
   -->
 
 </div>
+
+<a class="tg-chip" href="https://t.me/smirnovarturr">Telegram ↗</a>
 
 <script>
   (function () {
@@ -1564,7 +1600,7 @@
       title.textContent = v.getAttribute("data-title") || "";
       bigImg.hidden = true;
       big.hidden = false;
-      big.src = v.currentSrc || v.getAttribute("data-full") || v.src;
+      big.src = v.getAttribute("data-full") || v.currentSrc || v.src;
       big.currentTime = v.currentTime || 0;
       show();
       if (!reduce.matches) {

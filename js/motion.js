@@ -50,6 +50,7 @@
   var base = here.replace(/[^/]*$/, '');
 
   var guard = null;
+  var disarmed = false;
   var splits = [];
 
   /* ---------- фаза 1: до первой отрисовки ---------- */
@@ -83,6 +84,7 @@
   }
 
   function disarm() {
+    disarmed = true;
     clearTimeout(guard);
     root.classList.remove('motion-on');
     dropInitStyle();
@@ -162,7 +164,9 @@
     return el.getBoundingClientRect().top < window.innerHeight;
   }
 
+  window.addEventListener("beforeprint", function () { disarm(); });
   function init() {
+    if (disarmed) return;
     if (!window.gsap || !window.ScrollTrigger || !window.SplitText || !window.Lenis) {
       return disarm();
     }

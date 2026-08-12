@@ -5,15 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Инженерные веб-инструменты — каталог работ</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%93%90%3C%2Ftext%3E%3C%2Fsvg%3E">
-<meta name="robots" content="noindex">
+<meta name="description" content="Калькуляторы подбора, 3D-конфигураторы и B2B-каталоги прямо в браузере. Семь живых демо и четырнадцать проектов из практики.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://smirnov-artur.github.io/portfolio/">
+<meta property="og:title" content="Считаю оборудование прямо в браузере — каталог работ">
+<meta property="og:description" content="Калькуляторы подбора, 3D-конфигураторы и B2B-каталоги в браузере. Семь живых демо и четырнадцать рабочих проектов.">
+<meta property="og:image" content="https://smirnov-artur.github.io/portfolio/assets/thumbs/slowlight.jpg">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/">
 <link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/en/">
 <link rel="alternate" hreflang="x-default" href="https://smirnov-artur.github.io/portfolio/en/">
 <link rel="preload" href="assets/fonts/geologica-var-cyr.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/golos-var-cyr.woff2" as="font" type="font/woff2" crossorigin>
-<style>*{box-sizing:border-box}html,body{margin:0;padding:0}img,video{max-width:100%}</style>
+<style>*{box-sizing:border-box}html,body{margin:0;padding:0}img,video{max-width:100%}
+  .tg-chip {
+    position: fixed; right: 18px; bottom: 18px; z-index: 60;
+    font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; text-decoration: none;
+    color: var(--ink); background: var(--paper);
+    border: 1px solid var(--ink); padding: 10px 14px;
+    box-shadow: 4px 4px 0 var(--blue);
+  }
+  .tg-chip:hover { background: var(--blue); color: var(--paper); border-color: var(--blue); }
+  @media (max-width: 720px) { .tg-chip { right: 10px; bottom: 10px; padding: 8px 11px; } }
+
+  @media print {
+    .m-armed, .m-line, .offer, .case, .plate-head, .screen, .terms > div,
+    .masthead, .plate, .flagships-head { opacity: 1 !important; visibility: visible !important; transform: none !important; }
+    .zoom-hint, dialog, .tg-chip { display: none !important; }
+  }
+</style>
 <link rel="stylesheet" href="css/motion.css">
-<script src="js/motion.js"></script>
+<script defer src="js/motion.js"></script>
 </head>
 <body>
 <style>
@@ -34,7 +58,7 @@
     src: url("assets/fonts/geologica-var-lat.woff2") format("woff2");
     font-weight: 100 900; font-style: normal; font-display: swap;
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
   }
   @font-face {
     font-family: "Golos Text";
@@ -47,7 +71,7 @@
     src: url("assets/fonts/golos-var-lat.woff2") format("woff2");
     font-weight: 400 900; font-style: normal; font-display: swap;
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
   }
   @font-face {
     font-family: "IBM Plex Mono";
@@ -60,7 +84,7 @@
     src: url("assets/fonts/plexmono-400-lat.woff2") format("woff2");
     font-weight: 400; font-style: normal; font-display: swap;
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
   }
 
   :root {
@@ -239,7 +263,7 @@
     font-weight: 500;
     font-size: var(--t-d1);
     line-height: 0.92;
-    letter-spacing: -0.04em;   /* ровно как h1 basement.studio на 87px */
+    letter-spacing: -0.025em;   /* ровно как h1 basement.studio на 87px */
     text-wrap: balance;
     margin: 0;
     max-width: 15ch;
@@ -830,6 +854,23 @@
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
+
+  .tg-chip {
+    position: fixed; right: 18px; bottom: 18px; z-index: 60;
+    font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; text-decoration: none;
+    color: var(--ink); background: var(--paper);
+    border: 1px solid var(--ink); padding: 10px 14px;
+    box-shadow: 4px 4px 0 var(--blue);
+  }
+  .tg-chip:hover { background: var(--blue); color: var(--paper); border-color: var(--blue); }
+  @media (max-width: 720px) { .tg-chip { right: 10px; bottom: 10px; padding: 8px 11px; } }
+
+  @media print {
+    .m-armed, .m-line, .offer, .case, .plate-head, .screen, .terms > div,
+    .masthead, .plate, .flagships-head { opacity: 1 !important; visibility: visible !important; transform: none !important; }
+    .zoom-hint, dialog, .tg-chip { display: none !important; }
+  }
 </style>
 
 <div class="wrap">
@@ -839,6 +880,7 @@
       <p class="eyebrow">Каталог работ · 2026</p>
       <div class="masthead-aside">
         <p class="eyebrow">Расчётные веб-инструменты для производства</p>
+        <a class="eyebrow tg-top" href="https://t.me/smirnovarturr" style="text-decoration:none;color:var(--blue)">Telegram ↗</a>
         <nav class="lang" aria-label="Язык страницы">
           <span class="current" aria-current="true">RU</span>
           <span class="sep" aria-hidden="true">/</span>
@@ -848,7 +890,7 @@
     </div>
 
     <div class="hero">
-      <h1>Считаю <em>оборудование</em> прямо в браузере</h1>
+      <h1>Считаю <em>оборудование</em> прямо в&nbsp;браузере</h1>
 
       <p class="lede">
         Делаю то, что веб-студии обычно не берут: расчёт, 3D и документооборот
@@ -885,7 +927,7 @@
         </div>
         <h2 id="flagships-title">Семь демо — лучше один раз открыть</h2>
         <p class="flagships-note">
-          Сложная графика в браузере: WebGL на сырых шейдерах, курсорная физика,
+          Сложная графика в браузере: WebGL на шейдерах, написанных с нуля, курсорная физика,
           параметрическая генерация. Каждое демо — отдельная страница, ничего ставить не нужно.
         </p>
       </div>
@@ -899,11 +941,11 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Демо · новое</span>
+              <span class="eyebrow">Демо 01 · новое</span>
               <span class="eyebrow">WebGL · один шейдер</span>
             </div>
             <h3>SLOWLIGHT</h3>
-            <p>Биография одного фотона: скролл-эссе от ядра Солнца до сетчатки, целиком нарисованное одним рукописным шейдером — без единой картинки.</p>
+            <p>Биография одного фотона: скролл-эссе от ядра Солнца до сетчатки, целиком нарисованное одним шейдером, написанным вручную, — без единой картинки.</p>
             <span class="case-open"><span>Открыть демо</span><span class="arrow">→</span></span>
           </div>
         </a>
@@ -915,7 +957,7 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Демо</span>
+              <span class="eyebrow">Демо 02</span>
               <span class="eyebrow">WebGPU · живой мир</span>
             </div>
             <h3>BLOCKSMITH</h3>
@@ -931,11 +973,11 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Демо 01</span>
+              <span class="eyebrow">Демо 03</span>
               <span class="eyebrow">WebGL · шейдеры</span>
             </div>
             <h3>AURUM</h3>
-            <p>Бронзовая скульптура на сырых шейдерах: камера облетает её на 360° по скроллу.</p>
+            <p>Бронзовая скульптура на самописных шейдерах: камера облетает её на 360° по скроллу.</p>
             <span class="case-open"><span>Открыть демо</span><span class="arrow">→</span></span>
           </div>
         </a>
@@ -947,7 +989,7 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Демо 02</span>
+              <span class="eyebrow">Демо 04</span>
               <span class="eyebrow">Курсор · маска</span>
             </div>
             <h3>Ferro</h3>
@@ -963,7 +1005,7 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Демо 03</span>
+              <span class="eyebrow">Демо 05</span>
               <span class="eyebrow">Видео · курсор</span>
             </div>
             <h3>Fluxwave</h3>
@@ -979,7 +1021,7 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Демо 04</span>
+              <span class="eyebrow">Демо 06</span>
               <span class="eyebrow">Шейдер · генератив</span>
             </div>
             <h3>SIGNAL</h3>
@@ -995,11 +1037,11 @@
           </figure>
           <div class="case-body">
             <div class="case-meta">
-              <span class="eyebrow">Демо 05</span>
+              <span class="eyebrow">Демо 07</span>
               <span class="eyebrow">Данные · WebGL</span>
             </div>
             <h3>VAULT</h3>
-            <p>Токеномика вживую: тянете месяц — кривая эмиссии, вестинг и сфера из 4 000 частиц пересчитываются разом.</p>
+            <p>Токеномика вживую: тянете месяц — кривая эмиссии, вестинг и сфера из 4 000 частиц пересчитываются разом.</p>
             <span class="case-open"><span>Открыть демо</span><span class="arrow">→</span></span>
           </div>
         </a>
@@ -1010,7 +1052,7 @@
     <header class="rail">
       <div class="rail-top">
         <p class="eyebrow">Все работы</p>
-        <p class="eyebrow">Листы 01—14</p>
+        <p class="eyebrow">Листы 01–14</p>
       </div>
       <h2>Четырнадцать проектов из практики</h2>
     </header>
@@ -1030,7 +1072,7 @@
         <dl class="spec">
           <dt>Источник</dt><dd>приложение на VB6, базы Access (.mdb), контролы OCX</dd>
           <dt>Миграция</dt><dd>вскрытие баз, извлечение данных из .exe, перенос в SQL</dd>
-          <dt>Перенесено</dt><dd>база 63 таблицы, 3 471 запись: вентиляторы, двигатели, секции</dd>
+          <dt>Перенесено</dt><dd>база 63 таблицы, 3 471 запись: вентиляторы, двигатели, секции</dd>
           <dt>Модули</dt><dd>конфигуратор ЦКВ, подбор вентилятора и привода, акустика, теплообменники, характеристики</dd>
           <dt>Стек</dt><dd>Next.js, React</dd>
         </dl>
@@ -1041,7 +1083,7 @@
           <source src="assets/a0-md.mp4" type="video/mp4">
         </video>
         <div class="shots">
-          <img src="assets/a1.jpg" loading="lazy" decoding="async" alt="Главная: девять расчётных модулей и счётчики перенесённой базы 63 таблицы, 3471 запись">
+          <img src="assets/a1.jpg" width="1366" height="1546" loading="lazy" decoding="async" alt="Главная: девять расчётных модулей и счётчики перенесённой базы 63 таблицы, 3471 запись">
         </div>
         <figcaption><span>Живой подбор: ввод → расчёт → кривая с рабочей точкой</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1061,7 +1103,7 @@
         </p>
         <dl class="spec">
           <dt>Каталог</dt><dd>400+ позиций оборудования</dd>
-          <dt>Расчёт</dt><dd>~20 000 полиномиальных характеристик</dd>
+          <dt>Расчёт</dt><dd>~20 000 полиномиальных характеристик</dd>
           <dt>Разделы</dt><dd>аэродинамика, акустика, ЧРП, стоимость владения</dd>
           <dt>Заказ</dt><dd>корзина, вес и объём, доставка, запрос КП</dd>
           <dt>Интеграция</dt><dd>Битрикс24</dd>
@@ -1126,7 +1168,7 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="assets/a4.jpg" loading="lazy" decoding="async" alt="Конфигуратор STANDES: зал со стеллажами в 3D, каталог, смета, отправка ТЗ">
+          <img src="assets/a4.jpg" width="1400" height="680" loading="lazy" decoding="async" alt="Конфигуратор STANDES: зал со стеллажами в 3D, каталог, смета, отправка ТЗ">
         </div>
         <figcaption><span>Расстановка стеллажей в 3D со сметой</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1154,8 +1196,8 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="assets/a5.jpg" loading="lazy" decoding="async" alt="Вход: страница проекта — таблица характеристик вентсистем по ГОСТ">
-          <img src="assets/a6.jpg" loading="lazy" decoding="async" alt="Выход: 33 позиции чистой спецификации, воздуховоды в метрах, фасон в штуках">
+          <img src="assets/a5.jpg" width="1400" height="990" loading="lazy" decoding="async" alt="Вход: страница проекта — таблица характеристик вентсистем по ГОСТ">
+          <img src="assets/a6.jpg" width="1400" height="760" loading="lazy" decoding="async" alt="Выход: 33 позиции чистой спецификации, воздуховоды в метрах, фасон в штуках">
         </div>
         <figcaption><span>Слева проект, справа извлечённая спецификация</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1311,7 +1353,7 @@
           с реальной точностью — то есть где студент себя переоценивает.
         </p>
         <dl class="spec">
-          <dt>База</dt><dd>3 401 карточка и 163 экзаменационных вопроса</dd>
+          <dt>База</dt><dd>3 401 карточка и 163 экзаменационных вопроса</dd>
           <dt>Источник</dt><dd>разбор PDF на вопросы, дедупликация, сверка формулировок</dd>
           <dt>Повторения</dt><dd>интервальный алгоритм: зрелые, молодые, изучаемые, новые</dd>
           <dt>Режимы</dt><dd>карточки и экзамен с развёрнутым устным ответом</dd>
@@ -1325,7 +1367,7 @@
           <source src="assets/a12-md.mp4" type="video/mp4">
         </video>
         <div class="shots">
-          <img src="assets/a13.jpg" loading="lazy" decoding="async" alt="Прогресс: калибровка уверенности — совпадает ли заявленная уверенность с реальной точностью">
+          <img src="assets/a13.jpg" width="1366" height="850" loading="lazy" decoding="async" alt="Прогресс: калибровка уверенности — совпадает ли заявленная уверенность с реальной точностью">
         </div>
         <figcaption><span>Живой проход: карточка → оценка уверенности → ответ → экзамен</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1353,8 +1395,8 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="assets/a14.jpg" loading="lazy" decoding="async" alt="Упражнение: редактор кода, запуск и проверка, результат совпал">
-          <img src="assets/a15.jpg" loading="lazy" decoding="async" alt="Экзамен: оценка по рубрикам, вердикт судьи, эталонный разбор">
+          <img src="assets/a14.jpg" width="1400" height="788" loading="lazy" decoding="async" alt="Упражнение: редактор кода, запуск и проверка, результат совпал">
+          <img src="assets/a15.jpg" width="1400" height="875" loading="lazy" decoding="async" alt="Экзамен: оценка по рубрикам, вердикт судьи, эталонный разбор">
         </div>
         <figcaption><span>Практика с запуском кода и экзамен с разбором</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1382,7 +1424,7 @@
       </div>
       <figure class="screen">
         <div class="shots">
-          <img src="assets/a16.jpg" loading="lazy" decoding="async" alt="Карта REST API: 9 доменов, 53 эндпоинта, 51 таблица, 5 внешних интеграций">
+          <img src="assets/a16.jpg" width="1400" height="582" loading="lazy" decoding="async" alt="Карта REST API: 9 доменов, 53 эндпоинта, 51 таблица, 5 внешних интеграций">
         </div>
         <figcaption><span>Карта API по данным спецификации проекта</span><span class="zoom-hint">Нажмите, чтобы развернуть</span></figcaption>
       </figure>
@@ -1409,11 +1451,11 @@
       <figure class="screen">
         <div class="ab">
           <div class="ab-row">
-            <span class="ab-label"><span>Оригинал · живая запись</span><span>12 c</span></span>
+            <span class="ab-label"><span>Оригинал · живая запись</span><span>12&nbsp;с</span></span>
             <audio controls preload="none" src="assets/a17.mp3"></audio>
           </div>
           <div class="ab-row synth">
-            <span class="ab-label"><span>Синтез · английский</span><span>10 c</span></span>
+            <span class="ab-label"><span>Синтез · английский</span><span>10&nbsp;с</span></span>
             <audio controls preload="none" src="assets/a18.mp3"></audio>
           </div>
           <p class="ab-note">
@@ -1433,22 +1475,25 @@
       <p>Фиксирую объём и сумму письменно до старта. Предоплата 30–50% либо разбивка на этапы с оплатой каждого.</p>
     </div>
     <div>
-      <h2>Если не знаете меня</h2>
+      <h2>Если мы ещё не работали</h2>
       <p>Первый этап можно сделать маленьким — 2–3 дня и небольшая сумма, чтобы вы ничем не рисковали. Работаю и через гаранта.</p>
     </div>
     <div>
       <h2>Оплата</h2>
-      <p>Карта, СБП или USDT. Объём и сумма фиксируются письменно до старта, работа по этапам.</p>
+      <p>Работаю как самозанятый: юрлицам — договор, счёт и чек. Физлицам — карта или СБП; зарубежным заказчикам — USDT.</p>
     </div>
   </section>
 
-  <section class="contact">
+  <a class="contact" href="https://t.me/smirnovarturr" style="text-decoration:none;color:inherit;display:block">
     <p class="eyebrow">Написать в Telegram</p>
-    <p class="handle"><a href="https://t.me/smirnovarturr" style="color:inherit;text-decoration:none">@smirnovarturr</a></p>
-    <p class="eyebrow">Отвечаю в течение часа</p>
-  </section>
+    <p class="handle">@smirnovarturr</p>
+    <p class="eyebrow">Обычно отвечаю в течение часа</p>
+  </a>
+  <p class="eyebrow" style="text-align:center;margin:14px 0 0">Почта: <a href="mailto:paladei702@gmail.com" style="color:var(--blue)">paladei702@gmail.com</a></p>
 
 </div>
+
+<a class="tg-chip" href="https://t.me/smirnovarturr">Telegram ↗</a>
 
 <script>
   (function () {
@@ -1500,7 +1545,7 @@
       title.textContent = v.getAttribute("data-title") || "";
       bigImg.hidden = true;
       big.hidden = false;
-      big.src = v.currentSrc || v.getAttribute("data-full") || v.src;
+      big.src = v.getAttribute("data-full") || v.currentSrc || v.src;
       big.currentTime = v.currentTime || 0;
       show();
       if (!reduce.matches) {
