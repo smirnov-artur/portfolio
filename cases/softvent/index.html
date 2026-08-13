@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Softvent — разбор проекта</title>
+<meta name="description" content="Как устроена система, которая читает проектный PDF вентиляции по ГОСТ 21.602-2016, вытаскивает спецификацию воздуховодов и приводит её к номенклатуре 1С:ERP «Софтвент».">
+<meta name="robots" content="index, follow">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/cases/softvent/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/cases/softvent/en/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%93%84%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>
+/* ---------- шрифты портфолио: self-hosted woff2, subset по unicode-range ---------- */
+@font-face{font-family:"Geologica";src:url("../../assets/fonts/geologica-var-cyr.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Geologica";src:url("../../assets/fonts/geologica-var-lat.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Golos Text";src:url("../../assets/fonts/golos-var-cyr.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Golos Text";src:url("../../assets/fonts/golos-var-lat.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";src:url("../../assets/fonts/plexmono-400-cyr.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"IBM Plex Mono";src:url("../../assets/fonts/plexmono-400-lat.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --paper:#EDEEEA; --panel:#E4E6E1;
+  --ink:#12161B; --ink-2:#3E4650; --graphite:#59616B;
+  --rule:#D3D6CF; --rule-strong:#ADB2A9;
+  --blue:#1B34C4; --blue-soft:#1B34C414;
+
+  --f-display:"Geologica","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-body:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono","SFMono-Regular",Menlo,monospace;
+
+  --t-d1:clamp(2.2rem,5.4vw,4.4rem);
+  --t-d2:clamp(1.5rem,2.8vw,2.35rem);
+  --t-d3:clamp(1.15rem,1.8vw,1.55rem);
+  --t-lede:clamp(1.1rem,1.5vw,1.35rem);
+  --t-body:1rem; --t-small:0.9375rem; --t-label:0.6875rem;
+
+  --edge:clamp(1.25rem,4.4vw,4rem);
+  --s-section:clamp(3rem,6.5vw,5.5rem);
+  --s-block:clamp(1.4rem,2.8vw,2.25rem);
+}
+@supports (color: color(display-p3 1 1 1)){
+  @media (color-gamut:p3){ :root{ --blue:color(display-p3 0.086 0.196 0.769); } }
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1116; --panel:#151A21;
+    --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+    --rule:#262C34; --rule-strong:#39424C;
+    --blue:#7C93FF; --blue-soft:#7C93FF16;
+  }
+  @supports (color: color(display-p3 1 1 1)){
+    @media (color-gamut:p3){ :root:not([data-theme="light"]){ --blue:color(display-p3 0.486 0.576 1); } }
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1116; --panel:#151A21;
+  --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+  --rule:#262C34; --rule-strong:#39424C;
+  --blue:#7C93FF; --blue-soft:#7C93FF16;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--f-body); font-size:var(--t-body); line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+img{max-width:100%;height:auto;display:block}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--edge)}
+
+.eyebrow{
+  font-family:var(--f-mono); font-size:var(--t-label); line-height:1.45;
+  letter-spacing:0.16em; text-transform:uppercase;
+  font-feature-settings:"case" 1; color:var(--graphite); margin:0;
+}
+
+/* ---------- шапка листа ---------- */
+.topbar{
+  border-bottom:1px solid var(--rule);
+  padding:1rem 0; display:flex; gap:1rem; flex-wrap:wrap;
+  justify-content:space-between; align-items:baseline;
+}
+.topbar a{color:var(--blue);text-decoration:none;border-bottom:1px solid transparent}
+.topbar a:hover{border-bottom-color:var(--blue)}
+
+.masthead{padding:clamp(2.2rem,5vw,4rem) 0 clamp(1.6rem,3.5vw,2.6rem);border-bottom:1px solid var(--rule-strong)}
+.masthead-id{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:space-between;margin-bottom:clamp(1.2rem,3vw,2.2rem)}
+h1{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d1); line-height:1.02; letter-spacing:-0.02em;
+  margin:0 0 clamp(1rem,2vw,1.5rem); max-width:16ch;
+}
+.lede{
+  font-size:var(--t-lede); line-height:1.5; color:var(--ink-2);
+  max-width:56ch; margin:0 0 clamp(1.6rem,3.5vw,2.4rem);
+}
+
+dl.spec{
+  margin:0; display:grid; grid-template-columns:max-content minmax(0,1fr);
+  gap:0.05rem 1.25rem; font-size:var(--t-small); align-content:start;
+}
+dl.spec dt{
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--graphite);
+  padding-top:0.55rem; white-space:nowrap; border-bottom:1px solid var(--rule);
+}
+dl.spec dd{
+  margin:0; padding:0.42rem 0; border-bottom:1px solid var(--rule);
+  color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+dl.spec dt:last-of-type, dl.spec dd:last-of-type{border-bottom:0}
+
+/* ---------- разделы ---------- */
+section{padding:var(--s-section) 0;border-bottom:1px solid var(--rule)}
+.sec-head{display:grid;grid-template-columns:minmax(0,1fr);gap:0.6rem;margin-bottom:var(--s-block)}
+h2{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d2); line-height:1.1; letter-spacing:-0.015em;
+  margin:0; max-width:22ch;
+}
+h3{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d3); line-height:1.2; letter-spacing:-0.01em;
+  margin:0 0 0.5rem;
+}
+p{margin:0 0 1rem;max-width:68ch}
+p:last-child{margin-bottom:0}
+.prose{color:var(--ink-2)}
+.prose strong{color:var(--ink);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:var(--s-block) clamp(1.5rem,3.5vw,3.5rem)}
+
+/* ---------- конвейер ---------- */
+.pipe{list-style:none;margin:0;padding:0;display:grid;gap:0;counter-reset:st}
+.pipe li{
+  counter-increment:st; border-top:1px solid var(--rule);
+  padding:1.1rem 0 1.1rem 3.2rem; position:relative;
+}
+.pipe li:last-child{border-bottom:1px solid var(--rule)}
+.pipe li::before{
+  content:counter(st,decimal-leading-zero);
+  position:absolute; left:0; top:1.25rem;
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.1em; color:var(--blue);
+}
+.pipe b{display:block;font-family:var(--f-display);font-weight:500;font-size:1.0625rem;margin-bottom:0.15rem}
+.pipe span{color:var(--ink-2);font-size:var(--t-small)}
+.pipe code{font-family:var(--f-mono);font-size:0.8125em;color:var(--graphite)}
+
+/* ---------- карточки-заметки ---------- */
+.note{border-left:2px solid var(--blue);padding:0.1rem 0 0.1rem 1.1rem;margin:1.4rem 0;max-width:64ch}
+.note p{font-size:var(--t-small);color:var(--ink-2)}
+
+.grid-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:var(--s-block)}
+.grid-notes > div{background:var(--paper);padding:clamp(1.1rem,2.2vw,1.6rem)}
+.grid-notes h3{font-size:1.0625rem}
+.grid-notes p{font-size:var(--t-small);color:var(--ink-2)}
+
+/* ---------- код ---------- */
+figure.code{margin:var(--s-block) 0 0;border:1px solid var(--rule);background:var(--panel)}
+figure.code figcaption{
+  padding:0.75rem clamp(0.9rem,2vw,1.25rem);
+  border-bottom:1px solid var(--rule);
+  display:flex;gap:1rem;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+}
+figure.code figcaption b{font-family:var(--f-body);font-weight:600;font-size:var(--t-small);color:var(--ink)}
+figure.code figcaption .path{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.08em;color:var(--graphite)}
+figure.code pre{
+  margin:0; padding:clamp(0.9rem,2vw,1.25rem);
+  overflow-x:auto; font-family:var(--f-mono); font-size:0.8125rem;
+  line-height:1.7; color:var(--ink); tab-size:4;
+}
+figure.code .why{
+  padding:0 clamp(0.9rem,2vw,1.25rem) 1rem;
+  font-size:var(--t-small); color:var(--ink-2); max-width:66ch;
+}
+.cm{color:var(--graphite)}
+.kw{color:var(--blue)}
+.st{color:var(--ink-2)}
+
+/* ---------- цифры ---------- */
+.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.figures > div{background:var(--paper);padding:clamp(1rem,2vw,1.4rem)}
+.figures .n{
+  font-family:var(--f-display);font-weight:500;
+  font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1;letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums;display:block;margin-bottom:0.45rem;
+}
+.figures .n small{font-size:0.44em;letter-spacing:0.02em;color:var(--graphite);font-weight:400}
+.figures p{font-size:var(--t-small);color:var(--ink-2);margin:0}
+
+table.tbl{border-collapse:collapse;width:100%;font-size:var(--t-small);font-variant-numeric:tabular-nums}
+.scroller{overflow-x:auto;margin-top:var(--s-block);border:1px solid var(--rule)}
+table.tbl th,table.tbl td{text-align:left;padding:0.6rem 0.9rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.tbl th{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.1em;text-transform:uppercase;color:var(--graphite);font-weight:400}
+table.tbl tr:last-child td{border-bottom:0}
+table.tbl td:first-child{white-space:normal;min-width:16rem}
+
+/* ---------- честный список ---------- */
+ul.plain{list-style:none;margin:0;padding:0}
+ul.plain li{
+  border-top:1px solid var(--rule); padding:1rem 0 1rem 1.6rem; position:relative;
+  color:var(--ink-2); font-size:var(--t-small); max-width:74ch;
+}
+ul.plain li:last-child{border-bottom:1px solid var(--rule)}
+ul.plain li::before{content:"—";position:absolute;left:0;top:1rem;color:var(--rule-strong)}
+ul.plain b{color:var(--ink);font-weight:600}
+ul.plain code, .prose code, .pipe li code{font-family:var(--f-mono);font-size:0.85em}
+
+figure.shot{margin:var(--s-block) 0 0}
+figure.shot img{border:1px solid var(--rule);background:var(--panel)}
+figure.shot figcaption{margin-top:0.7rem;font-size:var(--t-small);color:var(--graphite)}
+
+footer{padding:var(--s-section) 0 clamp(3rem,6vw,5rem)}
+.backs{display:flex;gap:1.5rem;flex-wrap:wrap}
+.backs a{
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink);text-decoration:none;border:1px solid var(--rule-strong);padding:0.85rem 1.15rem;
+  transition:border-color .16s,color .16s,background .16s;
+}
+.backs a:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+@media (max-width:640px){
+  dl.spec{grid-template-columns:minmax(0,1fr);gap:0}
+  dl.spec dt{border-bottom:0;padding-top:0.8rem;white-space:normal}
+  dl.spec dd{padding-top:0.1rem}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<div class="topbar">
+  <p class="eyebrow">Лист 05 · разбор проекта</p>
+  <p class="eyebrow"><a href="../../">← Каталог работ</a> &nbsp;·&nbsp; <a href="en/">English</a></p>
+</div>
+
+<header class="masthead">
+  <div class="masthead-id">
+    <p class="eyebrow">Автоматизация · 1С:ERP</p>
+    <p class="eyebrow">2025</p>
+  </div>
+  <h1>Softvent Automation</h1>
+  <p class="lede">
+    Читает многостраничный проект вентиляции в PDF, находит в нём спецификацию по
+    ГОСТ 21.602-2016, вытаскивает воздуховоды и приводит их к номенклатуре
+    1С:ERP «Софтвент» — метры превращаются в штуки заводской длины.
+  </p>
+  <dl class="spec">
+    <dt>Роль</dt><dd>единственный разработчик: архитектура, парсеры, правила пересчёта, UI-автоматизация</dd>
+    <dt>Стек</dt><dd>Python 3.12 · pdfplumber · PyPDF2 · camelot · pandas · openpyxl · pyautogui · pywin32</dd>
+    <dt>Вход</dt><dd>PDF проектной документации, 29 листов А3 в тестовом наборе</dd>
+    <dt>Выход</dt><dd>позиции спецификации в JSON и TXT + разрезанный по смыслу PDF</dd>
+    <dt>Объём</dt><dd>2 029 строк Python в пяти рабочих модулях</dd>
+    <dt>Статус</dt><dd>рабочий прототип: парсер доведён до конца, автозаполнение 1С — нет</dd>
+  </dl>
+</header>
+
+<!-- ============ 01 ЗАДАЧА ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">01 · Задача</p>
+    <h2>Спецификация приходит как чертёж, а не как данные</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        Производитель воздуховодов получает от заказчика комплект проектной документации:
+        PDF, собранный из листов формата А3. Внутри — планы этажей, аксонометрические схемы,
+        таблица характеристик отопительно-вентиляционных систем и, где-то в конце,
+        <strong>спецификация изделий и материалов</strong> по ГОСТ 21.602-2016.
+      </p>
+      <p>
+        Чтобы посчитать заказ, менеджер должен перенести из этой спецификации в 1С:ERP «Софтвент»
+        каждый типоразмер: материал, толщину металла, ширину, высоту, количество. В типовом
+        проекте это несколько десятков позиций, и каждая — шесть действий мышью и клавиатурой.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        Самое неприятное в этой работе не объём, а <strong>единицы измерения</strong>.
+        Проектировщик пишет «воздуховод 400×300 — 220 м»: ему важна длина трассы.
+        Производство режет металл хлыстами фиксированной длины, и в номенклатуре ERP та же
+        позиция живёт как «220 м → 190 шт». Пересчёт делается в уме, и именно там появляются
+        ошибки, которые всплывают уже на складе.
+      </p>
+      <p>
+        Задача системы — снять с человека обе рутины сразу: найти спецификацию в чертеже
+        и перевести её в единицы, на которых работает производство.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 КАК УСТРОЕНО ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">02 · Как устроено</p>
+    <h2>Конвейер из пяти шагов, каждый со своим запасным вариантом</h2>
+  </div>
+  <p class="prose">
+    Пайплайн односторонний: PDF на входе, JSON на выходе. Промежуточные результаты пишутся
+    на диск, чтобы каждый шаг можно было проверить глазами, не запуская остальные.
+  </p>
+
+  <ol class="pipe">
+    <li>
+      <b>Классификация страниц</b>
+      <span>
+        Текст каждой страницы вытаскивается через <code>PyPDF2</code> — это быстро и не требует
+        разбора графики. Страница получает баллы по ключевым словам и относится к одному из
+        типов: <code>specification</code>, <code>hovs</code>, <code>axonometry</code>,
+        <code>technical</code>, <code>other</code>. Баллы вместо первого совпадения — потому что
+        лист аксонометрии почти всегда содержит слово «характеристика», а лист ХОВС — слово
+        «вентилятор».
+      </span>
+    </li>
+    <li>
+      <b>Достройка диапазона спецификации</b>
+      <span>
+        Спецификация редко занимает один лист: продолжение идёт без заголовка, только с шапкой
+        таблицы. Поэтому от каждой найденной страницы алгоритм идёт вперёд и присоединяет
+        соседние, пока в тексте встречаются единицы измерения (<code>шт</code>, <code>м²</code>,
+        <code>кг</code>) либо больше пятидесяти цифр на страницу.
+      </span>
+    </li>
+    <li>
+      <b>Разрезание PDF по смыслу</b>
+      <span>
+        <code>PdfWriter</code> собирает отдельные файлы <code>specification.pdf</code>,
+        <code>hovs.pdf</code>, <code>axonometry.pdf</code>. Это не украшение: дальше тяжёлый
+        табличный разбор запускается только по нужным страницам, а не по всем двадцати девяти.
+      </span>
+    </li>
+    <li>
+      <b>Извлечение таблицы</b>
+      <span>
+        Основной путь — <code>pdfplumber.extract_tables()</code>: он лучше держит кириллицу.
+        Если таблицу не нашли, подключается <code>camelot</code> в режиме <code>lattice</code>.
+        Camelot импортируется в <code>try/except</code> и деградирует молча — он тянет за собой
+        OpenCV и Ghostscript, которых на машине менеджера может не быть.
+      </span>
+    </li>
+    <li>
+      <b>Приведение к номенклатуре</b>
+      <span>
+        Из наименования регулярками достаются габариты, толщина и обозначение системы;
+        количество переводится в штуки заводской длины. Результат — плоский список словарей,
+        готовый для контроллера 1С.
+      </span>
+    </li>
+  </ol>
+
+  <div class="note">
+    <p>
+      Почему не OCR. Все листы проекта — векторные, текст в них есть. OCR добавил бы
+      минуты на страницу и новый класс ошибок (7 против 1, «х» против «x») там, где текст
+      уже лежит в файле. OCR остался в планах только для сканов.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 03 ТРУДНАЯ ЧАСТЬ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">03 · Трудная часть</p>
+    <h2>Почему таблица по ГОСТ — это не таблица</h2>
+  </div>
+  <p class="prose">
+    ГОСТ 21.602-2016 задаёт спецификации девять колонок: поз., наименование и техническая
+    характеристика, тип и марка, код изделия, завод-изготовитель, единица измерения,
+    количество, масса единицы, примечание. В PDF от этой структуры не остаётся почти ничего —
+    лист выгружен из CAD как чертёж, а не как документ.
+  </p>
+
+  <div class="grid-notes">
+    <div>
+      <h3>Рамка чертежа — тоже таблица</h3>
+      <p>
+        На листе А3 (1191×842 pt) кроме спецификации есть штамп, графа изменений, поля подшивки.
+        Все они нарисованы линиями, и <code>extract_tables()</code> честно склеивает их в одну
+        сетку. На реальных листах получалось <strong>21 и 23 колонки вместо девяти</strong>;
+        полезные данные занимали столбцы 6–20, остальные приходили пустыми.
+      </p>
+    </div>
+    <div>
+      <h3>Повёрнутый текст попадает в ячейки</h3>
+      <p>
+        Подписи боковых полей набраны вертикально. В извлечённой таблице они появляются
+        как обычные значения, только задом наперёд: <code>онавосалгоС</code>,
+        <code>атади.пдоП</code>, <code>№.вни.мазВ</code>. Формально это валидные строки, и
+        отличить их можно только по тому, что они не совпадают ни с одним ожидаемым полем.
+      </p>
+    </div>
+    <div>
+      <h3>Пробелы теряются, строки склеиваются</h3>
+      <p>
+        Каждая надпись в CAD — отдельный текстовый объект, и при извлечении между ними не
+        возникает пробела: <code>Кодизделия</code>, <code>Металлдлякрепления</code>,
+        <code>Наименование итехническая характеристика</code>. Заголовок «Единица измерения»
+        приходит переносами в четыре строки: <code>Ед./изме-/ре-/ния</code>.
+      </p>
+    </div>
+    <div>
+      <h3>Длинное наименование склеивается с соседней колонкой</h3>
+      <p>
+        Название клапана переносится на две строки, и хвост второй строки срастается со
+        значением колонки «тип, марка»: <code>…предел огнестойкости 90&nbsp;минКПУ-1Н-О-100</code>.
+        Если разбирать страницу как плоский текст, такая строка не парсится ничем. Именно
+        поэтому разбор идёт по ячейкам таблицы, а не по строкам текста.
+      </p>
+    </div>
+    <div>
+      <h3>Заголовки разделов — строки-однодневки</h3>
+      <p>
+        «Арматура воздуховодов», «Воздухораспределители», «Материалы изоляции воздуховодов»,
+        «Оборудование» приходят как строки, у которых заполнена одна ячейка из двадцати одной.
+        Их надо не парсить, а пропускать — иначе они становятся позициями с нулевым количеством.
+      </p>
+    </div>
+    <div>
+      <h3>Заголовок таблицы не совпадает сам с собой</h3>
+      <p>
+        Из-за переносов и потерянных пробелов сопоставление колонок сделано по подстроке в
+        нижнем регистре (<code>«кол»</code>, <code>«ед»</code>, <code>«наимен»</code>), а чтение
+        значения строки — с цепочкой запасных ключей. Точное совпадение заголовка не работает
+        ни на одном реальном листе.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 КОД ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">04 · Код</p>
+    <h2>Четыре места, где принимались решения</h2>
+  </div>
+
+  <figure class="code">
+    <figcaption>
+      <b>Классификация страницы баллами, а не первым совпадением</b>
+      <span class="path">src/parsers/table_parser.py</span>
+    </figcaption>
+<pre><span class="cm"># Начальные баллы</span>
+scores = {<span class="st">'specification'</span>: 0, <span class="st">'hovs'</span>: 0, <span class="st">'axonometry'</span>: 0,
+          <span class="st">'technical'</span>: 0, <span class="st">'other'</span>: 0}
+
+<span class="kw">if</span> <span class="st">'СПЕЦИФИКА'</span> <span class="kw">in</span> text_upper <span class="kw">or</span> <span class="st">'ВЕДОМОСТ'</span> <span class="kw">in</span> text_upper:
+    scores[<span class="st">'specification'</span>] += 3
+<span class="kw">if</span> any(kw <span class="kw">in</span> text_upper <span class="kw">for</span> kw <span class="kw">in</span> [<span class="st">'ПОЗ.'</span>, <span class="st">'НАИМЕНОВАНИЕ'</span>,
+                                     <span class="st">'ЕДИНИЦА ИЗМЕРЕНИЯ'</span>, <span class="st">'КОД ИЗДЕЛИЯ'</span>]):
+    scores[<span class="st">'specification'</span>] += 2
+
+<span class="kw">if</span> <span class="st">'ХАРАКТЕРИСТИКА'</span> <span class="kw">in</span> text_upper <span class="kw">and</span> any(kw <span class="kw">in</span> text_upper
+                                            <span class="kw">for</span> kw <span class="kw">in</span> [<span class="st">'ВЕНТИЛ'</span>, <span class="st">'ХОВС'</span>]):
+    scores[<span class="st">'hovs'</span>] += 4
+
+<span class="cm"># Найденная таблица весит больше любого слова</span>
+<span class="kw">if</span> page_tables:
+    <span class="kw">for</span> table <span class="kw">in</span> page_tables:
+        <span class="kw">if</span> self.parser._is_specification_table(table):
+            scores[<span class="st">'specification'</span>] += 5
+            <span class="kw">break</span>
+
+<span class="cm"># Разрешение конфликтов: спецификация &gt; ХОВС &gt; аксонометрия &gt; ...</span>
+ordered = [<span class="st">'specification'</span>, <span class="st">'hovs'</span>, <span class="st">'axonometry'</span>, <span class="st">'technical'</span>, <span class="st">'other'</span>]
+best = max(ordered, key=<span class="kw">lambda</span> k: (scores[k], -ordered.index(k)))
+<span class="kw">return</span> best <span class="kw">if</span> scores[best] &gt; 0 <span class="kw">else</span> <span class="st">'other'</span></pre>
+    <p class="why">
+      Первая версия возвращала тип по первому совпавшему слову — и относила спецификацию к
+      ХОВС, потому что в ней есть слово «характеристика». Баллы плюс явный порядок приоритетов
+      решают конфликт предсказуемо; наличие настоящей таблицы весит 5 и перебивает любое слово.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Продолжение спецификации без заголовка</b>
+      <span class="path">src/parsers/table_parser.py</span>
+    </figcaption>
+<pre><span class="kw">for</span> start <span class="kw">in</span> sorted(spec_pages):
+    i = start + 1
+    <span class="kw">while</span> i &lt;= max_page:
+        <span class="cm"># упёрлись в лист другого раздела — стоп</span>
+        <span class="kw">if</span> i <span class="kw">in</span> pages_by_type[<span class="st">'hovs'</span>] <span class="kw">or</span> i <span class="kw">in</span> pages_by_type[<span class="st">'axonometry'</span>] \
+           <span class="kw">or</span> i <span class="kw">in</span> pages_by_type[<span class="st">'technical'</span>]:
+            <span class="kw">break</span>
+        t = (page_texts.get(i) <span class="kw">or</span> <span class="st">''</span>).upper()
+        <span class="cm"># признак продолжения: единицы измерения или плотность цифр</span>
+        <span class="kw">if</span> any(u <span class="kw">in</span> t <span class="kw">for</span> u <span class="kw">in</span> [<span class="st">' ШТ'</span>, <span class="st">' М²'</span>, <span class="st">' М2'</span>, <span class="st">' КГ'</span>]) \
+           <span class="kw">or</span> sum(ch.isdigit() <span class="kw">for</span> ch <span class="kw">in</span> t) &gt; 50:
+            spec_pages.add(i)
+            i += 1
+            <span class="kw">continue</span>
+        <span class="kw">break</span></pre>
+    <p class="why">
+      Второй и третий лист спецификации не содержат слова «спецификация» — только шапку
+      таблицы. Прямая проверка по ключевым словам их теряет. Здесь используется другое
+      свойство: страница спецификации — это страница, забитая числами и единицами измерения.
+      Проход останавливается о лист другого типа, чтобы не проглотить весь конец альбома.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Бизнес-правило: метры трассы → штуки хлыста</b>
+      <span class="path">src/parsers/table_parser.py · convert_to_softvent_format</span>
+    </figcaption>
+<pre><span class="kw">if</span> item.unit <span class="kw">in</span> [<span class="st">'м'</span>, <span class="st">'м.п.'</span>, <span class="st">'мп'</span>]:
+    <span class="cm"># метры трассы → миллиметры → штуки по 1160 мм, вверх</span>
+    total_length = item.quantity * 1000
+    our_quantity = int(total_length / 1160 + 0.99)
+
+<span class="kw">elif</span> item.unit <span class="kw">in</span> [<span class="st">'м2'</span>, <span class="st">'м²'</span>]:
+    <span class="cm"># площадь развёртки → длина через периметр сечения</span>
+    <span class="kw">if</span> item.width <span class="kw">and</span> item.height:
+        perimeter = (item.width + item.height) * 2 / 1000
+        total_length = item.quantity / perimeter * 1000
+        our_quantity = int(total_length / 1160 + 0.99)
+    <span class="kw">else</span>:
+        our_quantity = 0
+
+<span class="kw">else</span>:
+    our_quantity = int(item.quantity)</pre>
+    <p class="why">
+      Это тот случай, когда правило важнее кода. <b>1160 мм</b> — рабочая длина хлыста
+      воздуховода на этом производстве; она задана константой, и от неё считается вся
+      номенклатура. Округление всегда вверх: половина хлыста на складе всё равно занимает
+      целую позицию. Отдельная ветка на м² нужна, потому что часть проектировщиков задаёт объём
+      площадью развёртки листа — тогда длину приходится восстанавливать через периметр
+      сечения, и без габаритов из наименования позиция считаться не может вовсе.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Автоматизация чужого интерфейса по координатам</b>
+      <span class="path">src/automation/softvent_controller.py</span>
+    </figcaption>
+<pre>pyautogui.FAILSAFE = <span class="kw">True</span>   <span class="cm"># мышь в угол экрана — аварийный выход</span>
+pyautogui.PAUSE = 0.5        <span class="cm"># 1С успевает перерисовать форму</span>
+
+keyboard.add_hotkey(<span class="st">'ctrl+shift+p'</span>, self.pause_resume)
+keyboard.add_hotkey(<span class="st">'ctrl+shift+s'</span>, self.emergency_stop)
+
+<span class="cm"># окно ищется по заголовку и поднимается наверх</span>
+win32gui.ShowWindow(self.current_window, win32con.SW_RESTORE)
+win32gui.SetForegroundWindow(self.current_window)
+
+FIELDS = {
+    <span class="st">'material'</span>:   {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 250},
+    <span class="st">'thickness'</span>:  {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 290},
+    <span class="st">'width_a'</span>:    {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 330},
+    <span class="st">'height_b'</span>:   {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 370},
+    <span class="st">'quantity_n'</span>: {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 450},
+}</pre>
+    <p class="why">
+      У «Софтвента» нет открытого API, поэтому единственный доступный интерфейс — экранный.
+      Это честно плохой способ, и код построен вокруг признания этого: аварийный выход мышью
+      в угол, две глобальные горячие клавиши, пауза между действиями, диалог
+      «продолжить / пропустить / остановить» на каждой ошибке ввода. Координаты не пишутся
+      руками — есть режим калибровки: оператор наводит курсор на семь элементов формы,
+      программа снимает позиции и сохраняет их в JSON.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 05 ЦИФРЫ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">05 · Цифры</p>
+    <h2>Что измерено на реальном проекте</h2>
+  </div>
+
+  <div class="figures">
+    <div><span class="n">2 029</span><p>строк Python в пяти рабочих модулях: табличный парсер, парсер-предшественник, контроллер 1С, запуск и CLI</p></div>
+    <div><span class="n">29</span><p>листов А3 в тестовом проекте: планы, аксонометрия, ХОВС и три листа спецификации</p></div>
+    <div><span class="n">2:32</span><p>минуты на полный проход одного проекта: классификация 29 страниц плюс табличный разбор</p></div>
+    <div><span class="n">21–23</span><p>колонки отдаёт <code>extract_tables()</code> на листе, где по ГОСТ их девять</p></div>
+    <div><span class="n">33</span><p>позиции в образце спецификации: 9 типоразмеров воздуховодов и 24 фасонных изделия</p></div>
+    <div><span class="n">547 <small>м</small></span><p>трассы воздуховодов в образце — это <strong>476 штук</strong> по 1160 мм после пересчёта</p></div>
+  </div>
+
+  <figure class="shot">
+    <img src="../../assets/a6.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Извлечённая спецификация: 33 позиции — воздуховоды в метрах, врезки, заглушки, отводы и переходы в штуках">
+    <figcaption>Результат разбора: 33 позиции, приведённые к номенклатуре. Воздуховоды в метрах, фасонные изделия в штуках.</figcaption>
+  </figure>
+
+  <div class="scroller">
+    <table class="tbl">
+      <thead>
+        <tr><th>Позиция из спецификации</th><th>В проекте</th><th>Хлысты 1160 мм</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Воздуховод 400×300</td><td>220 м</td><td>190 шт</td></tr>
+        <tr><td>Воздуховод 600×500</td><td>142 м</td><td>123 шт</td></tr>
+        <tr><td>Воздуховод 500×400</td><td>77 м</td><td>67 шт</td></tr>
+        <tr><td>Воздуховод 700×500</td><td>32 м</td><td>28 шт</td></tr>
+        <tr><td>Воздуховод 200×300</td><td>25 м</td><td>22 шт</td></tr>
+        <tr><td>Воздуховод 900×1000</td><td>5 м</td><td>5 шт</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose" style="margin-top:1rem;font-size:var(--t-small)">
+    Шесть строк из девяти. Хорошо видно, зачем нужно округление вверх: 5 м трассы — это
+    пять хлыстов, а не четыре с третью.
+  </p>
+</section>
+
+<!-- ============ 06 ЧТО ЗА КАДРОМ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">06 · Что осталось за кадром</p>
+    <h2>Границы прототипа</h2>
+  </div>
+  <p class="prose">
+    Это рабочий прототип, а не сданный продукт. Ниже — то, что я проверил по коду и логам
+    и что честнее назвать вслух, чем спрятать.
+  </p>
+
+  <ul class="plain">
+    <li>
+      <b>На тестовом проекте пайплайн выдаёт ноль воздуховодов.</b> Две конкретные причины.
+      Первая: в спецификации диаметр записан как <code>ø160</code> (U+00F8), а регулярка ищет
+      <code>[ØDд]</code> с прописной <code>Ø</code> (U+00D8) — совпадения нет. Вторая: толщина
+      написана словами «толщиной 0,5 мм», а паттерн ждёт <code>δ=0,5</code>. Позиции находятся,
+      габариты — нет, и в ERP такую строку отдавать нельзя.
+    </li>
+    <li>
+      <b>Классификатор теряет третий лист спецификации.</b> На нём нет слова «спецификация»,
+      зато есть «вентилятор» и «характеристика» — правило для ХОВС набирает 4 балла против 2
+      у спецификации, и лист уходит не туда. Именно на этом листе лежат все строки
+      воздуховодов. Лечится либо расширением проверки на шапку таблицы, либо тем, что
+      табличный признак должен считаться до классификации, а не после.
+    </li>
+    <li>
+      <b>Четырнадцать ложных срабатываний из шестнадцати.</b> В одном полном прогоне
+      эвристика «шесть колонок, десять строк и единицы измерения в тексте» приняла за
+      спецификацию рамки и штампы чертёжных листов. Разбор такой таблицы ничего не портит,
+      но добавляет к прогону около двух минут.
+    </li>
+    <li>
+      <b>Округление сделано приближённо.</b> <code>int(x / 1160 + 0.99)</code> — не то же самое,
+      что <code>math.ceil</code>: при дробной части меньше 0,01 оно даёт на штуку меньше.
+      На встреченных объёмах расхождения не возникает, но правильнее написать <code>ceil</code>.
+    </li>
+    <li>
+      <b>Фасонные изделия распознаются, но не конвертируются.</b> Паттерны для отводов,
+      тройников и переходов есть и работают, а <code>convert_to_softvent_format</code>
+      пропускает всё, в наименовании чего нет слова «воздуховод». Отводы, врезки, заглушки
+      и переходы — это две трети позиций образца.
+    </li>
+    <li>
+      <b>Пять файлов проекта пустые.</b> <code>excel_parser.py</code>, <code>ui_mapper.py</code>,
+      <code>converter.py</code>, <code>utils/logger.py</code> и <code>config.yaml</code> —
+      нулевого размера. Разбор Excel описан в README, но не написан: образец
+      <code>test_spec.xlsx</code> я разбирал вручную. Конфигурация координат из README тоже
+      не подключена — они лежат константами в классе <code>SoftventElements</code>.
+    </li>
+    <li>
+      <b>Таблица подбора толщины живёт только в документации.</b> Правило «периметр до 1000 мм —
+      0,5; до 1600 — 0,7; до 2000 — 0,9; дальше 1,0» описано в README, но в коде его нет:
+      толщину подбирает сам «Софтвент», если поле оставить пустым. Осознанный выбор — не
+      дублировать чужую бизнес-логику, но в README он выглядит реализованным, и это надо
+      исправить.
+    </li>
+    <li>
+      <b>Автоматизация 1С привязана к пикселям.</b> Координаты жёстко зависят от разрешения
+      экрана, масштаба Windows (нужно ровно 100 %) и от того, что окно развёрнуто одинаково.
+      Контроллер не проверяет, что в поле реально попало значение, — он печатает и идёт
+      дальше. Правильное решение — читать состояние формы, а не только писать в неё; в
+      прототипе этого нет. Пункт меню «полная автоматизация» честно печатает «функция в
+      разработке».
+    </li>
+    <li>
+      <b>Тестов нет.</b> Есть две демонстрационные функции на захардкоженных строках
+      («Воздуховод прямоугольный 500х300 … δ=0,7мм»). Они показывают, что регулярки живы,
+      но ничего не говорят о поведении на настоящих листах — что и подтвердилось.
+    </li>
+  </ul>
+
+  <div class="note" style="margin-top:var(--s-block)">
+    <p>
+      Если бы я продолжал этот проект, порядок был бы такой: сначала набор реальных PDF
+      от разных проектных бюро как фикстуры и тесты на них, потом словарь написаний вместо
+      одиночных регулярок (диаметр — это <code>Ø</code>, <code>ø</code>, <code>D</code>,
+      <code>д</code> и слово «диаметр»), и только потом возврат к автоматизации интерфейса.
+      Парсер без корпуса примеров всегда выглядит рабочим на том файле, на котором его писали.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p class="eyebrow" style="margin-bottom:1.2rem">Назад</p>
+  <div class="backs">
+    <a href="../../">← Каталог работ</a>
+    <a href="../../en/">Portfolio in English</a>
+    <a href="en/">This case in English</a>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ventprom — engineering breakdown</title>
+<meta name="description" content="How a B2B ventilation equipment portal is built: an engineering-faceted catalogue, a section-by-section air handling unit configurator, 62 parametric duct fitting types, 44 equipment reference tables and item catalogue sync with 1C.">
+<meta name="robots" content="index, follow">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/cases/ventprom/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/cases/ventprom/en/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%8C%AC%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>
+/* ---------- portfolio typefaces: self-hosted woff2, unicode-range subsets ---------- */
+@font-face{font-family:"Geologica";src:url("../../../assets/fonts/geologica-var-cyr.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Geologica";src:url("../../../assets/fonts/geologica-var-lat.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Golos Text";src:url("../../../assets/fonts/golos-var-cyr.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Golos Text";src:url("../../../assets/fonts/golos-var-lat.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";src:url("../../../assets/fonts/plexmono-400-cyr.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"IBM Plex Mono";src:url("../../../assets/fonts/plexmono-400-lat.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --paper:#EDEEEA; --panel:#E4E6E1;
+  --ink:#12161B; --ink-2:#3E4650; --graphite:#59616B;
+  --rule:#D3D6CF; --rule-strong:#ADB2A9;
+  --blue:#1B34C4; --blue-soft:#1B34C414;
+
+  --f-display:"Geologica","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-body:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono","SFMono-Regular",Menlo,monospace;
+
+  --t-d1:clamp(2.2rem,5.4vw,4.4rem);
+  --t-d2:clamp(1.5rem,2.8vw,2.35rem);
+  --t-d3:clamp(1.15rem,1.8vw,1.55rem);
+  --t-lede:clamp(1.1rem,1.5vw,1.35rem);
+  --t-body:1rem; --t-small:0.9375rem; --t-label:0.6875rem;
+
+  --edge:clamp(1.25rem,4.4vw,4rem);
+  --s-section:clamp(3rem,6.5vw,5.5rem);
+  --s-block:clamp(1.4rem,2.8vw,2.25rem);
+}
+@supports (color: color(display-p3 1 1 1)){
+  @media (color-gamut:p3){ :root{ --blue:color(display-p3 0.086 0.196 0.769); } }
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1116; --panel:#151A21;
+    --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+    --rule:#262C34; --rule-strong:#39424C;
+    --blue:#7C93FF; --blue-soft:#7C93FF16;
+  }
+  @supports (color: color(display-p3 1 1 1)){
+    @media (color-gamut:p3){ :root:not([data-theme="light"]){ --blue:color(display-p3 0.486 0.576 1); } }
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1116; --panel:#151A21;
+  --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+  --rule:#262C34; --rule-strong:#39424C;
+  --blue:#7C93FF; --blue-soft:#7C93FF16;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--f-body); font-size:var(--t-body); line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+img{max-width:100%;height:auto;display:block}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--edge)}
+
+.eyebrow{
+  font-family:var(--f-mono); font-size:var(--t-label); line-height:1.45;
+  letter-spacing:0.16em; text-transform:uppercase;
+  font-feature-settings:"case" 1; color:var(--graphite); margin:0;
+}
+
+/* ---------- sheet header ---------- */
+.topbar{
+  border-bottom:1px solid var(--rule);
+  padding:1rem 0; display:flex; gap:1rem; flex-wrap:wrap;
+  justify-content:space-between; align-items:baseline;
+}
+.topbar a{color:var(--blue);text-decoration:none;border-bottom:1px solid transparent}
+.topbar a:hover{border-bottom-color:var(--blue)}
+
+.masthead{padding:clamp(2.2rem,5vw,4rem) 0 clamp(1.6rem,3.5vw,2.6rem);border-bottom:1px solid var(--rule-strong)}
+.masthead-id{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:space-between;margin-bottom:clamp(1.2rem,3vw,2.2rem)}
+h1{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d1); line-height:1.02; letter-spacing:-0.02em;
+  margin:0 0 clamp(1rem,2vw,1.5rem); max-width:16ch;
+}
+.lede{
+  font-size:var(--t-lede); line-height:1.5; color:var(--ink-2);
+  max-width:58ch; margin:0 0 clamp(1.6rem,3.5vw,2.4rem);
+}
+
+dl.spec{
+  margin:0; display:grid; grid-template-columns:max-content minmax(0,1fr);
+  gap:0.05rem 1.25rem; font-size:var(--t-small); align-content:start;
+}
+dl.spec dt{
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--graphite);
+  padding-top:0.55rem; white-space:nowrap; border-bottom:1px solid var(--rule);
+}
+dl.spec dd{
+  margin:0; padding:0.42rem 0; border-bottom:1px solid var(--rule);
+  color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+dl.spec dt:last-of-type, dl.spec dd:last-of-type{border-bottom:0}
+
+/* ---------- sections ---------- */
+section{padding:var(--s-section) 0;border-bottom:1px solid var(--rule)}
+.sec-head{display:grid;grid-template-columns:minmax(0,1fr);gap:0.6rem;margin-bottom:var(--s-block)}
+h2{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d2); line-height:1.1; letter-spacing:-0.015em;
+  margin:0; max-width:26ch;
+}
+h3{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d3); line-height:1.2; letter-spacing:-0.01em;
+  margin:0 0 0.5rem;
+}
+p{margin:0 0 1rem;max-width:68ch}
+p:last-child{margin-bottom:0}
+.prose{color:var(--ink-2)}
+.prose strong{color:var(--ink);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:var(--s-block) clamp(1.5rem,3.5vw,3.5rem)}
+
+/* ---------- pipeline ---------- */
+.pipe{list-style:none;margin:0;padding:0;display:grid;gap:0;counter-reset:st}
+.pipe li{
+  counter-increment:st; border-top:1px solid var(--rule);
+  padding:1.1rem 0 1.1rem 3.2rem; position:relative;
+}
+.pipe li:last-child{border-bottom:1px solid var(--rule)}
+.pipe li::before{
+  content:counter(st,decimal-leading-zero);
+  position:absolute; left:0; top:1.25rem;
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.1em; color:var(--blue);
+}
+.pipe b{display:block;font-family:var(--f-display);font-weight:500;font-size:1.0625rem;margin-bottom:0.15rem}
+.pipe span{color:var(--ink-2);font-size:var(--t-small)}
+.pipe code{font-family:var(--f-mono);font-size:0.8125em;color:var(--graphite)}
+
+/* ---------- notes ---------- */
+.note{border-left:2px solid var(--blue);padding:0.1rem 0 0.1rem 1.1rem;margin:1.4rem 0;max-width:64ch}
+.note p{font-size:var(--t-small);color:var(--ink-2)}
+
+/* three zones: either a full row or a single column — no half-empty middle state */
+.grid-notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:var(--s-block)}
+@media (max-width:980px){ .grid-notes{grid-template-columns:minmax(0,1fr)} }
+.grid-notes > div{background:var(--paper);padding:clamp(1.1rem,2.2vw,1.6rem)}
+.grid-notes h3{font-size:1.0625rem}
+.grid-notes p{font-size:var(--t-small);color:var(--ink-2)}
+.grid-notes .eyebrow{margin-bottom:0.7rem}
+
+/* ---------- code ---------- */
+figure.code{margin:var(--s-block) 0 0;border:1px solid var(--rule);background:var(--panel)}
+figure.code figcaption{
+  padding:0.75rem clamp(0.9rem,2vw,1.25rem);
+  border-bottom:1px solid var(--rule);
+  display:flex;gap:1rem;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+}
+figure.code figcaption b{font-family:var(--f-body);font-weight:600;font-size:var(--t-small);color:var(--ink)}
+figure.code figcaption .path{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.08em;color:var(--graphite)}
+figure.code pre{
+  margin:0; padding:clamp(0.9rem,2vw,1.25rem);
+  overflow-x:auto; font-family:var(--f-mono); font-size:0.8125rem;
+  line-height:1.7; color:var(--ink); tab-size:2;
+}
+figure.code .why{
+  padding:0 clamp(0.9rem,2vw,1.25rem) 1rem;
+  font-size:var(--t-small); color:var(--ink-2); max-width:66ch;
+}
+.cm{color:var(--graphite)}
+.kw{color:var(--blue)}
+.st{color:var(--ink-2)}
+
+/* ---------- figures ---------- */
+/* six tiles: 3x2 wide, 2x3 narrow — rows are always fully populated */
+.figures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+@media (max-width:640px){ .figures{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.figures > div{background:var(--paper);padding:clamp(1rem,2vw,1.4rem)}
+.figures .n{
+  font-family:var(--f-display);font-weight:500;
+  font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1;letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums;display:block;margin-bottom:0.45rem;
+}
+.figures .n small{font-size:0.44em;letter-spacing:0.02em;color:var(--graphite);font-weight:400}
+.figures p{font-size:var(--t-small);color:var(--ink-2);margin:0}
+
+table.tbl{border-collapse:collapse;width:100%;font-size:var(--t-small);font-variant-numeric:tabular-nums}
+.scroller{overflow-x:auto;margin-top:var(--s-block);border:1px solid var(--rule)}
+table.tbl th,table.tbl td{text-align:left;padding:0.6rem 0.9rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.tbl th{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.1em;text-transform:uppercase;color:var(--graphite);font-weight:400}
+table.tbl tr:last-child td{border-bottom:0}
+table.tbl td:first-child{white-space:normal;min-width:15rem}
+
+/* ---------- live demos ---------- */
+.live{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:clamp(0.85rem,1.8vw,1.3rem);margin-top:var(--s-block)}
+.live a{
+  display:flex;flex-direction:column;gap:0.5rem;
+  border:1px solid var(--rule-strong);background:var(--paper);
+  color:inherit;text-decoration:none;position:relative;
+  padding:clamp(1.1rem,2.2vw,1.6rem);
+  transition:border-color .16s cubic-bezier(.4,0,.2,1);
+}
+.live a::before{
+  content:"";position:absolute;top:-1px;left:-1px;width:46px;height:3px;
+  background:var(--blue);transition:width .7s cubic-bezier(.16,1,.3,1);
+}
+.live a:hover{border-color:var(--blue)}
+.live a:hover::before{width:calc(100% + 2px)}
+.live a:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.live h3{margin:0.3rem 0 0}
+.live p{font-size:var(--t-small);color:var(--ink-2);margin:0}
+.live .go{
+  margin-top:auto;padding-top:0.9rem;border-top:1px solid var(--rule);
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--graphite);
+  display:flex;justify-content:space-between;gap:1rem;
+}
+.live a:hover .go{color:var(--blue)}
+
+/* ---------- honest list ---------- */
+ul.plain{list-style:none;margin:0;padding:0}
+ul.plain li{
+  border-top:1px solid var(--rule); padding:1rem 0 1rem 1.6rem; position:relative;
+  color:var(--ink-2); font-size:var(--t-small); max-width:74ch;
+}
+ul.plain li:last-child{border-bottom:1px solid var(--rule)}
+ul.plain li::before{content:"—";position:absolute;left:0;top:1rem;color:var(--rule-strong)}
+ul.plain b{color:var(--ink);font-weight:600}
+ul.plain code, .prose code, .pipe li code, .grid-notes code, table.tbl code{font-family:var(--f-mono);font-size:0.85em}
+
+footer{padding:var(--s-section) 0 clamp(3rem,6vw,5rem)}
+.backs{display:flex;gap:1.5rem;flex-wrap:wrap}
+.backs a{
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink);text-decoration:none;border:1px solid var(--rule-strong);padding:0.85rem 1.15rem;
+  transition:border-color .16s,color .16s,background .16s;
+}
+.backs a:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+@media (max-width:640px){
+  dl.spec{grid-template-columns:minmax(0,1fr);gap:0}
+  dl.spec dt{border-bottom:0;padding-top:0.8rem;white-space:normal}
+  dl.spec dd{padding-top:0.1rem}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<div class="topbar">
+  <p class="eyebrow">Sheet 02 · engineering breakdown</p>
+  <p class="eyebrow"><a href="../../../en/">← Portfolio</a> &nbsp;·&nbsp; <a href="../">Русская версия</a></p>
+</div>
+
+<header class="masthead">
+  <div class="masthead-id">
+    <p class="eyebrow">B2B portal · Next.js App Router</p>
+    <p class="eyebrow">2025</p>
+  </div>
+  <h1>Ventprom</h1>
+  <p class="lede">
+    A ventilation equipment portal where a buyer gets from “I need 8,000 m³/h” to a bill of
+    materials and a quote without a sales engineer in the loop: an engineering-faceted
+    catalogue, section-by-section air handling unit selection, a parametric duct fitting
+    configurator, and a customer workspace — all sitting on top of an item catalogue that
+    lives in 1C.
+  </p>
+  <dl class="spec">
+    <dt>Role</dt><dd>sole developer: architecture, data model, calculation layer, configurator, admin back office, 1C integration, front end</dd>
+    <dt>Stack</dt><dd>Next.js (App Router) · React 19 · TypeScript · PostgreSQL + Prisma · Meilisearch · NextAuth · Zustand · Three.js / React&nbsp;Three&nbsp;Fiber · Telegraf</dd>
+    <dt>Zones</dt><dd>storefront, customer workspace, admin configurator — three route groups in one application</dd>
+    <dt>Size</dt><dd>974 TypeScript files, 214,974 lines under <code>src/</code></dd>
+    <dt>Database</dt><dd>125 Prisma models, 29 migrations</dd>
+    <dt>Status</dt><dd>production portal: needs Postgres, Meilisearch and 1C access — no public demo, but two self-contained pieces were split out</dd>
+  </dl>
+</header>
+
+<!-- ============ 01 THE PROBLEM ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">01 · The problem</p>
+    <h2>Every enquiry had to pass through an engineer's head</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        A ventilation manufacturer sells two fundamentally different things. The first is
+        stocked items — fans, grilles, fasteners — where an ordinary catalogue does the job.
+        The second is <strong>product that does not exist until it is ordered</strong>:
+        an air handling unit assembled from sections for a specific air flow, and duct
+        fittings cut to the dimensions of a specific building.
+      </p>
+      <p>
+        The second half used to be done by people. The buyer sent an email or phoned,
+        an engineer opened a legacy web configurator run by a subcontractor, picked a casing
+        size, assembled the section train, manually added the controls — sensors, drives,
+        control panel — and sent an answer back. One round trip took hours to a day, and
+        every change of dimensions started it over.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        The second source of pain was <strong>drift between the site and 1C</strong>.
+        Prices, stock and the item catalogue itself are maintained in the accounting system,
+        while the storefront lives its own life. As long as the link between them is a manual
+        export, the storefront lies by construction, and a sales manager re-checks every line
+        anyway.
+      </p>
+      <p>
+        The third was <strong>knowledge that was written down nowhere</strong>. Which sensors
+        a water heater requires, when the control panel must be steel rather than plastic,
+        why face velocity must not exceed 3.5 m/s once a humidifier is in the train — all of
+        it lived in one engineer's head and in someone else's legacy script that could be
+        neither read nor verified.
+      </p>
+      <p>
+        The portal had to turn those three things into code: the selection rules, the link to
+        the accounting system, and the customer's path from air flow to document — with no
+        intermediary.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 THREE ZONES ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">02 · How it is built</p>
+    <h2>Three zones in one application, separated by route groups</h2>
+  </div>
+  <p class="prose">
+    The storefront, the customer workspace and the back office are three different products
+    with different layouts, different navigation and different permissions. In the App Router
+    they live as three route groups in one tree: <code>(site)</code>, <code>(workspace)</code>,
+    <code>(admin)</code>. Each brings its own <code>layout.tsx</code>, but all three share one
+    data layer, one Prisma schema and one calculation core. Access to the admin zone is cut off
+    in <code>middleware.ts</code> by the role in the token, before a single component renders.
+  </p>
+
+  <div class="grid-notes">
+    <div>
+      <p class="eyebrow">(site) · storefront</p>
+      <h3>Catalogue, selection, ordering</h3>
+      <p>
+        200 files, 100,877 lines. A catalogue faceted by application, by capacity and by
+        equipment category; a five-step selection wizard; cart, quick order, checkout.
+        Dedicated sections for fans, heaters, silencers, dampers, condensing units and
+        mixing assemblies — each with its own parameter card.
+      </p>
+    </div>
+    <div>
+      <p class="eyebrow">(workspace) · customer zone</p>
+      <h3>What happens after the sale</h3>
+      <p>
+        Orders and their statuses, quotes, customer sites, installations, helpdesk, documents,
+        purchasing analytics, reorder templates. This zone is what turns a one-off purchase
+        into a history: the next order for the same site is assembled from the previous one
+        rather than from scratch.
+      </p>
+    </div>
+    <div>
+      <p class="eyebrow">(admin) · configurator</p>
+      <h3>44 equipment reference tables</h3>
+      <p>
+        Fans, filters and filter inserts, water and electric heaters, coolers, evaporators,
+        three types of heat recovery unit, dampers, flexible connectors, silencers, humidifiers,
+        mixing sections, valve actuators, variable frequency drives, sensors, control panels,
+        casing sizes and product series — plus pricing, bulk operations, import comparison and
+        referential integrity checks.
+      </p>
+    </div>
+  </div>
+
+  <div class="note">
+    <p>
+      The catalogue is split into <b>family</b> and <b>variant</b>: <code>ProductFamily</code>
+      holds the description, documentation and SEO metadata, <code>ProductVariant</code> holds
+      one concrete size with air flow, pressure, power, sound level, dimensions, price and stock.
+      Facets filter variants, not families: an engineer searches for “under 65 dB and above
+      3,000 m³/h”, not for a series name. Both tables carry <code>ref1C</code> and
+      <code>code1C</code> — the join keys to the accounting system.
+    </p>
+  </div>
+
+  <p class="prose" style="margin-top:var(--s-block)">
+    Facets are routes rather than client state: <code>/catalog/application/[type]</code>,
+    <code>/catalog/capacity/[range]</code>, <code>/catalog/equipment/[category]</code>, with
+    numeric ranges arriving in <code>searchParams</code> and collapsing into a single Prisma
+    <code>where</code> on the server. The reason is not technical: a filtered selection has to
+    be forwardable to a colleague as a link, and the page has to open with a list already in it
+    rather than with a spinner.
+  </p>
+</section>
+
+<!-- ============ 03 CALCULATION LAYER ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">03 · The calculation layer</p>
+    <h2>The physics is kept out of both the UI and the database</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        <code>src/lib/engineering/</code> — 25 modules, 13,227 lines — knows nothing about React,
+        routing or sessions. Numbers and a section train go in; numbers plus two arrays come out:
+        <code>warnings[]</code> and <code>errors[]</code>. Next to it sits
+        <code>src/lib/calculators/</code>, another 12 modules: duct aerodynamics, psychrometrics,
+        climate data, code requirements, kitchen hoods, swimming pools, valve K<sub>vs</sub>.
+      </p>
+      <p>
+        Three reasons to keep them separate. First, <strong>the same formulas are called from
+        four places</strong> — server components in the storefront, API routes, the Telegram bot,
+        and a standalone static calculator site with no database at all.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        Second, <strong>pure functions can be checked without standing up infrastructure</strong>.
+        Water heater selection is seven numbers in and fourteen out; it needs neither Postgres
+        nor authentication.
+      </p>
+      <p>
+        Third, <strong>a calculation has to be calibratable against real hardware</strong>.
+        An empirical pressure-drop formula gives an approximation, and a specific coil from the
+        reference tables behaves differently. So every heat exchanger calculation accepts a set
+        of correction factors stored alongside the database record. All default to 1.0 — the
+        formula works uncalibrated.
+      </p>
+    </div>
+  </div>
+
+  <figure class="code">
+    <figcaption>
+      <b>Casing size selection: velocity limits accumulate over the section train</b>
+      <span class="path">src/lib/engineering/size-variant-selector.ts</span>
+    </figcaption>
+<pre><span class="cm">// Limits recovered from the legacy configurator's logs and checked against its own results</span>
+<span class="kw">const</span> VELOCITY_LIMITS = {
+  DEFAULT_MIN: 1.5,          <span class="cm">// m/s — below this, coils work inefficiently</span>
+  DEFAULT_MAX: 8.0,          <span class="cm">// m/s — ceiling with no extra sections</span>
+  WITH_RECUPERATOR: 9.0,
+  WITH_HEATER: 5.0,
+  WITH_COOLER: 4.0,
+  WITH_HUMIDIFIER: 3.5,      <span class="cm">// above this, droplets carry over</span>
+  OPTIMAL_MIN: 2.5, OPTIMAL_MAX: 3.5,
+};
+
+<span class="kw">let</span> maxVelocity = VELOCITY_LIMITS.DEFAULT_MAX;
+<span class="kw">if</span> (hasRecuperator) maxVelocity = Math.min(maxVelocity, VELOCITY_LIMITS.WITH_RECUPERATOR);
+<span class="kw">if</span> (hasHeater)      maxVelocity = Math.min(maxVelocity, VELOCITY_LIMITS.WITH_HEATER);
+<span class="kw">if</span> (hasCooler)      maxVelocity = Math.min(maxVelocity, VELOCITY_LIMITS.WITH_COOLER);
+<span class="kw">if</span> (hasHumidifier)  maxVelocity = Math.min(maxVelocity, VELOCITY_LIMITS.WITH_HUMIDIFIER);
+
+<span class="kw">for</span> (<span class="kw">const</span> size <span class="kw">of</span> sizes) {
+  <span class="kw">const</span> faceArea = (size.width / 1000) * (size.height / 1000);   <span class="cm">// m²</span>
+  <span class="kw">const</span> maxVel = Math.max(
+    airFlowSupply  / 3600 / faceArea,
+    airFlowExhaust / 3600 / faceArea,
+  );
+
+  <span class="kw">if</span> (maxVel &gt; maxVelocity) <span class="kw">continue</span>;   <span class="cm">// casing too small</span>
+  <span class="kw">if</span> (maxVel &lt; minVelocity) <span class="kw">continue</span>;   <span class="cm">// casing too large</span>
+
+  variants.push({
+    sizeId: size.id, width: size.width, height: size.height, faceArea,
+    isOptimal: maxVel &gt;= VELOCITY_LIMITS.OPTIMAL_MIN
+            &amp;&amp; maxVel &lt;= VELOCITY_LIMITS.OPTIMAL_MAX,
+    warnings,
+  });
+}</pre>
+    <p class="why">
+      Trimmed: calculation logging and air property fill-in removed. The point of the fragment
+      is a rule that only the engineer used to know — <b>every added section lowers the velocity
+      ceiling</b>, so the casing is sized against the tightest constraint, not against the air
+      flow. The “optimal” flag comes from the same place: landing inside 2.5–3.5 m/s. The customer
+      is shown the whole shortlist rather than a single answer, with notes on why one option
+      beats another.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Correction factors: the formula stays honest, but can be reconciled with the datasheet</b>
+      <span class="path">src/lib/engineering/section-calculators.ts</span>
+    </figcaption>
+<pre><span class="kw">export interface</span> HeatExchangerCorrectionFactors {
+  power?: number;         <span class="cm">// duty</span>
+  airPressure?: number;   <span class="cm">// air-side pressure drop</span>
+  waterPressure?: number; <span class="cm">// water-side pressure drop</span>
+  velocity?: number;
+  surface?: number;       <span class="cm">// surface margin</span>
+}
+
+<span class="cm">/** No factor supplied — the value passes through untouched */</span>
+<span class="kw">function</span> applyCorrection(value: number, factor?: number): number {
+  <span class="kw">return</span> factor !== undefined &amp;&amp; factor !== null ? value * factor : value;
+}
+
+<span class="cm">// inside calculateWaterHeater(): physics first…</span>
+<span class="kw">const</span> massFlowAir  = (input.airflow / 3600) * airDensity(input.inletTemp);
+<span class="kw">const</span> thermalPower = massFlowAir * 1.005 * (input.desiredOutletTemp - input.inletTemp);
+
+<span class="cm">// …then the checks a human used to make…</span>
+<span class="kw">if</span> (waterVelocity &lt; 0.5)
+  warnings.push(`Water velocity ${waterVelocity.toFixed(2)} m/s is below minimum — freezing risk`);
+<span class="kw">if</span> (velocity &gt; 5.0)
+  warnings.push(`Face velocity ${velocity.toFixed(2)} m/s exceeds the limit for a heating coil`);
+
+<span class="cm">// …and only at the end, calibration against a specific model from the reference tables</span>
+<span class="kw">const</span> cf = input.correctionFactors;
+<span class="kw">if</span> (cf) {
+  correctedPower    = applyCorrection(thermalPower,      cf.power);
+  airPressureDrop   = applyCorrection(airPressureDrop,   cf.airPressure);
+  waterPressureDrop = applyCorrection(waterPressureDrop, cf.waterPressure);
+  surfaceReserve    = applyCorrection(surfaceReserve,    cf.surface);
+}</pre>
+    <p class="why">
+      The ordering matters more than the formulas. Physics is computed first, warnings are raised
+      against the raw quantities, and correction is applied last. That way a “freezing risk”
+      warning cannot be silently tuned away by a coefficient, and the gap between calculation and
+      datasheet stays visible: a factor that drifts far from 1.0 is a signal that the formula does
+      not fit this product series — not an invitation to nudge it.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 04 AHU CONFIGURATOR ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">04 · Air handling unit configurator</p>
+    <h2>A unit is an ordered section train, not a product card</h2>
+  </div>
+  <p class="prose">
+    An air handling unit is assembled from sections standing one after another inside a casing:
+    damper, filter, heat recovery, heating coil, fan, silencer. It has two branches — supply and
+    extract — and the order of sections has physical meaning: air leaving the heat recovery unit
+    arrives at the coil in a different state. So the configurator is built as a pipeline where
+    the outlet of one section becomes the inlet of the next.
+  </p>
+
+  <ol class="pipe">
+    <li>
+      <b>Casing size selection</b>
+      <span>
+        <code>selectSizeVariants()</code> walks the casing sizes of a series from the database,
+        computes face velocity and keeps the ones inside the limits. It returns a shortlist with
+        “optimal” flags and warnings rather than a single answer.
+      </span>
+    </li>
+    <li>
+      <b>Section-by-section calculation</b>
+      <span>
+        12 calculators in <code>SectionCalculators</code>: filter, rotary and plate heat recovery,
+        water and electric heating, water and DX cooling, fan, silencer, mixing section, damper,
+        flexible connector. Each takes a <code>SectionInput</code> — air flow, cross-section,
+        inlet temperature and humidity — and returns a <code>SectionResult</code> with the outlet
+        air state. The psychrometrics are real: moisture content, enthalpy, dew point, and wet-bulb
+        temperature via the Stull approximation.
+      </span>
+    </li>
+    <li>
+      <b>Topology validation</b>
+      <span>
+        18 rules in <code>build-validation.ts</code> check <em>order</em> rather than numbers:
+        at most one fan per branch, a filter must precede heat recovery and any coil, humidifiers
+        cannot sit just anywhere, glycol recovery coils only come in pairs, a gas-fired heater
+        requires an empty section behind it. Findings split into blocking errors, which stop the
+        calculation, and warnings, which simply sit next to the result.
+      </span>
+    </li>
+    <li>
+      <b>Bill of materials assembly</b>
+      <span>
+        <code>BOMService</code> adds what the customer never thinks about: differential pressure
+        switches, frost protection, valve actuators, variable frequency drives, the control panel.
+        The set is derived from the section train — each sensor in the reference tables is bound to
+        a section type and flagged either “one per unit” or “one per section”.
+      </span>
+    </li>
+    <li>
+      <b>Controls by rule, not by memory</b>
+      <span>
+        <code>ahu-configurator-logic.ts</code> answers the questions that used to depend on an
+        engineer's recall: control panel material follows motor power and phase count plus total
+        electric heating load; valve actuator type follows the presence of a water coil (which
+        forces spring return) and of recirculation; damper count follows cross-sectional area.
+      </span>
+    </li>
+    <li>
+      <b>Price and document</b>
+      <span>
+        BOM lines are joined to component prices, and the result goes out as PDF — quote, invoice,
+        calculation report — and as an order that then lives on in the workspace and in 1C.
+      </span>
+    </li>
+  </ol>
+
+  <div class="note">
+    <p>
+      The selection rules were not invented from scratch. They were recovered from the legacy
+      configurator: its client-side JavaScript and HTML templates were read through, every function
+      mapped to a new module, and the result written up as a migration register — what was ported,
+      exactly where to, and what was deliberately left behind. Without that register, “porting the
+      business logic” becomes a set of guesses that surface six months later on a live order.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 05 DUCT FITTINGS ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">05 · Duct fittings</p>
+    <h2>62 fitting types described by parameters, not by pictures</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        The other half of the product line is ducts and fittings made to size.
+        In <code>src/lib/duct-3d/</code> every type is a TypeScript interface: a set of parameters
+        carrying the same letters as the shop drawing (<code>A</code> width, <code>B</code> height,
+        <code>L</code> length, <code>R</code> bend radius, <code>α</code> angle), plus a connection
+        type on each end — TDC, flange, slide-on rail, cap, mesh.
+      </p>
+      <p>
+        There are 62 of them: round and rectangular straight runs, bends, concentric and eccentric
+        reducers, tees and trouser pieces, crosses, offsets, caps, eight kinds of saddle tap,
+        cowls, deflectors, nipples, couplings, flanges, grease traps, and insulated variants
+        of each shape.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        The preview is built with React Three Fiber straight from those parameters: change a number
+        in a field and the geometry is rebuilt. A separate <code>DimensionLabels</code> layer
+        (693 lines) draws dimension lines and leaders, because what an engineer needs is not a
+        pretty render but <strong>a drawing that proves the right thing was ordered</strong>.
+      </p>
+      <p>
+        The same parametric record is reused downstream: it feeds sheet metal nesting and material
+        take-off, the bill of materials, and 3D load planning for transport — because the fitting
+        is represented as numbers rather than as a model file.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 REFERENCE DATA ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">06 · Reference data and bulk operations</p>
+    <h2>Dangerous actions do nothing by default</h2>
+  </div>
+  <p class="prose">
+    The configurator lives on equipment reference tables, and those tables arrive as exports:
+    a supplier's spreadsheet, a price list, an update from 1C. Hence three tools in the back office
+    that look dull and save the most time: <strong>bulk operations</strong> across 21 equipment
+    tables, <strong>a diff of two imports</strong> broken down into added / removed / modified with
+    a per-field list of changes, and <strong>an integrity check</strong> — which records ended up
+    with no price, no GUID, or no link into the component price table.
+  </p>
+
+  <figure class="code">
+    <figcaption>
+      <b>Bulk linking of equipment to prices: dry run by default</b>
+      <span class="path">src/app/api/admin/configurator/bulk/route.ts</span>
+    </figcaption>
+<pre><span class="cm">// Flag absent means count only. You get to make this mistake once,</span>
+<span class="cm">// so it had better be the mistake where nothing happened.</span>
+<span class="kw">const</span> dryRun = params.dryRun ?? <span class="kw">true</span>;
+
+<span class="kw">async function</span> autoLinkByGuid(tables?: string[], dryRun = <span class="kw">true</span>) {
+  <span class="kw">for</span> (<span class="kw">const</span> table <span class="kw">of</span> tablesToProcess) {
+    <span class="cm">// rows that carry a 1C GUID but have no price linked to them</span>
+    <span class="kw">const</span> unlinked = <span class="kw">await</span> (prisma <span class="kw">as any</span>)[table].findMany({
+      where: { guid: { not: <span class="kw">null</span> }, componentPriceId: <span class="kw">null</span> },
+      select: { id: <span class="kw">true</span>, guid: <span class="kw">true</span> },
+    });
+
+    <span class="kw">const</span> prices = <span class="kw">await</span> prisma.componentPrice.findMany({
+      where: { guid: { in: unlinked.map((u) =&gt; u.guid) } },
+      select: { id: <span class="kw">true</span>, guid: <span class="kw">true</span> },
+    });
+    <span class="kw">const</span> priceMap = <span class="kw">new</span> Map(prices.map((p) =&gt; [p.guid, p.id]));
+
+    <span class="kw">for</span> (<span class="kw">const</span> item <span class="kw">of</span> unlinked) {
+      <span class="kw">const</span> priceId = priceMap.get(item.guid);
+      <span class="kw">if</span> (!priceId) <span class="kw">continue</span>;
+      <span class="kw">if</span> (!dryRun) <span class="kw">await</span> (prisma <span class="kw">as any</span>)[table].update({
+        where: { id: item.id }, data: { componentPriceId: priceId },
+      });
+      linkedCount++;                <span class="cm">// counted in both modes</span>
+    }
+    details.push(`${table}: ${linkedCount} rows linked`);
+  }
+}</pre>
+    <p class="why">
+      The counter increments during the dry run too, so the administrator first sees an exact
+      report — “412 rows in the fan table will be linked” — and only then decides whether to commit.
+      Linking goes by the accounting system's GUID, not by name: names in price lists are written
+      however the supplier feels that day, and the GUID is the only thing that survives a rename.
+      Linking by name exists as a separate action, but it comes second and always asks for
+      confirmation.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 07 1C ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">07 · Sync with 1C</p>
+    <h2>The item catalogue belongs to the accounting system; the portal mirrors it</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        The important decision here was ownership of the data. The answer: <strong>1C owns it</strong>.
+        The portal does not create items, does not assign codes and does not edit prices — it keeps
+        a mirror and subscribes to changes.
+      </p>
+      <p>
+        Reads go over OData: first the folder hierarchy (folders flagged as groups unfold into
+        categories and subcategories), then the item catalogue, attached to categories through
+        <code>Parent_Key</code>. Items whose parent could not be resolved are not dropped — they
+        fall into a separate bucket category where they stay visible and can be sorted out by hand.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        Writes come the other way, through webhooks from 1C: five event types (price, stock,
+        item update, deletion, order status), up to 5,000 items per request, field validation
+        before the first database call, bearer token authorisation.
+      </p>
+      <p>
+        The key detail is <strong>the level a price arrives at</strong>. In 1C, price and stock
+        belong to an item's characteristic — that is, to one concrete size — not to the item card.
+        In the portal's schema that is a <code>ProductVariant</code>, and the webhook updates
+        exactly that, keyed by the characteristic's GUID. An order status change travels the same
+        path and reaches the customer as a Telegram notification.
+      </p>
+    </div>
+  </div>
+
+  <figure class="code">
+    <figcaption>
+      <b>1C webhook: event type, batch ceiling, and updates keyed by characteristic GUID</b>
+      <span class="path">src/app/api/1c/webhook/product-update/route.ts</span>
+    </figcaption>
+<pre><span class="kw">interface</span> WebhookPayload {
+  event_type: <span class="st">'price_update'</span> | <span class="st">'stock_update'</span> | <span class="st">'product_update'</span>
+            | <span class="st">'product_delete'</span> | <span class="st">'order_update'</span>;
+  timestamp: string;
+  products: WebhookProduct[];
+}
+
+<span class="cm">// Validate before the first database call: an empty batch and a 50,000-item batch</span>
+<span class="cm">// are equally harmful, and both get rejected here.</span>
+<span class="kw">if</span> (!Array.isArray(payload.products) || payload.products.length === 0)
+  <span class="kw">return</span> { valid: <span class="kw">false</span>, error: <span class="st">'products must be a non-empty array'</span> };
+<span class="kw">if</span> (payload.products.length &gt; 5000)
+  <span class="kw">return</span> { valid: <span class="kw">false</span>, error: <span class="st">'Maximum 5000 products per request'</span> };
+<span class="kw">if</span> (!item.ref_key)
+  <span class="kw">return</span> { valid: <span class="kw">false</span>, error: `Missing required field: ref_key at index ${i}` };
+
+<span class="cm">// Price arrives against an item characteristic, not against the item card:</span>
+<span class="cm">// in the portal's schema that is a ProductVariant, found by its 1C GUID.</span>
+<span class="kw">await</span> prisma.productVariant.update({
+  where: { ref1C: p.characteristic_ref },
+  data:  { price: p.price, priceOld: p.price_old },
+});
+
+<span class="cm">// Stock lands in the same place, and the availability flag is derived from</span>
+<span class="cm">// the quantity so that "in stock" and "0 pcs" can never disagree.</span>
+<span class="kw">await</span> prisma.productVariant.update({
+  where: { ref1C: p.characteristic_ref },
+  data:  { stockQty: p.stock_qty, inStock: (p.stock_qty || 0) &gt; 0 },
+});</pre>
+    <p class="why">
+      <code>inStock</code> never arrives from outside — it is computed from the quantity.
+      That is the only way to guarantee the storefront will not show “in stock” against zero
+      inventory: two fields updated independently drifting apart is the classic cause of
+      cancelled orders.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 08 LIVE PIECES ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">08 · What you can open</p>
+    <h2>Two pieces were lifted out of the portal and run on their own</h2>
+  </div>
+  <p class="prose">
+    The portal itself does not start without a database, a search engine and 1C access — it cannot
+    be shown as a link. But the calculation layer was written not to depend on infrastructure, and
+    that had a direct consequence: two pieces detach from the portal and stand alone.
+    These are live pages, not screen recordings.
+  </p>
+
+  <div class="live">
+    <a href="https://smirnov-artur.github.io/ventprom-tools/" target="_blank" rel="noopener">
+      <p class="eyebrow">Live demo · no server</p>
+      <h3>22 engineering calculators</h3>
+      <p>
+        Duct network aerodynamics, duct sizing, psychrometrics, heat loss, acoustics, smoke
+        extraction, aspiration, swimming pools, kitchen hoods, valve K<sub>vs</sub>, climate data,
+        equivalent product lookup, bill of materials. The same calculation cores as in the portal,
+        packaged as a static site: all the maths runs in the browser, with no database, no
+        authentication and no server calls.
+      </p>
+      <span class="go"><span>Open the tools</span><span>↗</span></span>
+    </a>
+    <a href="https://smirnov-artur.github.io/ventprom-packer/" target="_blank" rel="noopener">
+      <p class="eyebrow">Live demo · 3D</p>
+      <h3>3D load planning for ductwork</h3>
+      <p>
+        A bill of materials goes in, a load plan comes out. It accounts for nesting fittings inside
+        one another, weight and stacking order, the stability of round sections, and the clearance
+        that TDC flanges and slide-on rails need. Several packing strategies are computed in
+        parallel and the best by utilisation is shown in 3D with real coordinates and rotations.
+      </p>
+      <span class="go"><span>Open the packer</span><span>↗</span></span>
+    </a>
+  </div>
+
+  <div class="note" style="margin-top:var(--s-block)">
+    <p>
+      Both pages are published out of this same project and may not be deployed yet at the moment
+      you read this.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 09 NUMBERS ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">09 · Numbers</p>
+    <h2>Counted in the source, not estimated</h2>
+  </div>
+
+  <div class="figures">
+    <div><span class="n">974</span><p>TypeScript files under <code>src/</code></p></div>
+    <div><span class="n">214,974</span><p>lines of code</p></div>
+    <div><span class="n">206</span><p>App Router pages</p></div>
+    <div><span class="n">154</span><p>API routes</p></div>
+    <div><span class="n">125</span><p>Prisma models</p></div>
+    <div><span class="n">44</span><p>equipment reference tables</p></div>
+  </div>
+
+  <div class="scroller">
+    <table class="tbl">
+      <thead>
+        <tr><th>Layer</th><th>Files</th><th>Lines</th><th>What is inside</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Storefront <code>(site)</code></td><td>200</td><td>100,877</td><td>catalogue, facets, selection wizard, cart, checkout</td></tr>
+        <tr><td>Admin configurator <code>(admin)</code></td><td>85</td><td>15,712</td><td>21 sections, of which 44 equipment reference tables</td></tr>
+        <tr><td>Workspace <code>(workspace)</code></td><td>26</td><td>2,968</td><td>orders, quotes, sites, installations, helpdesk, analytics</td></tr>
+        <tr><td>API routes</td><td>156 <span class="cm">(154 route.ts)</span></td><td>16,262</td><td>catalogue, configurator, 1C webhooks, Telegram, PDF</td></tr>
+        <tr><td>Server actions</td><td>60</td><td>4,743</td><td>cart, orders, calculations, quick order</td></tr>
+        <tr><td>Components</td><td>285</td><td>40,351</td><td>catalogue, configurator, 3D, charts, forms</td></tr>
+        <tr><td>Calculation core <code>lib/engineering</code></td><td>25</td><td>13,227</td><td>sections, selection, validation, BOM, pricing</td></tr>
+        <tr><td>Calculators <code>lib/calculators</code></td><td>12</td><td>2,391</td><td>aerodynamics, psychrometrics, climate, code limits</td></tr>
+        <tr><td>Duct fitting 3D <code>lib/duct-3d</code></td><td>9</td><td>5,341</td><td>62 fitting types, meshes, dimension lines</td></tr>
+        <tr><td>Data model</td><td>1</td><td>2,802</td><td>125 models, 15 enums, 29 migrations</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cols" style="margin-top:var(--s-block)">
+    <div class="prose">
+      <h3>What got faster</h3>
+      <p>
+        Selecting an air handling unit no longer requires an engineer in the loop: the path
+        “air flow → shortlist of casing sizes → section train → bill of materials with controls →
+        quote” runs end to end in the browser. Two people and an email thread used to stand on
+        that route.
+      </p>
+      <p>
+        Quick order removes manual entry: paste a list of part numbers straight out of an email,
+        or drop an Excel/CSV file — lines are matched against the item catalogue and land in the
+        cart as a batch. For repeat purchasing on a site that is the difference between twenty
+        minutes and one paste.
+      </p>
+    </div>
+    <div class="prose">
+      <h3>What got simpler</h3>
+      <p>
+        Selection rules stopped being oral tradition. 18 topology checks and the controls-selection
+        logic sit in two modules that can be read, argued with and changed — instead of being
+        reconstructed from an engineer's memory or from someone else's script.
+      </p>
+      <p>
+        Updating reference data stopped being risky: a diff of two imports shows exactly what
+        changed before anything is applied, and bulk operations run in counting mode unless told
+        otherwise.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 OFF CAMERA ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">10 · What is off camera</p>
+    <h2>Limits I know about and am not hiding</h2>
+  </div>
+
+  <ul class="plain">
+    <li>
+      <b>The calculation core is almost untested.</b> Against 13,227 lines in
+      <code>lib/engineering</code> there are four unit test files totalling 238 lines, and none of
+      them touches section calculation. The real coverage is nine Playwright scenarios that drive
+      the UI. The right move here is table-driven tests against reference results from the legacy
+      configurator: the inputs and expected outputs already exist in its exports, they have simply
+      never been turned into fixtures.
+    </li>
+    <li>
+      <b>The “formula calibration” page only displays coefficients so far.</b> Values are read from
+      a JSON config and are editable in the UI, but the Save button is not wired to the server —
+      writing coefficients means editing the file. That is tolerable while calibrations are few;
+      past a dozen it needs change history, not just a write path.
+    </li>
+    <li>
+      <b>There is no in-app sync scheduler.</b> <code>sync-scheduler.ts</code> is a 26-line stub;
+      the regular exchange is triggered from outside by an OS-scheduled script. It works, but it
+      means the exchange state does not live in the application: the sync monitor in the back
+      office shows results, not a queue.
+    </li>
+    <li>
+      <b>Some webhook handlers are minimal.</b> Price, stock, deletion and order status events are
+      handled fully; <code>product_update</code> returns a counter and does not rebuild the item
+      card — a full resync is a separate script. Updating a price by item code (without a
+      characteristic GUID) is not implemented: in the current schema price always belongs to a
+      size, and handling a “price for the whole family” would be guesswork.
+    </li>
+    <li>
+      <b>Typing is dented at the Prisma boundary.</b> Several catalogue pages and the bulk
+      operations carry <code>as any</code> — where a model has to be reached dynamically by table
+      name, or an <code>include</code> gets complicated. It is a deliberate trade for speed, but it
+      removes exactly the protection TypeScript was brought in for, and in those places only a test
+      will catch a mistake.
+    </li>
+    <li>
+      <b>There is no single design language across the zones.</b> Storefront, workspace and back
+      office grew in parallel under different requirements: the storefront is a marketing surface,
+      the back office is dense tabular work. The components are shared, but visually these read as
+      three products. Unifying them is separate work that has not been done.
+    </li>
+    <li>
+      <b>The project survived a platform migration mid-flight.</b> It started on Next.js 14.2 and
+      now builds on 15.5 with React 19. Async <code>params</code> and <code>searchParams</code> were
+      walked through across the route tree, but pages remain that nobody has opened by hand since —
+      their behaviour is attested only by the build and the type checker.
+    </li>
+    <li>
+      <b>The legacy reverse engineering is not fully verified.</b> The migration register says
+      everything was ported, and function by function that is true. But “ported” and “produces the
+      same numbers for the same inputs” are different claims, and the second one is proven on a
+      handful of calculations rather than across the whole archive. Driving that to an exhaustive
+      comparison would be the first thing worth finishing.
+    </li>
+  </ul>
+
+  <div class="note" style="margin-top:var(--s-block)">
+    <p>
+      The fair summary is this: the engineering half — selection, validation, bill of materials,
+      the 1C exchange — is built and working; the perimeter around it (tests, a unified design,
+      observability of the exchange) trails a step behind. For a portal whose job is to replace an
+      email thread with a sales manager that is the right order of priorities, but not an
+      indefinite one: the next growth of the reference tables is where the perimeter gives first.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p class="eyebrow" style="margin-bottom:1.2rem">Back</p>
+  <div class="backs">
+    <a href="../../../en/">← Portfolio</a>
+    <a href="../../../">Портфолио по-русски</a>
+    <a href="../">Этот кейс по-русски</a>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

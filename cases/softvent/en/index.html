@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Softvent — engineering case study</title>
+<meta name="description" content="How a Python pipeline reads a multi-page ventilation design PDF laid out to GOST 21.602-2016, extracts the duct bill of materials and maps it onto the item catalogue of 1C:ERP Softvent.">
+<meta name="robots" content="index, follow">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/cases/softvent/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/cases/softvent/en/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%93%84%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>
+/* ---------- portfolio typefaces: self-hosted woff2, subset by unicode-range ---------- */
+@font-face{font-family:"Geologica";src:url("../../../assets/fonts/geologica-var-cyr.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Geologica";src:url("../../../assets/fonts/geologica-var-lat.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Golos Text";src:url("../../../assets/fonts/golos-var-cyr.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Golos Text";src:url("../../../assets/fonts/golos-var-lat.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";src:url("../../../assets/fonts/plexmono-400-cyr.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"IBM Plex Mono";src:url("../../../assets/fonts/plexmono-400-lat.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --paper:#EDEEEA; --panel:#E4E6E1;
+  --ink:#12161B; --ink-2:#3E4650; --graphite:#59616B;
+  --rule:#D3D6CF; --rule-strong:#ADB2A9;
+  --blue:#1B34C4; --blue-soft:#1B34C414;
+
+  --f-display:"Geologica","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-body:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono","SFMono-Regular",Menlo,monospace;
+
+  --t-d1:clamp(2.2rem,5.4vw,4.4rem);
+  --t-d2:clamp(1.5rem,2.8vw,2.35rem);
+  --t-d3:clamp(1.15rem,1.8vw,1.55rem);
+  --t-lede:clamp(1.1rem,1.5vw,1.35rem);
+  --t-body:1rem; --t-small:0.9375rem; --t-label:0.6875rem;
+
+  --edge:clamp(1.25rem,4.4vw,4rem);
+  --s-section:clamp(3rem,6.5vw,5.5rem);
+  --s-block:clamp(1.4rem,2.8vw,2.25rem);
+}
+@supports (color: color(display-p3 1 1 1)){
+  @media (color-gamut:p3){ :root{ --blue:color(display-p3 0.086 0.196 0.769); } }
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1116; --panel:#151A21;
+    --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+    --rule:#262C34; --rule-strong:#39424C;
+    --blue:#7C93FF; --blue-soft:#7C93FF16;
+  }
+  @supports (color: color(display-p3 1 1 1)){
+    @media (color-gamut:p3){ :root:not([data-theme="light"]){ --blue:color(display-p3 0.486 0.576 1); } }
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1116; --panel:#151A21;
+  --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+  --rule:#262C34; --rule-strong:#39424C;
+  --blue:#7C93FF; --blue-soft:#7C93FF16;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--f-body); font-size:var(--t-body); line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+img{max-width:100%;height:auto;display:block}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--edge)}
+
+.eyebrow{
+  font-family:var(--f-mono); font-size:var(--t-label); line-height:1.45;
+  letter-spacing:0.16em; text-transform:uppercase;
+  font-feature-settings:"case" 1; color:var(--graphite); margin:0;
+}
+
+.topbar{
+  border-bottom:1px solid var(--rule);
+  padding:1rem 0; display:flex; gap:1rem; flex-wrap:wrap;
+  justify-content:space-between; align-items:baseline;
+}
+.topbar a{color:var(--blue);text-decoration:none;border-bottom:1px solid transparent}
+.topbar a:hover{border-bottom-color:var(--blue)}
+
+.masthead{padding:clamp(2.2rem,5vw,4rem) 0 clamp(1.6rem,3.5vw,2.6rem);border-bottom:1px solid var(--rule-strong)}
+.masthead-id{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:space-between;margin-bottom:clamp(1.2rem,3vw,2.2rem)}
+h1{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d1); line-height:1.02; letter-spacing:-0.02em;
+  margin:0 0 clamp(1rem,2vw,1.5rem); max-width:16ch;
+}
+.lede{
+  font-size:var(--t-lede); line-height:1.5; color:var(--ink-2);
+  max-width:56ch; margin:0 0 clamp(1.6rem,3.5vw,2.4rem);
+}
+
+dl.spec{
+  margin:0; display:grid; grid-template-columns:max-content minmax(0,1fr);
+  gap:0.05rem 1.25rem; font-size:var(--t-small); align-content:start;
+}
+dl.spec dt{
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--graphite);
+  padding-top:0.55rem; white-space:nowrap; border-bottom:1px solid var(--rule);
+}
+dl.spec dd{
+  margin:0; padding:0.42rem 0; border-bottom:1px solid var(--rule);
+  color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+dl.spec dt:last-of-type, dl.spec dd:last-of-type{border-bottom:0}
+
+section{padding:var(--s-section) 0;border-bottom:1px solid var(--rule)}
+.sec-head{display:grid;grid-template-columns:minmax(0,1fr);gap:0.6rem;margin-bottom:var(--s-block)}
+h2{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d2); line-height:1.1; letter-spacing:-0.015em;
+  margin:0; max-width:24ch;
+}
+h3{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d3); line-height:1.2; letter-spacing:-0.01em;
+  margin:0 0 0.5rem;
+}
+p{margin:0 0 1rem;max-width:68ch}
+p:last-child{margin-bottom:0}
+.prose{color:var(--ink-2)}
+.prose strong{color:var(--ink);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:var(--s-block) clamp(1.5rem,3.5vw,3.5rem)}
+
+.pipe{list-style:none;margin:0;padding:0;display:grid;gap:0;counter-reset:st}
+.pipe li{
+  counter-increment:st; border-top:1px solid var(--rule);
+  padding:1.1rem 0 1.1rem 3.2rem; position:relative;
+}
+.pipe li:last-child{border-bottom:1px solid var(--rule)}
+.pipe li::before{
+  content:counter(st,decimal-leading-zero);
+  position:absolute; left:0; top:1.25rem;
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.1em; color:var(--blue);
+}
+.pipe b{display:block;font-family:var(--f-display);font-weight:500;font-size:1.0625rem;margin-bottom:0.15rem}
+.pipe span{color:var(--ink-2);font-size:var(--t-small)}
+.pipe code{font-family:var(--f-mono);font-size:0.8125em;color:var(--graphite)}
+
+.note{border-left:2px solid var(--blue);padding:0.1rem 0 0.1rem 1.1rem;margin:1.4rem 0;max-width:64ch}
+.note p{font-size:var(--t-small);color:var(--ink-2)}
+
+.grid-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:var(--s-block)}
+.grid-notes > div{background:var(--paper);padding:clamp(1.1rem,2.2vw,1.6rem)}
+.grid-notes h3{font-size:1.0625rem}
+.grid-notes p{font-size:var(--t-small);color:var(--ink-2)}
+
+figure.code{margin:var(--s-block) 0 0;border:1px solid var(--rule);background:var(--panel)}
+figure.code figcaption{
+  padding:0.75rem clamp(0.9rem,2vw,1.25rem);
+  border-bottom:1px solid var(--rule);
+  display:flex;gap:1rem;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+}
+figure.code figcaption b{font-family:var(--f-body);font-weight:600;font-size:var(--t-small);color:var(--ink)}
+figure.code figcaption .path{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.08em;color:var(--graphite)}
+figure.code pre{
+  margin:0; padding:clamp(0.9rem,2vw,1.25rem);
+  overflow-x:auto; font-family:var(--f-mono); font-size:0.8125rem;
+  line-height:1.7; color:var(--ink); tab-size:4;
+}
+figure.code .why{
+  padding:0 clamp(0.9rem,2vw,1.25rem) 1rem;
+  font-size:var(--t-small); color:var(--ink-2); max-width:66ch;
+}
+.cm{color:var(--graphite)}
+.kw{color:var(--blue)}
+.st{color:var(--ink-2)}
+
+.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.figures > div{background:var(--paper);padding:clamp(1rem,2vw,1.4rem)}
+.figures .n{
+  font-family:var(--f-display);font-weight:500;
+  font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1;letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums;display:block;margin-bottom:0.45rem;
+}
+.figures .n small{font-size:0.44em;letter-spacing:0.02em;color:var(--graphite);font-weight:400}
+.figures p{font-size:var(--t-small);color:var(--ink-2);margin:0}
+
+table.tbl{border-collapse:collapse;width:100%;font-size:var(--t-small);font-variant-numeric:tabular-nums}
+.scroller{overflow-x:auto;margin-top:var(--s-block);border:1px solid var(--rule)}
+table.tbl th,table.tbl td{text-align:left;padding:0.6rem 0.9rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.tbl th{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.1em;text-transform:uppercase;color:var(--graphite);font-weight:400}
+table.tbl tr:last-child td{border-bottom:0}
+table.tbl td:first-child{white-space:normal;min-width:16rem}
+
+ul.plain{list-style:none;margin:0;padding:0}
+ul.plain li{
+  border-top:1px solid var(--rule); padding:1rem 0 1rem 1.6rem; position:relative;
+  color:var(--ink-2); font-size:var(--t-small); max-width:74ch;
+}
+ul.plain li:last-child{border-bottom:1px solid var(--rule)}
+ul.plain li::before{content:"—";position:absolute;left:0;top:1rem;color:var(--rule-strong)}
+ul.plain b{color:var(--ink);font-weight:600}
+ul.plain code, .prose code, .pipe li code{font-family:var(--f-mono);font-size:0.85em}
+
+figure.shot{margin:var(--s-block) 0 0}
+figure.shot img{border:1px solid var(--rule);background:var(--panel)}
+figure.shot figcaption{margin-top:0.7rem;font-size:var(--t-small);color:var(--graphite)}
+
+footer{padding:var(--s-section) 0 clamp(3rem,6vw,5rem)}
+.backs{display:flex;gap:1.5rem;flex-wrap:wrap}
+.backs a{
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink);text-decoration:none;border:1px solid var(--rule-strong);padding:0.85rem 1.15rem;
+  transition:border-color .16s,color .16s,background .16s;
+}
+.backs a:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+@media (max-width:640px){
+  dl.spec{grid-template-columns:minmax(0,1fr);gap:0}
+  dl.spec dt{border-bottom:0;padding-top:0.8rem;white-space:normal}
+  dl.spec dd{padding-top:0.1rem}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<div class="topbar">
+  <p class="eyebrow">Sheet 09 · case study</p>
+  <p class="eyebrow"><a href="../../../en/">← Portfolio</a> &nbsp;·&nbsp; <a href="../">Русская версия</a></p>
+</div>
+
+<header class="masthead">
+  <div class="masthead-id">
+    <p class="eyebrow">Automation · 1C:ERP</p>
+    <p class="eyebrow">2025</p>
+  </div>
+  <h1>Softvent Automation</h1>
+  <p class="lede">
+    Reads a multi-page ventilation design PDF, locates the bill of materials laid out to
+    GOST 21.602-2016, pulls out the ducting and maps it onto the item catalogue of
+    1C:ERP Softvent — turning metres of run into pieces of stock length.
+  </p>
+  <dl class="spec">
+    <dt>Role</dt><dd>sole developer: architecture, parsers, conversion rules, UI automation</dd>
+    <dt>Stack</dt><dd>Python 3.12 · pdfplumber · PyPDF2 · camelot · pandas · openpyxl · pyautogui · pywin32</dd>
+    <dt>Input</dt><dd>design-documentation PDF; 29 A3 sheets in the test set</dd>
+    <dt>Output</dt><dd>line items as JSON and TXT, plus the PDF split by meaning</dd>
+    <dt>Size</dt><dd>2,029 lines of Python across five working modules</dd>
+    <dt>Status</dt><dd>working prototype: the parser is finished, ERP autofill is not</dd>
+  </dl>
+</header>
+
+<!-- ============ 01 THE PROBLEM ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">01 · The problem</p>
+    <h2>The bill of materials arrives as a drawing, not as data</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        A duct manufacturer receives design documentation from the client as a single PDF
+        assembled from A3 sheets. Inside are floor plans, axonometric diagrams, a table of
+        heating and ventilation system parameters, and — somewhere near the end — the
+        <strong>bill of materials</strong> laid out to GOST 21.602-2016, the Russian standard
+        for ventilation drawings.
+      </p>
+      <p>
+        To quote the job, a sales engineer has to retype every size into 1C:ERP Softvent:
+        material, sheet-metal gauge, width, height, quantity. A typical project runs to several
+        dozen line items, and each one is six mouse and keyboard actions.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        The tedious part is not the volume, it is the <strong>units</strong>. The designer writes
+        “duct 400×300 — 220 m”, because what matters to them is the length of the run.
+        The shop floor cuts sheet metal into fixed-length sections, so the same item lives in
+        the ERP catalogue as “220 m → 190 pcs”. That conversion is normally done in someone's
+        head, and that is exactly where the errors appear — usually discovered in the warehouse.
+      </p>
+      <p>
+        The system removes both chores at once: find the bill of materials inside a drawing,
+        and restate it in the units production actually works in.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 HOW IT WORKS ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">02 · How it works</p>
+    <h2>A five-stage pipeline, each stage with a fallback</h2>
+  </div>
+  <p class="prose">
+    The pipeline runs one way: PDF in, JSON out. Every intermediate result is written to disk
+    so that each stage can be inspected by eye without running the rest.
+  </p>
+
+  <ol class="pipe">
+    <li>
+      <b>Page classification</b>
+      <span>
+        Page text is pulled with <code>PyPDF2</code> — fast, and it never touches the vector
+        graphics. Each page scores against keyword rules and is assigned a type:
+        <code>specification</code>, <code>hovs</code> (the system-parameters sheet),
+        <code>axonometry</code>, <code>technical</code>, <code>other</code>. Scores rather than
+        first-match, because an axonometric sheet almost always contains the word
+        “characteristic” and a parameters sheet contains the word “fan”.
+      </span>
+    </li>
+    <li>
+      <b>Extending the bill-of-materials range</b>
+      <span>
+        The bill of materials rarely fits on one sheet, and the continuation carries no title —
+        only the table header. So from every page already identified the algorithm walks forward,
+        absorbing neighbours as long as their text still contains units of measure
+        (pcs, m², kg) or more than fifty digits.
+      </span>
+    </li>
+    <li>
+      <b>Splitting the PDF by meaning</b>
+      <span>
+        <code>PdfWriter</code> emits separate <code>specification.pdf</code>,
+        <code>hovs.pdf</code> and <code>axonometry.pdf</code>. This is not decoration: the
+        expensive table extraction then runs only over the pages that matter, not all twenty-nine.
+      </span>
+    </li>
+    <li>
+      <b>Table extraction</b>
+      <span>
+        The primary path is <code>pdfplumber.extract_tables()</code> — it handles Cyrillic best.
+        If no table is found, <code>camelot</code> takes over in <code>lattice</code> mode.
+        Camelot is imported inside a <code>try/except</code> and degrades silently, because it
+        drags in OpenCV and Ghostscript, which may not exist on a sales engineer's machine.
+      </span>
+    </li>
+    <li>
+      <b>Mapping onto the catalogue</b>
+      <span>
+        Regular expressions pull dimensions, gauge and system tag out of the item description;
+        quantities are converted into pieces of stock length. The result is a flat list of
+        dictionaries, ready for the ERP controller.
+      </span>
+    </li>
+  </ol>
+
+  <div class="note">
+    <p>
+      Why not OCR. Every sheet in the project is vector art with real text in it. OCR would add
+      minutes per page and a fresh class of errors (7 vs 1, Cyrillic х vs Latin x) for data
+      that is already in the file. OCR stays on the roadmap for scanned documents only.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 03 THE HARD PART ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">03 · The hard part</p>
+    <h2>Why a standards-compliant table is not a table</h2>
+  </div>
+  <p class="prose">
+    GOST 21.602-2016 gives the bill of materials nine columns: item number, description and
+    technical characteristics, type and mark, product code, manufacturer, unit of measure,
+    quantity, unit mass, remarks. Almost none of that structure survives into the PDF — the
+    sheet was exported from CAD as a drawing, not as a document.
+  </p>
+
+  <div class="grid-notes">
+    <div>
+      <h3>The drawing frame is a table too</h3>
+      <p>
+        An A3 sheet (1191×842 pt) also carries a title block, a revision strip and binding
+        margins. All of them are drawn with ruled lines, so <code>extract_tables()</code> dutifully
+        merges everything into one grid. On the real sheets this produced
+        <strong>21 and 23 columns instead of nine</strong>; the useful data sat in columns 6–20
+        and the rest came back empty.
+      </p>
+    </div>
+    <div>
+      <h3>Rotated text lands inside cells</h3>
+      <p>
+        Margin labels are typeset vertically. In the extracted table they show up as ordinary
+        values, only backwards: <code>онавосалгоС</code> is “Согласовано” (approved) read in
+        reverse. Formally these are valid strings; the only way to spot them is that they match
+        no expected field.
+      </p>
+    </div>
+    <div>
+      <h3>Spaces vanish, tokens fuse</h3>
+      <p>
+        Every caption in CAD is a separate text object, and extraction inserts no space between
+        them: <code>Кодизделия</code> (“productcode”), <code>Металлдлякрепления</code>
+        (“metalformounting”). The header “unit of measure” arrives hyphenated across four lines:
+        <code>Ед./изме-/ре-/ния</code>.
+      </p>
+    </div>
+    <div>
+      <h3>Long descriptions fuse with the next column</h3>
+      <p>
+        A fire-damper description wraps onto two lines, and the tail of the second line grows
+        straight into the “type and mark” value:
+        <code>…fire rating 90 minКПУ-1Н-О-100</code>. Parsed as flat page text, that line matches
+        nothing. This is precisely why extraction works over table cells rather than text lines.
+      </p>
+    </div>
+    <div>
+      <h3>Section headings are one-cell rows</h3>
+      <p>
+        “Duct fittings”, “Air distribution devices”, “Duct insulation materials”, “Equipment”
+        arrive as rows with one populated cell out of twenty-one. They must be skipped rather
+        than parsed, otherwise they become line items with a quantity of zero.
+      </p>
+    </div>
+    <div>
+      <h3>The header does not match itself</h3>
+      <p>
+        Because of the wrapping and the lost spaces, column mapping is done by lowercase
+        substring (<code>“кол”</code> for quantity, <code>“ед”</code> for unit,
+        <code>“наимен”</code> for description), and reading a row falls through a chain of
+        fallback keys. Exact header matching worked on none of the real sheets.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 CODE ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">04 · Code</p>
+    <h2>Four places where a decision was made</h2>
+  </div>
+
+  <figure class="code">
+    <figcaption>
+      <b>Classifying a page by score, not by first match</b>
+      <span class="path">src/parsers/table_parser.py</span>
+    </figcaption>
+<pre><span class="cm"># starting scores</span>
+scores = {<span class="st">'specification'</span>: 0, <span class="st">'hovs'</span>: 0, <span class="st">'axonometry'</span>: 0,
+          <span class="st">'technical'</span>: 0, <span class="st">'other'</span>: 0}
+
+<span class="kw">if</span> <span class="st">'СПЕЦИФИКА'</span> <span class="kw">in</span> text_upper <span class="kw">or</span> <span class="st">'ВЕДОМОСТ'</span> <span class="kw">in</span> text_upper:
+    scores[<span class="st">'specification'</span>] += 3
+<span class="kw">if</span> any(kw <span class="kw">in</span> text_upper <span class="kw">for</span> kw <span class="kw">in</span> [<span class="st">'ПОЗ.'</span>, <span class="st">'НАИМЕНОВАНИЕ'</span>,
+                                     <span class="st">'ЕДИНИЦА ИЗМЕРЕНИЯ'</span>, <span class="st">'КОД ИЗДЕЛИЯ'</span>]):
+    scores[<span class="st">'specification'</span>] += 2
+
+<span class="kw">if</span> <span class="st">'ХАРАКТЕРИСТИКА'</span> <span class="kw">in</span> text_upper <span class="kw">and</span> any(kw <span class="kw">in</span> text_upper
+                                            <span class="kw">for</span> kw <span class="kw">in</span> [<span class="st">'ВЕНТИЛ'</span>, <span class="st">'ХОВС'</span>]):
+    scores[<span class="st">'hovs'</span>] += 4
+
+<span class="cm"># an actual table outweighs any keyword</span>
+<span class="kw">if</span> page_tables:
+    <span class="kw">for</span> table <span class="kw">in</span> page_tables:
+        <span class="kw">if</span> self.parser._is_specification_table(table):
+            scores[<span class="st">'specification'</span>] += 5
+            <span class="kw">break</span>
+
+<span class="cm"># tie-break order: specification &gt; hovs &gt; axonometry &gt; ...</span>
+ordered = [<span class="st">'specification'</span>, <span class="st">'hovs'</span>, <span class="st">'axonometry'</span>, <span class="st">'technical'</span>, <span class="st">'other'</span>]
+best = max(ordered, key=<span class="kw">lambda</span> k: (scores[k], -ordered.index(k)))
+<span class="kw">return</span> best <span class="kw">if</span> scores[best] &gt; 0 <span class="kw">else</span> <span class="st">'other'</span></pre>
+    <p class="why">
+      The first version returned the type of the first keyword it hit — and filed the bill of
+      materials under “system parameters”, because it contains the word “characteristic”.
+      Scores plus an explicit priority order resolve the conflict predictably, and the presence
+      of a real table is weighted at 5 so it beats any single word.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Continuation pages that carry no title</b>
+      <span class="path">src/parsers/table_parser.py</span>
+    </figcaption>
+<pre><span class="kw">for</span> start <span class="kw">in</span> sorted(spec_pages):
+    i = start + 1
+    <span class="kw">while</span> i &lt;= max_page:
+        <span class="cm"># hit a sheet belonging to another section — stop</span>
+        <span class="kw">if</span> i <span class="kw">in</span> pages_by_type[<span class="st">'hovs'</span>] <span class="kw">or</span> i <span class="kw">in</span> pages_by_type[<span class="st">'axonometry'</span>] \
+           <span class="kw">or</span> i <span class="kw">in</span> pages_by_type[<span class="st">'technical'</span>]:
+            <span class="kw">break</span>
+        t = (page_texts.get(i) <span class="kw">or</span> <span class="st">''</span>).upper()
+        <span class="cm"># continuation smells like units of measure or dense digits</span>
+        <span class="kw">if</span> any(u <span class="kw">in</span> t <span class="kw">for</span> u <span class="kw">in</span> [<span class="st">' ШТ'</span>, <span class="st">' М²'</span>, <span class="st">' М2'</span>, <span class="st">' КГ'</span>]) \
+           <span class="kw">or</span> sum(ch.isdigit() <span class="kw">for</span> ch <span class="kw">in</span> t) &gt; 50:
+            spec_pages.add(i)
+            i += 1
+            <span class="kw">continue</span>
+        <span class="kw">break</span></pre>
+    <p class="why">
+      The second and third sheets of a bill of materials never repeat the word
+      “specification” — they only repeat the table header, so keyword matching loses them.
+      This uses a different property instead: a bill-of-materials page is a page dense with
+      numbers and units. The walk stops at the first sheet of another type so it cannot swallow
+      the rest of the album.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>The business rule: metres of run → pieces of stock length</b>
+      <span class="path">src/parsers/table_parser.py · convert_to_softvent_format</span>
+    </figcaption>
+<pre><span class="kw">if</span> item.unit <span class="kw">in</span> [<span class="st">'м'</span>, <span class="st">'м.п.'</span>, <span class="st">'мп'</span>]:
+    <span class="cm"># metres of run → mm → pieces of 1160 mm, always rounded up</span>
+    total_length = item.quantity * 1000
+    our_quantity = int(total_length / 1160 + 0.99)
+
+<span class="kw">elif</span> item.unit <span class="kw">in</span> [<span class="st">'м2'</span>, <span class="st">'м²'</span>]:
+    <span class="cm"># developed sheet area → length, via the section perimeter</span>
+    <span class="kw">if</span> item.width <span class="kw">and</span> item.height:
+        perimeter = (item.width + item.height) * 2 / 1000
+        total_length = item.quantity / perimeter * 1000
+        our_quantity = int(total_length / 1160 + 0.99)
+    <span class="kw">else</span>:
+        our_quantity = 0
+
+<span class="kw">else</span>:
+    our_quantity = int(item.quantity)</pre>
+    <p class="why">
+      This is the case where the rule matters more than the code. <b>1160 mm</b> is the working
+      length of a duct section at this plant; it is fixed as a constant and the whole catalogue
+      is counted from it. The rounding is always up — half a section still occupies a whole one
+      in the warehouse. The separate m² branch exists because some designers state volume as
+      developed sheet area; the run length then has to be recovered through the section
+      perimeter, and without dimensions parsed out of the description the item cannot be
+      converted at all.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Driving someone else's UI by coordinates</b>
+      <span class="path">src/automation/softvent_controller.py</span>
+    </figcaption>
+<pre>pyautogui.FAILSAFE = <span class="kw">True</span>   <span class="cm"># mouse into a screen corner = abort</span>
+pyautogui.PAUSE = 0.5        <span class="cm"># gives 1C time to repaint the form</span>
+
+keyboard.add_hotkey(<span class="st">'ctrl+shift+p'</span>, self.pause_resume)
+keyboard.add_hotkey(<span class="st">'ctrl+shift+s'</span>, self.emergency_stop)
+
+<span class="cm"># the window is found by title and raised to the front</span>
+win32gui.ShowWindow(self.current_window, win32con.SW_RESTORE)
+win32gui.SetForegroundWindow(self.current_window)
+
+FIELDS = {
+    <span class="st">'material'</span>:   {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 250},
+    <span class="st">'thickness'</span>:  {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 290},
+    <span class="st">'width_a'</span>:    {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 330},
+    <span class="st">'height_b'</span>:   {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 370},
+    <span class="st">'quantity_n'</span>: {<span class="st">'x'</span>: 300, <span class="st">'y'</span>: 450},
+}</pre>
+    <p class="why">
+      Softvent exposes no API, so the only available interface is the screen. That is an honestly
+      bad way to integrate, and the code is built around admitting it: an abort gesture with the
+      mouse, two global hotkeys, a pause between actions, and a
+      “continue / skip / stop” dialog on every input failure. The coordinates are not typed by
+      hand — there is a calibration mode where the operator hovers over seven form elements and
+      the program records the positions into JSON.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 05 NUMBERS ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">05 · Numbers</p>
+    <h2>What was measured on a real project</h2>
+  </div>
+
+  <div class="figures">
+    <div><span class="n">2,029</span><p>lines of Python across five working modules: table parser, its predecessor, ERP controller, runner and CLI</p></div>
+    <div><span class="n">29</span><p>A3 sheets in the test project: plans, axonometry, system parameters and three bill-of-materials sheets</p></div>
+    <div><span class="n">2:32</span><p>minutes for a full pass: classifying 29 pages plus table extraction</p></div>
+    <div><span class="n">21–23</span><p>columns returned by <code>extract_tables()</code> on a sheet where the standard defines nine</p></div>
+    <div><span class="n">33</span><p>line items in the sample bill of materials: 9 duct sizes and 24 duct fittings</p></div>
+    <div><span class="n">547 <small>m</small></span><p>of duct run in the sample — <strong>476 pieces</strong> of 1160 mm after conversion</p></div>
+  </div>
+
+  <figure class="shot">
+    <img src="../../../assets/a6.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Extracted bill of materials: 33 line items — ducting in metres, branches, end caps, bends and reducers in pieces">
+    <figcaption>The extraction result: 33 line items mapped onto the catalogue. Ducting in metres, duct fittings in pieces.</figcaption>
+  </figure>
+
+  <div class="scroller">
+    <table class="tbl">
+      <thead>
+        <tr><th>Line item</th><th>As designed</th><th>1160 mm sections</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Duct 400×300</td><td>220 m</td><td>190 pcs</td></tr>
+        <tr><td>Duct 600×500</td><td>142 m</td><td>123 pcs</td></tr>
+        <tr><td>Duct 500×400</td><td>77 m</td><td>67 pcs</td></tr>
+        <tr><td>Duct 700×500</td><td>32 m</td><td>28 pcs</td></tr>
+        <tr><td>Duct 200×300</td><td>25 m</td><td>22 pcs</td></tr>
+        <tr><td>Duct 900×1000</td><td>5 m</td><td>5 pcs</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose" style="margin-top:1rem;font-size:var(--t-small)">
+    Six of the nine duct rows. It shows plainly why the rounding goes up: 5 m of run is five
+    sections, not four and a third.
+  </p>
+</section>
+
+<!-- ============ 06 WHAT IS NOT FINISHED ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">06 · What is not finished</p>
+    <h2>The limits of the prototype</h2>
+  </div>
+  <p class="prose">
+    This is a working prototype, not a delivered product. Everything below was verified against
+    the source and the run logs, and is more useful said out loud than hidden.
+  </p>
+
+  <ul class="plain">
+    <li>
+      <b>On the test project the pipeline returns zero ducts.</b> Two concrete reasons.
+      First, the diameter is written <code>ø160</code> (U+00F8) while the regex looks for
+      <code>[ØDд]</code> with capital <code>Ø</code> (U+00D8) — no match. Second, the gauge is
+      spelled out as “0.5 mm thick” whereas the pattern expects <code>δ=0.5</code>. The rows are
+      found, the dimensions are not, and an item like that cannot be handed to the ERP.
+    </li>
+    <li>
+      <b>The classifier loses the third bill-of-materials sheet.</b> It carries no title, but it
+      does carry the words “fan” and “characteristic”, so the system-parameters rule scores 4
+      against the bill of materials' 2 and the sheet is filed in the wrong bucket — the very
+      sheet that holds every duct row. The fix is either to test the table header as well, or to
+      compute the table signal before classification rather than after.
+    </li>
+    <li>
+      <b>Fourteen false positives out of sixteen.</b> In one full run, the heuristic “six columns,
+      ten rows and units of measure in the text” accepted drawing frames and title blocks as
+      bills of materials. Parsing them breaks nothing, but it adds roughly two minutes to the run.
+    </li>
+    <li>
+      <b>The rounding is an approximation.</b> <code>int(x / 1160 + 0.99)</code> is not
+      <code>math.ceil</code>: with a fractional part below 0.01 it returns one piece short. None
+      of the observed volumes hit that window, but <code>ceil</code> is the correct expression.
+    </li>
+    <li>
+      <b>Duct fittings are recognised but never converted.</b> The patterns for bends, tees and
+      reducers exist and work, yet <code>convert_to_softvent_format</code> drops anything whose
+      description does not contain the word “duct”. Bends, branches, end caps and reducers are
+      two thirds of the sample.
+    </li>
+    <li>
+      <b>Five project files are empty.</b> <code>excel_parser.py</code>, <code>ui_mapper.py</code>,
+      <code>converter.py</code>, <code>utils/logger.py</code> and <code>config.yaml</code> are
+      zero bytes. Excel parsing is described in the README but never written — I read the
+      <code>test_spec.xlsx</code> sample by hand. The coordinate configuration from the README is
+      likewise unwired; the values live as constants in the <code>SoftventElements</code> class.
+    </li>
+    <li>
+      <b>The gauge-selection table exists only in the documentation.</b> The rule “perimeter up to
+      1000 mm → 0.5; up to 1600 → 0.7; up to 2000 → 0.9; above that 1.0” is in the README but not
+      in the code: Softvent picks the gauge itself when the field is left blank. That was a
+      deliberate choice — do not duplicate someone else's business logic — but the README reads
+      as if it were implemented, which needs correcting.
+    </li>
+    <li>
+      <b>The ERP automation is pinned to pixels.</b> The coordinates depend on screen resolution,
+      Windows scaling (exactly 100 % is required) and the window being maximised the same way
+      every time. The controller never verifies that a value actually landed in a field — it
+      types and moves on. The right answer is to read the form state as well as write to it;
+      the prototype does not. The “full automation” menu entry honestly prints “under development”.
+    </li>
+    <li>
+      <b>There are no tests.</b> Two demo functions run over hard-coded strings
+      (“Rectangular duct 500×300 … δ=0.7 mm”). They prove the regular expressions are alive, but
+      say nothing about behaviour on real sheets — as the results confirmed.
+    </li>
+  </ul>
+
+  <div class="note" style="margin-top:var(--s-block)">
+    <p>
+      If I were continuing this project the order would be: first a corpus of real PDFs from
+      different design offices as fixtures with tests over them; then a dictionary of spellings
+      instead of single regular expressions (a diameter is <code>Ø</code>, <code>ø</code>,
+      <code>D</code>, <code>д</code> and the word “diameter”); and only then back to the UI
+      automation. A parser without a corpus always looks like it works — on the one file it was
+      written against.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p class="eyebrow" style="margin-bottom:1.2rem">Back</p>
+  <div class="backs">
+    <a href="../../../en/">← Portfolio</a>
+    <a href="../../../">Портфолио по-русски</a>
+    <a href="../">Русская версия кейса</a>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

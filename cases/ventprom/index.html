@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вентпром — разбор проекта</title>
+<meta name="description" content="Как устроен B2B-портал вентиляционного оборудования: каталог с фасетами, конфигуратор приточной установки по секциям, 62 типа фасонных изделий, 44 справочника оборудования и синхронизация номенклатуры с 1С.">
+<meta name="robots" content="index, follow">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/cases/ventprom/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/cases/ventprom/en/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%8C%AC%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>
+/* ---------- шрифты портфолио: self-hosted woff2, subset по unicode-range ---------- */
+@font-face{font-family:"Geologica";src:url("../../assets/fonts/geologica-var-cyr.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Geologica";src:url("../../assets/fonts/geologica-var-lat.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Golos Text";src:url("../../assets/fonts/golos-var-cyr.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Golos Text";src:url("../../assets/fonts/golos-var-lat.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";src:url("../../assets/fonts/plexmono-400-cyr.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"IBM Plex Mono";src:url("../../assets/fonts/plexmono-400-lat.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --paper:#EDEEEA; --panel:#E4E6E1;
+  --ink:#12161B; --ink-2:#3E4650; --graphite:#59616B;
+  --rule:#D3D6CF; --rule-strong:#ADB2A9;
+  --blue:#1B34C4; --blue-soft:#1B34C414;
+
+  --f-display:"Geologica","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-body:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono","SFMono-Regular",Menlo,monospace;
+
+  --t-d1:clamp(2.2rem,5.4vw,4.4rem);
+  --t-d2:clamp(1.5rem,2.8vw,2.35rem);
+  --t-d3:clamp(1.15rem,1.8vw,1.55rem);
+  --t-lede:clamp(1.1rem,1.5vw,1.35rem);
+  --t-body:1rem; --t-small:0.9375rem; --t-label:0.6875rem;
+
+  --edge:clamp(1.25rem,4.4vw,4rem);
+  --s-section:clamp(3rem,6.5vw,5.5rem);
+  --s-block:clamp(1.4rem,2.8vw,2.25rem);
+}
+@supports (color: color(display-p3 1 1 1)){
+  @media (color-gamut:p3){ :root{ --blue:color(display-p3 0.086 0.196 0.769); } }
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1116; --panel:#151A21;
+    --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+    --rule:#262C34; --rule-strong:#39424C;
+    --blue:#7C93FF; --blue-soft:#7C93FF16;
+  }
+  @supports (color: color(display-p3 1 1 1)){
+    @media (color-gamut:p3){ :root:not([data-theme="light"]){ --blue:color(display-p3 0.486 0.576 1); } }
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1116; --panel:#151A21;
+  --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+  --rule:#262C34; --rule-strong:#39424C;
+  --blue:#7C93FF; --blue-soft:#7C93FF16;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--f-body); font-size:var(--t-body); line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+img{max-width:100%;height:auto;display:block}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--edge)}
+
+.eyebrow{
+  font-family:var(--f-mono); font-size:var(--t-label); line-height:1.45;
+  letter-spacing:0.16em; text-transform:uppercase;
+  font-feature-settings:"case" 1; color:var(--graphite); margin:0;
+}
+
+/* ---------- шапка листа ---------- */
+.topbar{
+  border-bottom:1px solid var(--rule);
+  padding:1rem 0; display:flex; gap:1rem; flex-wrap:wrap;
+  justify-content:space-between; align-items:baseline;
+}
+.topbar a{color:var(--blue);text-decoration:none;border-bottom:1px solid transparent}
+.topbar a:hover{border-bottom-color:var(--blue)}
+
+.masthead{padding:clamp(2.2rem,5vw,4rem) 0 clamp(1.6rem,3.5vw,2.6rem);border-bottom:1px solid var(--rule-strong)}
+.masthead-id{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:space-between;margin-bottom:clamp(1.2rem,3vw,2.2rem)}
+h1{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d1); line-height:1.02; letter-spacing:-0.02em;
+  margin:0 0 clamp(1rem,2vw,1.5rem); max-width:16ch;
+}
+.lede{
+  font-size:var(--t-lede); line-height:1.5; color:var(--ink-2);
+  max-width:58ch; margin:0 0 clamp(1.6rem,3.5vw,2.4rem);
+}
+
+dl.spec{
+  margin:0; display:grid; grid-template-columns:max-content minmax(0,1fr);
+  gap:0.05rem 1.25rem; font-size:var(--t-small); align-content:start;
+}
+dl.spec dt{
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--graphite);
+  padding-top:0.55rem; white-space:nowrap; border-bottom:1px solid var(--rule);
+}
+dl.spec dd{
+  margin:0; padding:0.42rem 0; border-bottom:1px solid var(--rule);
+  color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+dl.spec dt:last-of-type, dl.spec dd:last-of-type{border-bottom:0}
+
+/* ---------- разделы ---------- */
+section{padding:var(--s-section) 0;border-bottom:1px solid var(--rule)}
+.sec-head{display:grid;grid-template-columns:minmax(0,1fr);gap:0.6rem;margin-bottom:var(--s-block)}
+h2{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d2); line-height:1.1; letter-spacing:-0.015em;
+  margin:0; max-width:24ch;
+}
+h3{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d3); line-height:1.2; letter-spacing:-0.01em;
+  margin:0 0 0.5rem;
+}
+p{margin:0 0 1rem;max-width:68ch}
+p:last-child{margin-bottom:0}
+.prose{color:var(--ink-2)}
+.prose strong{color:var(--ink);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:var(--s-block) clamp(1.5rem,3.5vw,3.5rem)}
+
+/* ---------- конвейер ---------- */
+.pipe{list-style:none;margin:0;padding:0;display:grid;gap:0;counter-reset:st}
+.pipe li{
+  counter-increment:st; border-top:1px solid var(--rule);
+  padding:1.1rem 0 1.1rem 3.2rem; position:relative;
+}
+.pipe li:last-child{border-bottom:1px solid var(--rule)}
+.pipe li::before{
+  content:counter(st,decimal-leading-zero);
+  position:absolute; left:0; top:1.25rem;
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.1em; color:var(--blue);
+}
+.pipe b{display:block;font-family:var(--f-display);font-weight:500;font-size:1.0625rem;margin-bottom:0.15rem}
+.pipe span{color:var(--ink-2);font-size:var(--t-small)}
+.pipe code{font-family:var(--f-mono);font-size:0.8125em;color:var(--graphite)}
+
+/* ---------- карточки-заметки ---------- */
+.note{border-left:2px solid var(--blue);padding:0.1rem 0 0.1rem 1.1rem;margin:1.4rem 0;max-width:64ch}
+.note p{font-size:var(--t-small);color:var(--ink-2)}
+
+/* три зоны: либо в ряд, либо колонкой — промежуточной раскладки с пустой ячейкой нет */
+.grid-notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:var(--s-block)}
+@media (max-width:980px){ .grid-notes{grid-template-columns:minmax(0,1fr)} }
+.grid-notes > div{background:var(--paper);padding:clamp(1.1rem,2.2vw,1.6rem)}
+.grid-notes h3{font-size:1.0625rem}
+.grid-notes p{font-size:var(--t-small);color:var(--ink-2)}
+.grid-notes .eyebrow{margin-bottom:0.7rem}
+
+/* ---------- код ---------- */
+figure.code{margin:var(--s-block) 0 0;border:1px solid var(--rule);background:var(--panel)}
+figure.code figcaption{
+  padding:0.75rem clamp(0.9rem,2vw,1.25rem);
+  border-bottom:1px solid var(--rule);
+  display:flex;gap:1rem;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+}
+figure.code figcaption b{font-family:var(--f-body);font-weight:600;font-size:var(--t-small);color:var(--ink)}
+figure.code figcaption .path{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.08em;color:var(--graphite)}
+figure.code pre{
+  margin:0; padding:clamp(0.9rem,2vw,1.25rem);
+  overflow-x:auto; font-family:var(--f-mono); font-size:0.8125rem;
+  line-height:1.7; color:var(--ink); tab-size:2;
+}
+figure.code .why{
+  padding:0 clamp(0.9rem,2vw,1.25rem) 1rem;
+  font-size:var(--t-small); color:var(--ink-2); max-width:66ch;
+}
+.cm{color:var(--graphite)}
+.kw{color:var(--blue)}
+.st{color:var(--ink-2)}
+
+/* ---------- цифры ---------- */
+/* шесть плиток: 3×2 на широком, 2×3 на узком — ряды всегда заполнены целиком */
+.figures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+@media (max-width:640px){ .figures{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.figures > div{background:var(--paper);padding:clamp(1rem,2vw,1.4rem)}
+.figures .n{
+  font-family:var(--f-display);font-weight:500;
+  font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1;letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums;display:block;margin-bottom:0.45rem;
+}
+.figures .n small{font-size:0.44em;letter-spacing:0.02em;color:var(--graphite);font-weight:400}
+.figures p{font-size:var(--t-small);color:var(--ink-2);margin:0}
+
+table.tbl{border-collapse:collapse;width:100%;font-size:var(--t-small);font-variant-numeric:tabular-nums}
+.scroller{overflow-x:auto;margin-top:var(--s-block);border:1px solid var(--rule)}
+table.tbl th,table.tbl td{text-align:left;padding:0.6rem 0.9rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.tbl th{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.1em;text-transform:uppercase;color:var(--graphite);font-weight:400}
+table.tbl tr:last-child td{border-bottom:0}
+table.tbl td:first-child{white-space:normal;min-width:15rem}
+
+/* ---------- живые демо ---------- */
+.live{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:clamp(0.85rem,1.8vw,1.3rem);margin-top:var(--s-block)}
+.live a{
+  display:flex;flex-direction:column;gap:0.5rem;
+  border:1px solid var(--rule-strong);background:var(--paper);
+  color:inherit;text-decoration:none;position:relative;
+  padding:clamp(1.1rem,2.2vw,1.6rem);
+  transition:border-color .16s cubic-bezier(.4,0,.2,1);
+}
+.live a::before{
+  content:"";position:absolute;top:-1px;left:-1px;width:46px;height:3px;
+  background:var(--blue);transition:width .7s cubic-bezier(.16,1,.3,1);
+}
+.live a:hover{border-color:var(--blue)}
+.live a:hover::before{width:calc(100% + 2px)}
+.live a:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.live h3{margin:0.3rem 0 0}
+.live p{font-size:var(--t-small);color:var(--ink-2);margin:0}
+.live .go{
+  margin-top:auto;padding-top:0.9rem;border-top:1px solid var(--rule);
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--graphite);
+  display:flex;justify-content:space-between;gap:1rem;
+}
+.live a:hover .go{color:var(--blue)}
+
+/* ---------- честный список ---------- */
+ul.plain{list-style:none;margin:0;padding:0}
+ul.plain li{
+  border-top:1px solid var(--rule); padding:1rem 0 1rem 1.6rem; position:relative;
+  color:var(--ink-2); font-size:var(--t-small); max-width:74ch;
+}
+ul.plain li:last-child{border-bottom:1px solid var(--rule)}
+ul.plain li::before{content:"—";position:absolute;left:0;top:1rem;color:var(--rule-strong)}
+ul.plain b{color:var(--ink);font-weight:600}
+ul.plain code, .prose code, .pipe li code, .grid-notes code, table.tbl code{font-family:var(--f-mono);font-size:0.85em}
+
+footer{padding:var(--s-section) 0 clamp(3rem,6vw,5rem)}
+.backs{display:flex;gap:1.5rem;flex-wrap:wrap}
+.backs a{
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink);text-decoration:none;border:1px solid var(--rule-strong);padding:0.85rem 1.15rem;
+  transition:border-color .16s,color .16s,background .16s;
+}
+.backs a:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+@media (max-width:640px){
+  dl.spec{grid-template-columns:minmax(0,1fr);gap:0}
+  dl.spec dt{border-bottom:0;padding-top:0.8rem;white-space:normal}
+  dl.spec dd{padding-top:0.1rem}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<div class="topbar">
+  <p class="eyebrow">Лист 03 · разбор проекта</p>
+  <p class="eyebrow"><a href="../../">← Каталог работ</a> &nbsp;·&nbsp; <a href="en/">English</a></p>
+</div>
+
+<header class="masthead">
+  <div class="masthead-id">
+    <p class="eyebrow">B2B-портал · Next.js App Router</p>
+    <p class="eyebrow">2025</p>
+  </div>
+  <h1>Вентпром</h1>
+  <p class="lede">
+    Портал вентиляционного оборудования, где снабженец сам доходит от «нужно 8 000 м³/ч»
+    до спецификации и коммерческого предложения: каталог с инженерными фасетами, подбор
+    приточной установки по секциям, конфигуратор фасонных изделий и рабочий кабинет
+    с заказами и объектами — поверх номенклатуры, которая живёт в 1С.
+  </p>
+  <dl class="spec">
+    <dt>Роль</dt><dd>единственный разработчик: архитектура, схема БД, расчётный слой, конфигуратор, админка, интеграция с 1С, фронтенд</dd>
+    <dt>Стек</dt><dd>Next.js (App Router) · React 19 · TypeScript · PostgreSQL + Prisma · Meilisearch · NextAuth · Zustand · Three.js / React&nbsp;Three&nbsp;Fiber · Telegraf</dd>
+    <dt>Зоны</dt><dd>витрина, рабочий кабинет, админ-конфигуратор — три route group в одном приложении</dd>
+    <dt>Объём</dt><dd>974 файла TypeScript, 214 974 строки в <code>src/</code></dd>
+    <dt>База</dt><dd>125 моделей Prisma, 29 миграций</dd>
+    <dt>Статус</dt><dd>боевой портал: требует Postgres, Meilisearch и доступ к 1С — публичного демо нет, наружу вынесены две самостоятельные части</dd>
+  </dl>
+</header>
+
+<!-- ============ 01 ЗАДАЧА ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">01 · Задача</p>
+    <h2>Каждая заявка проходит через голову инженера</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        Производитель вентиляционного оборудования продаёт две принципиально разные вещи.
+        Первая — складская номенклатура: вентиляторы, решётки, крепёж; здесь работает
+        обычный каталог. Вторая — <strong>изделия, которых не существует до заказа</strong>:
+        приточная установка, собранная из секций под конкретный расход воздуха, и фасонные
+        изделия, нарезанные под размеры конкретного объекта.
+      </p>
+      <p>
+        Вторую половину до портала считали люди. Снабженец писал письмо или звонил,
+        инженер открывал старый веб-конфигуратор подрядчика, подбирал типоразмер,
+        собирал состав секций, руками дописывал автоматику — датчики, частотники,
+        щит управления — и отправлял ответ. Один цикл занимал от часов до дня, и каждая
+        итерация по размерам начинала его заново.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        Второй источник боли — <strong>расхождение сайта и 1С</strong>. Цены, остатки и сама
+        номенклатура ведутся в учётной системе, а витрина живёт своей жизнью. Пока связь
+        между ними — ручная выгрузка, витрина по определению врёт, и менеджер всё равно
+        перепроверяет каждую позицию.
+      </p>
+      <p>
+        Третье — <strong>знание, которое нигде не записано</strong>. Какие датчики нужны
+        для водяного нагревателя, когда щит обязан быть металлическим, почему при увлажнителе
+        скорость в сечении не должна превышать 3,5 м/с — всё это жило в голове инженера
+        и в чужом легаси-скрипте, который нельзя было ни прочитать, ни проверить.
+      </p>
+      <p>
+        Портал должен был перевести эти три вещи в код: правила подбора, связь с учётной
+        системой и путь клиента от расхода воздуха до документа — без посредника.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 ТРИ ЗОНЫ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">02 · Как устроено</p>
+    <h2>Три зоны в одном приложении, разделённые route group</h2>
+  </div>
+  <p class="prose">
+    Витрина, кабинет клиента и админка — это три разных продукта с разными макетами,
+    разной навигацией и разными правами. В App Router они живут как три группы маршрутов
+    в одном дереве: <code>(site)</code>, <code>(workspace)</code>, <code>(admin)</code>.
+    Каждая приносит свой <code>layout.tsx</code>, но все три делят один слой данных,
+    одну схему Prisma и одно расчётное ядро. Доступ к админке режется в
+    <code>middleware.ts</code> по роли в токене, до того как отрисуется хоть один компонент.
+  </p>
+
+  <div class="grid-notes">
+    <div>
+      <p class="eyebrow">(site) · витрина</p>
+      <h3>Каталог, подбор, заказ</h3>
+      <p>
+        200 файлов, 100 877 строк. Каталог с фасетами по применению, по производительности
+        и по категориям; мастер подбора в пять шагов; корзина, быстрый заказ, оформление.
+        Отдельные разделы под вентиляторы, нагреватели, шумоглушители, клапаны, ККБ,
+        узлы смешения — у каждого своя карточка параметров.
+      </p>
+    </div>
+    <div>
+      <p class="eyebrow">(workspace) · кабинет</p>
+      <h3>То, что происходит после сделки</h3>
+      <p>
+        Заказы и их статусы, коммерческие предложения, объекты клиента, монтажи,
+        служба поддержки, документы, аналитика закупок, шаблоны повторных заказов.
+        Именно эта зона превращает разовую покупку в историю: следующий заказ на тот же
+        объект собирается из прошлого, а не с нуля.
+      </p>
+    </div>
+    <div>
+      <p class="eyebrow">(admin) · конфигуратор</p>
+      <h3>44 справочника оборудования</h3>
+      <p>
+        Вентиляторы, фильтры и фильтровальные вставки, водяные и электрические нагреватели,
+        охладители, испарители, рекуператоры трёх типов, заслонки, гибкие вставки,
+        шумоглушители, увлажнители, узлы смешения, приводы клапанов, частотники, датчики,
+        щиты управления, типоразмеры и серии — плюс цены, массовые операции,
+        сравнение импортов и проверка целостности связей.
+      </p>
+    </div>
+  </div>
+
+  <div class="note">
+    <p>
+      Каталог разделён на <b>семейство</b> и <b>вариант</b>: <code>ProductFamily</code> хранит
+      описание, документацию и SEO, <code>ProductVariant</code> — конкретный типоразмер
+      с расходом, давлением, мощностью, шумом, габаритами, ценой и остатком. Фасеты фильтруют
+      варианты, а не семейства: инженер ищет «до 65 дБ и от 3 000 м³/ч», а не «серию ВР».
+      Обе таблицы держат <code>ref1C</code> и <code>code1C</code> — это ключи связи с учётной системой.
+    </p>
+  </div>
+
+  <p class="prose" style="margin-top:var(--s-block)">
+    Фасеты сделаны маршрутами, а не состоянием клиента: <code>/catalog/application/[type]</code>,
+    <code>/catalog/capacity/[range]</code>, <code>/catalog/equipment/[category]</code>, а числовые
+    диапазоны приезжают в <code>searchParams</code> и собираются в один Prisma-<code>where</code>
+    на сервере. Причина простая и не техническая: подборку нужно уметь переслать коллеге ссылкой,
+    а страница должна открываться уже со списком, а не с крутилкой.
+  </p>
+</section>
+
+<!-- ============ 03 РАСЧЁТНЫЙ СЛОЙ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">03 · Расчётный слой</p>
+    <h2>Формулы вынесены из интерфейса и из базы</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        <code>src/lib/engineering/</code> — 25 модулей, 13 227 строк — не знает ни про React,
+        ни про маршруты, ни про сессию. На вход идут числа и состав секций, на выход —
+        числа плюс два массива: <code>warnings[]</code> и <code>errors[]</code>. Рядом
+        <code>src/lib/calculators/</code>, ещё 12 модулей: аэродинамика, психрометрия,
+        климатические данные, нормы, кухонные вытяжки, бассейны, K<sub>vs</sub> клапанов.
+      </p>
+      <p>
+        Три причины держать их отдельно. Первая: <strong>одни и те же формулы вызываются
+        из четырёх мест</strong> — из серверных компонентов витрины, из API-роутов, из
+        телеграм-бота и из отдельной статической витрины калькуляторов, где базы вообще нет.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        Вторая: <strong>чистые функции можно проверить, не поднимая инфраструктуру</strong>.
+        Расчёт водяного нагревателя — это вход из семи чисел и выход из четырнадцати;
+        для него не нужны ни Postgres, ни авторизация.
+      </p>
+      <p>
+        Третья: <strong>расчёт нужно уметь калибровать под реальное железо</strong>.
+        Эмпирическая формула потерь давления даёт приближение, а у конкретного теплообменника
+        из справочника оно другое. Поэтому каждый расчёт теплообменного оборудования принимает
+        набор поправочных коэффициентов, которые хранятся рядом с записью в базе. По умолчанию
+        все равны единице — формула работает и без калибровки.
+      </p>
+    </div>
+  </div>
+
+  <figure class="code">
+    <figcaption>
+      <b>Подбор типоразмера: ограничения скорости накапливаются по составу секций</b>
+      <span class="path">src/lib/engineering/size-variant-selector.ts</span>
+    </figcaption>
+<pre><span class="cm">// Ограничения сняты с логов прежнего конфигуратора и проверены на его же расчётах</span>
+<span class="kw">const</span> VELOCITY_LIMITS = {
+  DEFAULT_MIN: 1.5,          <span class="cm">// м/с — ниже теплообменники работают неэффективно</span>
+  DEFAULT_MAX: 8.0,          <span class="cm">// м/с — предел без дополнительных секций</span>
+  WITH_RECUPERATOR: 9.0,
+  WITH_HEATER: 5.0,
+  WITH_COOLER: 4.0,
+  WITH_HUMIDIFIER: 3.5,      <span class="cm">// выше — унос капель с поверхности</span>
+  OPTIMAL_MIN: 2.5, OPTIMAL_MAX: 3.5,
+};
+
+<span class="kw">let</span> maxVelocity = VELOCITY_LIMITS.DEFAULT_MAX;
+<span class="kw">if</span> (hasRecuperator) maxVelocity = Math.min(maxVelocity, VELOCITY_LIMITS.WITH_RECUPERATOR);
+<span class="kw">if</span> (hasHeater)      maxVelocity = Math.min(maxVelocity, VELOCITY_LIMITS.WITH_HEATER);
+<span class="kw">if</span> (hasCooler)      maxVelocity = Math.min(maxVelocity, VELOCITY_LIMITS.WITH_COOLER);
+<span class="kw">if</span> (hasHumidifier)  maxVelocity = Math.min(maxVelocity, VELOCITY_LIMITS.WITH_HUMIDIFIER);
+
+<span class="kw">for</span> (<span class="kw">const</span> size <span class="kw">of</span> sizes) {
+  <span class="kw">const</span> faceArea = (size.width / 1000) * (size.height / 1000);   <span class="cm">// м²</span>
+  <span class="kw">const</span> maxVel = Math.max(
+    airFlowSupply  / 3600 / faceArea,
+    airFlowExhaust / 3600 / faceArea,
+  );
+
+  <span class="kw">if</span> (maxVel &gt; maxVelocity) <span class="kw">continue</span>;   <span class="cm">// типоразмер мал</span>
+  <span class="kw">if</span> (maxVel &lt; minVelocity) <span class="kw">continue</span>;   <span class="cm">// типоразмер велик</span>
+
+  variants.push({
+    sizeId: size.id, width: size.width, height: size.height, faceArea,
+    isOptimal: maxVel &gt;= VELOCITY_LIMITS.OPTIMAL_MIN
+            &amp;&amp; maxVel &lt;= VELOCITY_LIMITS.OPTIMAL_MAX,
+    warnings,
+  });
+}</pre>
+    <p class="why">
+      Сокращено: убраны логирование хода расчёта и заполнение параметров воздуха.
+      Смысл фрагмента — правило, которое раньше знал только инженер: <b>каждая добавленная
+      секция опускает потолок скорости</b>, и типоразмер подбирается не под расход, а под самое
+      жёсткое из ограничений. Отсюда же берётся отметка «оптимальный»: попадание в 2,5–3,5 м/с.
+      Клиенту показывается не один вариант, а весь список прошедших отбор — с пометками,
+      почему один лучше другого.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Поправочные коэффициенты: формула остаётся честной, но её можно свести с паспортом</b>
+      <span class="path">src/lib/engineering/section-calculators.ts</span>
+    </figcaption>
+<pre><span class="kw">export interface</span> HeatExchangerCorrectionFactors {
+  power?: number;         <span class="cm">// мощность</span>
+  airPressure?: number;   <span class="cm">// потери давления по воздуху</span>
+  waterPressure?: number; <span class="cm">// потери давления по воде</span>
+  velocity?: number;
+  surface?: number;       <span class="cm">// запас по поверхности</span>
+}
+
+<span class="cm">/** Коэффициент не задан — значение возвращается как есть */</span>
+<span class="kw">function</span> applyCorrection(value: number, factor?: number): number {
+  <span class="kw">return</span> factor !== undefined &amp;&amp; factor !== null ? value * factor : value;
+}
+
+<span class="cm">// внутри calculateWaterHeater(): сначала физика…</span>
+<span class="kw">const</span> massFlowAir  = (input.airflow / 3600) * airDensity(input.inletTemp);
+<span class="kw">const</span> thermalPower = massFlowAir * 1.005 * (input.desiredOutletTemp - input.inletTemp);
+
+<span class="cm">// …потом проверки, которые раньше делал человек…</span>
+<span class="kw">if</span> (waterVelocity &lt; 0.5)
+  warnings.push(`Скорость воды ${waterVelocity.toFixed(2)} м/с ниже минимальной — риск замерзания`);
+<span class="kw">if</span> (velocity &gt; 5.0)
+  warnings.push(`Скорость воздуха ${velocity.toFixed(2)} м/с превышает рекомендуемую для нагревателя`);
+
+<span class="cm">// …и только в конце — калибровка под конкретную модель из справочника</span>
+<span class="kw">const</span> cf = input.correctionFactors;
+<span class="kw">if</span> (cf) {
+  correctedPower    = applyCorrection(thermalPower,      cf.power);
+  airPressureDrop   = applyCorrection(airPressureDrop,   cf.airPressure);
+  waterPressureDrop = applyCorrection(waterPressureDrop, cf.waterPressure);
+  surfaceReserve    = applyCorrection(surfaceReserve,    cf.surface);
+}</pre>
+    <p class="why">
+      Порядок здесь важнее самих формул. Сначала считается физика, потом выдаются предупреждения
+      по исходным величинам, и только в самом конце применяется поправка. Так предупреждение
+      «риск замерзания» нельзя случайно погасить коэффициентом, а расхождение между расчётом
+      и паспортом остаётся видимым: коэффициент, уехавший от единицы далеко, — это сигнал,
+      что формула не подходит для этой серии, а не повод её подкрутить.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 04 КОНФИГУРАТОР УСТАНОВКИ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">04 · Конфигуратор приточной установки</p>
+    <h2>Установка — это упорядоченный список секций, а не карточка товара</h2>
+  </div>
+  <p class="prose">
+    Приточная установка собирается из секций, стоящих в корпусе одна за другой: заслонка,
+    фильтр, рекуператор, нагреватель, вентилятор, шумоглушитель. У неё две ветки — приток
+    и вытяжка, — и порядок секций имеет физический смысл: воздух после рекуператора приходит
+    в нагреватель уже другим. Поэтому конфигуратор устроен как конвейер, где выход одной
+    секции становится входом следующей.
+  </p>
+
+  <ol class="pipe">
+    <li>
+      <b>Подбор типоразмера</b>
+      <span>
+        <code>selectSizeVariants()</code> перебирает типоразмеры серии из базы, считает скорость
+        в живом сечении и оставляет те, что уложились в ограничения. Возвращается список
+        вариантов с пометками «оптимальный» и предупреждениями, а не единственный ответ.
+      </span>
+    </li>
+    <li>
+      <b>Расчёт секций по цепочке</b>
+      <span>
+        12 расчётчиков в <code>SectionCalculators</code>: фильтр, роторный и пластинчатый
+        рекуператоры, водяной и электрический нагреватели, водяной и фреоновый охладители,
+        вентилятор, шумоглушитель, секция смешения, заслонка, гибкая вставка. Каждый принимает
+        <code>SectionInput</code> — расход, габарит, температура и влажность на входе — и отдаёт
+        <code>SectionResult</code> с параметрами воздуха на выходе. Психрометрия честная:
+        влагосодержание, энтальпия, точка росы, температура мокрого термометра по формуле Стулла.
+      </span>
+    </li>
+    <li>
+      <b>Валидация топологии</b>
+      <span>
+        18 правил в <code>build-validation.ts</code> проверяют не числа, а <em>порядок</em>:
+        максимум один вентилятор на ветку, фильтр обязан стоять перед рекуператором и перед
+        теплообменником, увлажнитель — не где попало, гликолевые рекуператоры — только парой,
+        газовый нагреватель требует пустой секции после себя. Ошибки делятся на блокирующие
+        и предупреждения: первые останавливают расчёт, вторые просто видны рядом с результатом.
+      </span>
+    </li>
+    <li>
+      <b>Сборка спецификации</b>
+      <span>
+        <code>BOMService</code> добавляет к секциям то, о чём клиент не думает: датчики
+        перепада давления, защиту от замерзания, приводы клапанов, частотники, щит управления.
+        Набор выводится из состава установки — каждый датчик в справочнике привязан к типу
+        секции и к признаку «один на установку» либо «на каждую секцию».
+      </span>
+    </li>
+    <li>
+      <b>Автоматика по правилам, а не по опыту</b>
+      <span>
+        <code>ahu-configurator-logic.ts</code> отвечает на вопросы, которые раньше решались
+        памятью инженера: материал щита определяется мощностью и фазностью двигателей и
+        суммарной мощностью электронагрева; тип привода клапана — наличием водяного нагрева
+        (тогда нужен возврат пружиной) и рециркуляции; количество заслонок — площадью сечения.
+      </span>
+    </li>
+    <li>
+      <b>Цена и документ</b>
+      <span>
+        Позиции спецификации связываются с ценами компонентов, результат уходит в PDF —
+        коммерческое предложение, счёт, отчёт о расчёте — и в заказ, который дальше живёт
+        в кабинете и в 1С.
+      </span>
+    </li>
+  </ol>
+
+  <div class="note">
+    <p>
+      Правила подбора не выдуманы заново. Они восстановлены из легаси-конфигуратора:
+      разобран его клиентский JavaScript и HTML-шаблоны, каждая функция сопоставлена с новым
+      модулем, и результат сведён в таблицу переноса — что перенесено, куда именно и что
+      сознательно не переносилось. Без такого реестра «портирование бизнес-логики» превращается
+      в набор догадок, которые всплывают через полгода на конкретном заказе.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 05 ФАСОННЫЕ ИЗДЕЛИЯ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">05 · Фасонные изделия</p>
+    <h2>62 типа изделий, описанных параметрами, а не картинками</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        Вторая половина продукции — воздуховоды и фасонные изделия под размер.
+        В <code>src/lib/duct-3d/</code> каждый тип описан как TypeScript-интерфейс:
+        набор параметров с теми же буквенными обозначениями, что и на заводском чертеже
+        (<code>A</code> — ширина, <code>B</code> — высота, <code>L</code> — длина,
+        <code>R</code> — радиус изгиба, <code>α</code> — угол), плюс тип соединения
+        на каждом торце: TDC, фланец, шинорейка, заглушка, сетка.
+      </p>
+      <p>
+        Типов 62: прямые участки круглые и прямоугольные, отводы, переходы концентрические
+        и эксцентрические, тройники и «штаны», крестовины, утки, заглушки, врезки восьми
+        видов, зонты, дефлекторы, ниппели, муфты, фланцы, жироуловители и теплоизоляция
+        для каждой из этих форм.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        Превью строится на React Three Fiber прямо из этих параметров: меняется число
+        в поле — пересобирается геометрия. Отдельный слой <code>DimensionLabels</code>
+        (693 строки) рисует размерные линии и выноски, потому что инженеру нужен не красивый
+        рендер, а <strong>чертёж, по которому видно, что заказано именно то</strong>.
+      </p>
+      <p>
+        Тот же параметрический набор используется дальше: он идёт в расчёт раскроя и
+        материалоёмкости, в спецификацию и в 3D-упаковку изделий в транспорт — потому что
+        изделие представлено числами, а не файлом модели.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 СПРАВОЧНИКИ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">06 · Справочники и массовые операции</p>
+    <h2>Опасные действия по умолчанию ничего не делают</h2>
+  </div>
+  <p class="prose">
+    Конфигуратор живёт на справочниках оборудования, а справочники приезжают выгрузками:
+    Excel от поставщика, прайс, обновление из 1С. Отсюда три инструмента в админке, которые
+    выглядят скучно, но экономят больше всего времени: <strong>массовые операции</strong>
+    по 21 таблице оборудования, <strong>сравнение двух импортов</strong> с разбивкой
+    «добавлено / удалено / изменено» и построчным списком изменённых полей, и
+    <strong>проверка целостности</strong> — какие записи остались без цены, без GUID
+    или без связи с ценовым справочником.
+  </p>
+
+  <figure class="code">
+    <figcaption>
+      <b>Массовая привязка оборудования к ценам: сухой прогон по умолчанию</b>
+      <span class="path">src/app/api/admin/configurator/bulk/route.ts</span>
+    </figcaption>
+<pre><span class="cm">// Флаг не передали — значит, только посчитать. Ошибиться можно один раз,</span>
+<span class="cm">// и лучше пусть эта ошибка будет «ничего не произошло».</span>
+<span class="kw">const</span> dryRun = params.dryRun ?? <span class="kw">true</span>;
+
+<span class="kw">async function</span> autoLinkByGuid(tables?: string[], dryRun = <span class="kw">true</span>) {
+  <span class="kw">for</span> (<span class="kw">const</span> table <span class="kw">of</span> tablesToProcess) {
+    <span class="cm">// записи, у которых GUID из 1С есть, а цены к ним не привязано</span>
+    <span class="kw">const</span> unlinked = <span class="kw">await</span> (prisma <span class="kw">as any</span>)[table].findMany({
+      where: { guid: { not: <span class="kw">null</span> }, componentPriceId: <span class="kw">null</span> },
+      select: { id: <span class="kw">true</span>, guid: <span class="kw">true</span> },
+    });
+
+    <span class="kw">const</span> prices = <span class="kw">await</span> prisma.componentPrice.findMany({
+      where: { guid: { in: unlinked.map((u) =&gt; u.guid) } },
+      select: { id: <span class="kw">true</span>, guid: <span class="kw">true</span> },
+    });
+    <span class="kw">const</span> priceMap = <span class="kw">new</span> Map(prices.map((p) =&gt; [p.guid, p.id]));
+
+    <span class="kw">for</span> (<span class="kw">const</span> item <span class="kw">of</span> unlinked) {
+      <span class="kw">const</span> priceId = priceMap.get(item.guid);
+      <span class="kw">if</span> (!priceId) <span class="kw">continue</span>;
+      <span class="kw">if</span> (!dryRun) <span class="kw">await</span> (prisma <span class="kw">as any</span>)[table].update({
+        where: { id: item.id }, data: { componentPriceId: priceId },
+      });
+      linkedCount++;                <span class="cm">// считается в обоих режимах</span>
+    }
+    details.push(`${table}: ${linkedCount} записей привязано`);
+  }
+}</pre>
+    <p class="why">
+      Счётчик увеличивается и при сухом прогоне — поэтому админ сначала видит точный отчёт
+      «в таблице вентиляторов привяжется 412 записей», а уже потом решает, нажимать ли.
+      Привязка идёт по GUID из учётной системы, а не по названию: имена в прайсах пишут
+      как угодно, GUID — единственное, что переживает переименование. Отдельным действием
+      есть привязка по имени, но она вторая по очереди и всегда требует подтверждения.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 07 1С ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">07 · Синхронизация с 1С</p>
+    <h2>Номенклатура принадлежит учётной системе, портал её отражает</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        Здесь важнее всего было решить, кто хозяин данных. Ответ: <strong>1С</strong>.
+        Портал не заводит товары, не назначает им коды и не редактирует цены — он держит
+        зеркало и подписывается на изменения.
+      </p>
+      <p>
+        Чтение идёт через OData: сначала иерархия папок (папки с признаком «это группа»
+        разворачиваются в категории и подкатегории), затем номенклатура, привязанная
+        к категориям через <code>Parent_Key</code>. Позиции, у которых родителя не нашлось,
+        не теряются — они падают в отдельную категорию, где их видно и можно разобрать руками.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        Запись — наоборот, через вебхуки от 1С: пять типов событий (цена, остаток, изменение
+        товара, удаление, статус заказа), до 5 000 позиций за запрос, валидация полей
+        до первого обращения к базе, авторизация по токену в заголовке.
+      </p>
+      <p>
+        Ключевая деталь — <strong>уровень, на который приезжает цена</strong>. В 1С цена
+        и остаток относятся не к товару, а к его характеристике, то есть к конкретному
+        типоразмеру. В схеме портала это <code>ProductVariant</code>, и вебхук обновляет
+        именно его — по GUID характеристики. Смена статуса заказа тем же путём доезжает
+        до пользователя уведомлением в телеграм-боте.
+      </p>
+    </div>
+  </div>
+
+  <figure class="code">
+    <figcaption>
+      <b>Вебхук от 1С: событие, лимит пачки и обновление по GUID характеристики</b>
+      <span class="path">src/app/api/1c/webhook/product-update/route.ts</span>
+    </figcaption>
+<pre><span class="kw">interface</span> WebhookPayload {
+  event_type: <span class="st">'price_update'</span> | <span class="st">'stock_update'</span> | <span class="st">'product_update'</span>
+            | <span class="st">'product_delete'</span> | <span class="st">'order_update'</span>;
+  timestamp: string;
+  products: WebhookProduct[];
+}
+
+<span class="cm">// Валидация до первого запроса к базе: пустая пачка и пачка на 50 000 позиций</span>
+<span class="cm">// одинаково вредны, и обе отсекаются здесь.</span>
+<span class="kw">if</span> (!Array.isArray(payload.products) || payload.products.length === 0)
+  <span class="kw">return</span> { valid: <span class="kw">false</span>, error: <span class="st">'products must be a non-empty array'</span> };
+<span class="kw">if</span> (payload.products.length &gt; 5000)
+  <span class="kw">return</span> { valid: <span class="kw">false</span>, error: <span class="st">'Maximum 5000 products per request'</span> };
+<span class="kw">if</span> (!item.ref_key)
+  <span class="kw">return</span> { valid: <span class="kw">false</span>, error: `Missing required field: ref_key at index ${i}` };
+
+<span class="cm">// Цена приходит на характеристику номенклатуры, а не на карточку товара:</span>
+<span class="cm">// в схеме портала это ProductVariant, найденный по GUID из 1С.</span>
+<span class="kw">await</span> prisma.productVariant.update({
+  where: { ref1C: p.characteristic_ref },
+  data:  { price: p.price, priceOld: p.price_old },
+});
+
+<span class="cm">// Остаток — там же, и признак наличия выводится из количества,</span>
+<span class="cm">// чтобы «в наличии» и «0 шт» не могли разойтись.</span>
+<span class="kw">await</span> prisma.productVariant.update({
+  where: { ref1C: p.characteristic_ref },
+  data:  { stockQty: p.stock_qty, inStock: (p.stock_qty || 0) &gt; 0 },
+});</pre>
+    <p class="why">
+      <code>inStock</code> нигде не приходит извне — он вычисляется из количества.
+      Это единственный способ гарантировать, что витрина не покажет «в наличии» при нулевом
+      остатке: рассогласование двух полей, которые обновляются независимо, — классическая
+      причина отменённых заказов.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 08 ЖИВЫЕ ЧАСТИ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">08 · Что можно открыть</p>
+    <h2>Две части вынуты из портала и работают отдельно</h2>
+  </div>
+  <p class="prose">
+    Сам портал без базы, поискового движка и доступа к 1С не запускается — показать его
+    ссылкой нельзя. Но расчётный слой писался так, чтобы не зависеть от инфраструктуры,
+    и это дало прямое следствие: два куска отделяются от портала и живут самостоятельно.
+    Ниже — живые страницы, не запись экрана.
+  </p>
+
+  <div class="live">
+    <a href="https://smirnov-artur.github.io/ventprom-tools/" target="_blank" rel="noopener">
+      <p class="eyebrow">Живое демо · без сервера</p>
+      <h3>22 инженерных калькулятора</h3>
+      <p>
+        Аэродинамика сети, подбор сечения воздуховода, психрометрика, теплопотери, акустика,
+        дымоудаление, аспирация, бассейны, кухонные вытяжки, K<sub>vs</sub> клапанов,
+        климатические данные, подбор аналогов, спецификация. Те же расчётные ядра, что
+        в портале, собранные в статический сайт: вся математика считается в браузере,
+        ни базы, ни авторизации, ни серверных вызовов.
+      </p>
+      <span class="go"><span>Открыть витрину инструментов</span><span>↗</span></span>
+    </a>
+    <a href="https://smirnov-artur.github.io/ventprom-packer/" target="_blank" rel="noopener">
+      <p class="eyebrow">Живое демо · 3D</p>
+      <h3>Упаковка воздуховодов в транспорт</h3>
+      <p>
+        Спецификация на входе — раскладка по кузову на выходе. Учитывается вложение изделий
+        друг в друга, вес и порядок укладки, устойчивость круглых сечений, вылет фланцев
+        TDC и шинореек. Несколько стратегий укладки считаются параллельно, лучшая по
+        заполнению показывается в 3D с реальными координатами и поворотами.
+      </p>
+      <span class="go"><span>Открыть 3D-упаковку</span><span>↗</span></span>
+    </a>
+  </div>
+
+  <div class="note" style="margin-top:var(--s-block)">
+    <p>
+      Обе страницы публикуются из этого же проекта и могут быть ещё не развёрнуты
+      в момент, когда вы это читаете.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 09 ЦИФРЫ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">09 · Цифры</p>
+    <h2>Что посчитано в исходниках</h2>
+  </div>
+
+  <div class="figures">
+    <div><span class="n">974</span><p>файла TypeScript в <code>src/</code></p></div>
+    <div><span class="n">214 974</span><p>строки кода</p></div>
+    <div><span class="n">206</span><p>страниц App Router</p></div>
+    <div><span class="n">154</span><p>маршрута API</p></div>
+    <div><span class="n">125</span><p>моделей Prisma</p></div>
+    <div><span class="n">44</span><p>справочника оборудования в админке</p></div>
+  </div>
+
+  <div class="scroller">
+    <table class="tbl">
+      <thead>
+        <tr><th>Слой</th><th>Файлов</th><th>Строк</th><th>Что внутри</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Витрина <code>(site)</code></td><td>200</td><td>100 877</td><td>каталог, фасеты, мастер подбора, корзина, оформление</td></tr>
+        <tr><td>Админ-конфигуратор <code>(admin)</code></td><td>85</td><td>15 712</td><td>21 раздел, из них 44 справочника оборудования</td></tr>
+        <tr><td>Кабинет <code>(workspace)</code></td><td>26</td><td>2 968</td><td>заказы, КП, объекты, монтажи, поддержка, аналитика</td></tr>
+        <tr><td>API-маршруты</td><td>156 <span class="cm">(154 route.ts)</span></td><td>16 262</td><td>каталог, конфигуратор, вебхуки 1С, телеграм, PDF</td></tr>
+        <tr><td>Серверные экшены</td><td>60</td><td>4 743</td><td>корзина, заказы, расчёты, быстрый заказ</td></tr>
+        <tr><td>Компоненты</td><td>285</td><td>40 351</td><td>каталог, конфигуратор, 3D, графики, формы</td></tr>
+        <tr><td>Расчётное ядро <code>lib/engineering</code></td><td>25</td><td>13 227</td><td>секции, подбор, валидация, спецификация, цена</td></tr>
+        <tr><td>Калькуляторы <code>lib/calculators</code></td><td>12</td><td>2 391</td><td>аэродинамика, психрометрия, климат, нормы</td></tr>
+        <tr><td>3D фасонных изделий <code>lib/duct-3d</code></td><td>9</td><td>5 341</td><td>62 типа изделий, меши, размерные линии</td></tr>
+        <tr><td>Схема данных</td><td>1</td><td>2 802</td><td>125 моделей, 15 перечислений, 29 миграций</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cols" style="margin-top:var(--s-block)">
+    <div class="prose">
+      <h3>Что стало быстрее</h3>
+      <p>
+        Подбор приточной установки перестал требовать участия инженера: путь «расход воздуха →
+        список подходящих типоразмеров → состав секций → спецификация с автоматикой → КП»
+        целиком проходит в браузере. Раньше на этом маршруте стояли два человека и переписка.
+      </p>
+      <p>
+        Быстрый заказ снимает ручной ввод: в поле вставляется список артикулов из письма
+        или бросается файл Excel/CSV — позиции сопоставляются с номенклатурой и попадают
+        в корзину пачкой. Для повторных закупок на объект это разница между «двадцать минут»
+        и «одна вставка».
+      </p>
+    </div>
+    <div class="prose">
+      <h3>Что стало проще</h3>
+      <p>
+        Правила подбора перестали быть устным знанием. 18 проверок топологии и логика выбора
+        автоматики лежат в двух модулях, их можно прочитать, обсудить и изменить — вместо того
+        чтобы восстанавливать по памяти инженера или по чужому скрипту.
+      </p>
+      <p>
+        Обновление справочников перестало быть рискованным: сравнение двух импортов показывает,
+        что именно изменилось, до применения, а массовые операции по умолчанию работают
+        в режиме подсчёта.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 ЗА КАДРОМ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">10 · Что осталось за кадром</p>
+    <h2>Ограничения, которые я знаю и не прячу</h2>
+  </div>
+
+  <ul class="plain">
+    <li>
+      <b>Расчётное ядро почти не покрыто тестами.</b> На 13 227 строк
+      <code>lib/engineering</code> приходится четыре файла юнит-тестов общим объёмом
+      238 строк, и ни один не проверяет расчёт секций. Основное покрытие — девять
+      сценариев Playwright, которые ходят по интерфейсу. Правильный шаг здесь —
+      табличные тесты по эталонным расчётам легаси-конфигуратора: исходные данные и
+      ожидаемый результат уже есть в его выгрузках, они просто не превращены в фикстуры.
+    </li>
+    <li>
+      <b>Страница «Калибровка формул» пока только показывает коэффициенты.</b>
+      Значения читаются из JSON-конфига и редактируются в интерфейсе, но кнопка
+      «Сохранить» не подключена к серверу — запись коэффициентов делается правкой файла.
+      Пока калибровок мало, это терпимо; как только их станет больше десятка, понадобится
+      история изменений, а не просто запись.
+    </li>
+    <li>
+      <b>Внутреннего планировщика синхронизации нет.</b> <code>sync-scheduler.ts</code> —
+      заготовка на 26 строк; регулярный обмен запускается снаружи, скриптом по расписанию
+      операционной системы. Это работает, но означает, что состояние обмена живёт не в
+      приложении: мониторинг синхронизации в админке показывает результат, а не очередь.
+    </li>
+    <li>
+      <b>Часть обработчиков вебхука сведена к минимуму.</b> События цены, остатка,
+      удаления и статуса заказа обрабатываются полностью; <code>product_update</code>
+      возвращает счётчик и не пересобирает карточку — полный ресинк делается отдельным
+      скриптом. Обновление цены по коду товара (без GUID характеристики) не реализовано:
+      в текущей схеме цена всегда принадлежит типоразмеру, и обрабатывать «цену на семейство»
+      было бы угадыванием.
+    </li>
+    <li>
+      <b>Типизация на границе с Prisma местами продавлена.</b> В нескольких страницах
+      каталога и в массовых операциях стоят <code>as any</code> — там, где нужен динамический
+      доступ к модели по имени таблицы или сложный <code>include</code>. Это осознанный
+      размен на скорость, но он снимает ровно ту защиту, ради которой брался TypeScript,
+      и в этих местах ошибку поймает только тест.
+    </li>
+    <li>
+      <b>Единого дизайн-языка между зонами нет.</b> Витрина, кабинет и админка росли
+      параллельно и под разные требования: витрина — маркетинговая, админка — плотная
+      табличная. Компоненты общие, но визуально это три разных продукта. Свести их
+      в одну систему — отдельная работа, которая пока не сделана.
+    </li>
+    <li>
+      <b>Проект пережил миграцию платформы на ходу.</b> Начинался на Next.js 14.2,
+      сейчас собран на 15.5 с React 19. Асинхронные <code>params</code> и
+      <code>searchParams</code> пройдены по всем маршрутам, но в дереве остаются страницы,
+      которые с тех пор не открывали руками, — их поведение подтверждено только сборкой
+      и типами.
+    </li>
+    <li>
+      <b>Реверс легаси проверен не полностью.</b> Реестр переноса говорит, что перенесено
+      всё, и по функциям это так. Но «перенесено» и «даёт те же числа на тех же входных
+      данных» — разные утверждения, и второе доказано выборочно, на нескольких расчётах,
+      а не прогоном по всему архиву. До сплошного сравнения расчётов доводить это стоило бы
+      в первую очередь.
+    </li>
+  </ul>
+
+  <div class="note" style="margin-top:var(--s-block)">
+    <p>
+      Самая честная оценка проекта такая: инженерная часть — подбор, валидация, спецификация,
+      обмен с 1С — сделана и работает; периметр вокруг неё (тесты, единый дизайн, наблюдаемость
+      обмена) отстаёт от неё на шаг. Для портала, который заменяет переписку с менеджером,
+      это правильный порядок приоритетов, но он не бесконечный: при следующем росте
+      справочников первым отвалится именно периметр.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p class="eyebrow" style="margin-bottom:1.2rem">Назад</p>
+  <div class="backs">
+    <a href="../../">← Каталог работ</a>
+    <a href="../../en/">Portfolio in English</a>
+    <a href="en/">This case in English</a>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

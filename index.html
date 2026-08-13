@@ -893,6 +893,11 @@
     .live-demo:hover,
     .live-demo:focus-visible { background: transparent; color: var(--ink); }
     .live-demo .lang { opacity: 0.55; text-transform: none; letter-spacing: 0.04em; }
+  
+    .case-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+    .case-links .live-demo { margin-top: 0; }
+    .live-demo.secondary { background: transparent; color: var(--ink); }
+    .live-demo.secondary:hover, .live-demo.secondary:focus-visible { background: var(--ink); color: var(--paper); }
   </style>
 
 <div class="wrap">
@@ -1158,6 +1163,11 @@
           <dt>Превью</dt><dd>перестраивается на лету, с размерными линиями</dd>
           <dt>Выход</dt><dd>смета и КП</dd>
         </dl>
+        <div class="case-links">
+          <a class="live-demo secondary" href="cases/ventprom/">Разбор проекта</a>
+          <a class="live-demo" href="https://smirnov-artur.github.io/ventprom-tools/" target="_blank" rel="noopener">22 инженерных калькулятора — демо</a>
+          <a class="live-demo" href="https://smirnov-artur.github.io/ventprom-packer/" target="_blank" rel="noopener">3D-упаковка в транспорт — демо</a>
+        </div>
       </div>
       <figure class="screen">
         <video muted loop playsinline preload="none" data-autoplay width="1280" height="646" poster="assets/a3-poster.jpg" data-full="assets/a3.mp4">
@@ -1218,6 +1228,9 @@
           <dt>Выход</dt><dd>33 позиции из тестового проекта, готовы к загрузке</dd>
           <dt>Дальше</dt><dd>UI-автозаполнение номенклатуры в 1С:ERP Софтвент</dd>
         </dl>
+        <div class="case-links">
+          <a class="live-demo secondary" href="cases/softvent/">Разбор проекта</a>
+        </div>
       </div>
       <figure class="screen">
         <div class="shots">
@@ -1417,6 +1430,9 @@
           <dt>Маршрут</dt><dd>единая дорожка, 8 этапов, прогресс по узлам</dd>
           <dt>Стек</dt><dd>Go backend, React, песочница запуска, внешний ИИ-судья</dd>
         </dl>
+        <div class="case-links">
+          <a class="live-demo secondary" href="cases/vector/">Разбор проекта</a>
+        </div>
       </div>
       <figure class="screen">
         <div class="shots">
@@ -1446,6 +1462,9 @@
           <dt>Подписки</dt><dd>планы, триал, проверка чеков покупок из сторов</dd>
           <dt>Деплой</dt><dd>Docker, готовые конфиги Railway и Render</dd>
         </dl>
+        <div class="case-links">
+          <a class="live-demo" href="https://smirnov-artur.github.io/ai-health-coach/" target="_blank" rel="noopener">Открыть приложение — живое демо</a>
+        </div>
       </div>
       <figure class="screen">
         <div class="shots">

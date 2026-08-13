@@ -1,0 +1,1361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vector — case study: a Go trainer with a code runner and an AI judge</title>
+<meta name="description" content="Engineering breakdown of Vector: two verification loops — deterministic code execution and a language judge scoring against rubrics — a Go editor in the browser, spaced repetition, and two entry points from one build.">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%A7%AA%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Vector — case study">
+<meta property="og:description" content="A Go trainer: sandboxed code execution, an AI judge scoring against rubrics, spaced repetition. A breakdown of the engineering decisions.">
+<meta property="og:locale" content="en_GB">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/cases/vector/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/cases/vector/en/">
+<link rel="preload" href="../../../assets/fonts/geologica-var-lat.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../../../assets/fonts/golos-var-lat.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /* ---------- fonts: self-hosted woff2, subset by unicode-range ----------
+     Same three faces as the catalogue: Geologica (headings),
+     Golos Text (prose), IBM Plex Mono (labels, code, indices). */
+
+  @font-face {
+    font-family: "Geologica";
+    src: url("../../../assets/fonts/geologica-var-cyr.woff2") format("woff2");
+    font-weight: 100 900; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "Geologica";
+    src: url("../../../assets/fonts/geologica-var-lat.woff2") format("woff2");
+    font-weight: 100 900; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "Golos Text";
+    src: url("../../../assets/fonts/golos-var-cyr.woff2") format("woff2");
+    font-weight: 400 900; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "Golos Text";
+    src: url("../../../assets/fonts/golos-var-lat.woff2") format("woff2");
+    font-weight: 400 900; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("../../../assets/fonts/plexmono-400-cyr.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("../../../assets/fonts/plexmono-400-lat.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
+  :root {
+    --paper: #EDEEEA;
+    --panel: #E4E6E1;
+    --ink: #12161B;
+    --ink-2: #3E4650;
+    --graphite: #59616B;
+    --rule: #D3D6CF;
+    --rule-strong: #ADB2A9;
+    --blue: #1B34C4;
+    --blue-soft: #1B34C414;
+
+    --f-display: "Geologica", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --f-body: "Golos Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, monospace;
+
+    --t-d1: clamp(2.6rem, 6.2vw, 5.5rem);
+    --t-d2: clamp(1.6rem, 3vw, 2.6rem);
+    --t-d3: clamp(1.3rem, 2.1vw, 1.85rem);
+    --t-lede: clamp(1.125rem, 1.5vw, 1.375rem);
+    --t-body: 1rem;
+    --t-small: 0.9375rem;
+    --t-label: 0.6875rem;
+
+    --gap: clamp(1rem, 2vw, 1.75rem);
+    --edge: clamp(1.25rem, 4.4vw, 4rem);
+    --s-section: clamp(3rem, 6.5vw, 5.5rem);
+
+    --t-fast: 160ms; --e-fast: cubic-bezier(0.4, 0, 0.2, 1);
+    --t-slow: 700ms; --e-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @supports (color: color(display-p3 1 1 1)) {
+    @media (color-gamut: p3) { :root { --blue: color(display-p3 0.086 0.196 0.769); } }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0E1116;
+      --panel: #151A21;
+      --ink: #E7E9E5;
+      --ink-2: #B4BAC2;
+      --graphite: #939CA6;
+      --rule: #262C34;
+      --rule-strong: #39424C;
+      --blue: #7C93FF;
+      --blue-soft: #7C93FF16;
+    }
+    @supports (color: color(display-p3 1 1 1)) {
+      @media (color-gamut: p3) { :root:not([data-theme="light"]) { --blue: color(display-p3 0.486 0.576 1); } }
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0E1116;
+    --panel: #151A21;
+    --ink: #E7E9E5;
+    --ink-2: #B4BAC2;
+    --graphite: #939CA6;
+    --rule: #262C34;
+    --rule-strong: #39424C;
+    --blue: #7C93FF;
+    --blue-soft: #7C93FF16;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: var(--t-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
+  }
+
+  img { max-width: 100%; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 var(--edge) clamp(3rem, 8vw, 6rem);
+  }
+
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    line-height: 1.45;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-feature-settings: "case" 1;
+    color: var(--graphite);
+    margin: 0;
+  }
+
+  a { color: var(--blue); }
+  a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    padding: clamp(1.4rem, 3vw, 2.4rem) 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.6rem, 4vw, 2.8rem);
+  }
+
+  .masthead-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.6rem 1.5rem;
+  }
+
+  .crumbs {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .crumbs a {
+    color: var(--ink-2);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color var(--t-fast) var(--e-fast), border-color var(--t-fast) var(--e-fast);
+  }
+  .crumbs a:hover { color: var(--blue); border-bottom-color: var(--blue); }
+  .crumbs .sep { color: var(--rule-strong); }
+  .crumbs .current { color: var(--graphite); }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: end;
+    gap: clamp(1.2rem, 3vw, 2.2rem) clamp(2rem, 5vw, 4.5rem);
+  }
+
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 500;
+    font-size: var(--t-d1);
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    margin: 0;
+    max-width: 14ch;
+  }
+  h1 em { font-style: normal; color: var(--blue); }
+
+  .lede {
+    max-width: 46ch;
+    font-size: var(--t-lede);
+    line-height: 1.4;
+    color: var(--ink-2);
+    margin: 0;
+    padding-bottom: 0.3em;
+  }
+
+  /* ---------- title stamp ---------- */
+
+  .stamp {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule);
+  }
+  .stamp > div {
+    padding: 0.85rem clamp(0.8rem, 1.8vw, 1.4rem) 1rem 0;
+  }
+  .stamp > div + div {
+    border-left: 1px solid var(--rule);
+    padding-left: clamp(0.8rem, 1.8vw, 1.4rem);
+  }
+  .stamp p:last-child {
+    margin: 0.35rem 0 0;
+    font-size: var(--t-small);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+
+  /* ---------- sections ---------- */
+
+  section { margin-top: var(--s-section); }
+
+  .sec-head {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 0.9rem clamp(1.5rem, 4vw, 3.2rem);
+    align-items: end;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.2rem;
+    margin-bottom: clamp(1.4rem, 3vw, 2.2rem);
+    position: relative;
+  }
+  .sec-head::before {
+    content: "";
+    position: absolute;
+    top: -1px; left: 0;
+    width: 46px; height: 3px;
+    background: var(--rule-strong);
+  }
+  .sec-id {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem 1.5rem;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    margin-bottom: 0.3rem;
+  }
+  h2 {
+    font-family: var(--f-display);
+    font-size: var(--t-d2);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.04;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .sec-note {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-small);
+    line-height: 1.5;
+    max-width: 50ch;
+  }
+
+  h3 {
+    font-family: var(--f-display);
+    font-size: var(--t-d3);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.14;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  /* ---------- prose ---------- */
+
+  .prose { max-width: 68ch; }
+  .prose p { margin: 0 0 1.05em; color: var(--ink-2); }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong { color: var(--ink); font-weight: 600; }
+  .prose ul { margin: 0 0 1.05em; padding-left: 1.15rem; color: var(--ink-2); }
+  .prose li { margin-bottom: 0.45em; }
+  .prose li::marker { color: var(--rule-strong); }
+
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.875em;
+    background: var(--blue-soft);
+    padding: 0.1em 0.34em;
+    color: var(--ink);
+    border-radius: 2px;
+  }
+
+  /* ---------- how-it-works blocks ---------- */
+
+  .block {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--gap) clamp(1.5rem, 4vw, 3.2rem);
+    border-top: 1px solid var(--rule);
+    padding-top: 1.2rem;
+    margin-top: clamp(2rem, 4.5vw, 3.4rem);
+    position: relative;
+  }
+  .block:first-of-type { margin-top: 0; }
+  .block::before {
+    content: "";
+    position: absolute;
+    top: -1px; left: 0;
+    width: 46px; height: 3px;
+    background: var(--blue);
+  }
+  .block-head { display: flex; flex-direction: column; gap: 0.7rem; }
+  .block-body { max-width: 66ch; }
+  .block-body > :first-child { margin-top: 0; }
+
+  /* ---------- spec ---------- */
+
+  dl.spec {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.05rem 1.25rem;
+    font-size: var(--t-small);
+    align-content: start;
+  }
+  dl.spec dt {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    padding-top: 0.5rem;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--rule);
+  }
+  dl.spec dd {
+    margin: 0;
+    padding: 0.38rem 0;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  dl.spec dt:last-of-type, dl.spec dd:last-of-type { border-bottom: 0; }
+
+  /* ---------- two-loop diagram ---------- */
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(0.9rem, 2vw, 1.5rem);
+    margin: 0;
+  }
+  .lane {
+    border: 1px solid var(--rule-strong);
+    background: var(--panel);
+    padding: clamp(0.9rem, 2vw, 1.3rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+  .lane > .eyebrow { color: var(--blue); }
+  .lane h4 {
+    font-family: var(--f-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.32rem;
+    font-family: var(--f-mono);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .steps li {
+    display: grid;
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+    gap: 0.2rem;
+    padding: 0.34rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  .steps li:first-child { border-top: 0; }
+  .steps li span { color: var(--rule-strong); }
+  .lane p {
+    margin: 0;
+    font-size: var(--t-small);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .lane p b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- code ---------- */
+
+  figure.snip {
+    margin: 0;
+    border: 1px solid var(--rule-strong);
+    background: var(--panel);
+  }
+  figure.snip figcaption {
+    padding: 0.7rem clamp(0.8rem, 1.8vw, 1.1rem);
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 1rem;
+  }
+  figure.snip figcaption .path {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  figure.snip figcaption .why {
+    font-size: var(--t-small);
+    line-height: 1.4;
+    color: var(--ink-2);
+    flex: 1 1 22ch;
+  }
+  figure.snip pre {
+    margin: 0;
+    padding: clamp(0.8rem, 1.8vw, 1.1rem);
+    overflow-x: auto;
+    font-family: var(--f-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--ink);
+    tab-size: 2;
+  }
+  figure.snip pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+  .cm { color: var(--graphite); }
+
+  .snips {
+    display: grid;
+    gap: clamp(1.1rem, 2.4vw, 1.8rem);
+  }
+
+  /* ---------- screenshots ---------- */
+
+  .shots {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(0.9rem, 2vw, 1.4rem);
+    margin: 0;
+    align-items: start;
+  }
+  .shot { margin: 0; }
+  .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #0B0E13;
+    border: 1px solid var(--rule-strong);
+  }
+  .shot figcaption {
+    margin-top: 0.6rem;
+    font-size: var(--t-small);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .shot figcaption b {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    font-weight: 400;
+    margin-bottom: 0.25rem;
+  }
+  .shot figcaption i { font-style: italic; }
+
+  /* ---------- numbers ---------- */
+
+  .nums {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--rule-strong);
+  }
+  .nums > div {
+    padding: 0.95rem clamp(0.7rem, 1.6vw, 1.2rem) 1.05rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .nums > div:not(:nth-child(4n + 1)) {
+    border-left: 1px solid var(--rule);
+    padding-left: clamp(0.7rem, 1.6vw, 1.2rem);
+  }
+  .nums .n {
+    font-family: var(--f-display);
+    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    display: block;
+  }
+  .nums .n small {
+    font-size: 0.5em;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--graphite);
+    margin-left: 0.15em;
+  }
+  .nums p {
+    margin: 0.5rem 0 0;
+    font-size: var(--t-small);
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+
+  /* ---------- limits ---------- */
+
+  .limits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 clamp(1.5rem, 4vw, 3.2rem);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .limits li {
+    border-top: 1px solid var(--rule);
+    padding: 0.9rem 0 1rem;
+    display: grid;
+    gap: 0.3rem;
+  }
+  .limits b {
+    font-family: var(--f-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+  .limits p {
+    margin: 0;
+    font-size: var(--t-small);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  /* ---------- footer ---------- */
+
+  .foot {
+    margin-top: var(--s-section);
+    border-top: 1px solid var(--rule-strong);
+    padding-top: 1.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.8rem 1.5rem;
+  }
+  .backs { display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem; }
+  .back {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 10px 14px;
+    box-shadow: 4px 4px 0 var(--blue);
+    transition: background var(--t-fast) var(--e-fast), color var(--t-fast) var(--e-fast), border-color var(--t-fast) var(--e-fast);
+  }
+  .back:hover { background: var(--blue); color: var(--paper); border-color: var(--blue); }
+
+  /* ---------- responsive ---------- */
+
+  @media (max-width: 900px) {
+    .stamp { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stamp > div:nth-child(3) { border-left: 0; padding-left: 0; }
+    .stamp > div:nth-child(-n + 2) { border-bottom: 1px solid var(--rule); }
+    .nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nums > div:not(:nth-child(4n + 1)) { border-left: 0; padding-left: 0; }
+    .nums > div:nth-child(even) { border-left: 1px solid var(--rule); padding-left: clamp(0.7rem, 1.6vw, 1.2rem); }
+  }
+
+  @media (max-width: 760px) {
+    .hero, .sec-head, .block { grid-template-columns: minmax(0, 1fr); align-items: start; }
+    .flow, .shots, .limits { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  @media (max-width: 560px) {
+    .stamp { grid-template-columns: minmax(0, 1fr); }
+    .stamp > div { border-left: 0 !important; padding-left: 0 !important; border-bottom: 1px solid var(--rule); }
+  }
+
+  @media (max-width: 420px) {
+    dl.spec { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    dl.spec dt { border-bottom: 0; padding-top: 0.7rem; white-space: normal; }
+    dl.spec dd { padding-top: 0.1rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-top">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="../../../en/">Portfolio</a>
+        <span class="sep">/</span>
+        <span class="current">Sheet 12 · Vector</span>
+      </nav>
+      <nav class="crumbs" aria-label="Page language">
+        <a href="../" hreflang="ru">RU</a>
+        <span class="sep">/</span>
+        <span class="current">EN</span>
+      </nav>
+    </div>
+
+    <div class="hero">
+      <h1>Vector — a <em>Go</em> trainer</h1>
+      <p class="lede">
+        Lesson → exercise with real code execution → an exam where the answer is
+        graded against rubrics rather than by self-assessment. An engineering
+        breakdown: there is no live demo, and there cannot be one.
+      </p>
+    </div>
+
+    <div class="stamp">
+      <div>
+        <p class="eyebrow">Year</p>
+        <p>June 2026</p>
+      </div>
+      <div>
+        <p class="eyebrow">Role</p>
+        <p>The entire frontend: SPA architecture, design system, session engine, mock layer, build and static deployment</p>
+      </div>
+      <div>
+        <p class="eyebrow">Stack</p>
+        <p>React 19, TypeScript 5.9 (strict), Vite 7, CodeMirror 6 with the Go grammar, motion, nginx, Docker</p>
+      </div>
+      <div>
+        <p class="eyebrow">Outside my scope</p>
+        <p>The Go backend, the execution sandbox, the repetition scheduler and the judge prompts. The frontend was written against an agreed contract</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ THE PROBLEM ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">01</p>
+        <p class="eyebrow">The problem</p>
+      </div>
+      <h2>Interview preparation breaks down in three places</h2>
+      <p class="sec-note">
+        The product was built for one specific person preparing for Go interviews.
+        His feedback survives verbatim in the working notes — and nearly every
+        technical decision below grew out of one of those sentences.
+      </p>
+    </div>
+
+    <div class="prose">
+      <p>
+        <strong>First: reading is not the same as being able to write.</strong>
+        Someone reads an article about <code>net/http</code>, nods along, and then
+        cannot produce twenty lines with a multiplexer and a test server under
+        interview pressure. The gap between “that makes sense” and “I can type it”
+        closes only at the keyboard.
+      </p>
+      <p>
+        <strong>Second: self-assessment lies.</strong> Courses offer a checkbox that
+        says “understood”. Two weeks later the head is empty and the tracker is green.
+        Any system where the learner grades themselves eventually becomes a generator
+        of pleasant numbers.
+      </p>
+      <p>
+        <strong>Third: forgetting runs on a schedule, revision runs on mood.</strong>
+        Material covered at the start of preparation has evaporated by the end, and
+        nothing tells the learner what specifically needs refreshing today.
+      </p>
+      <p>
+        Three hard requirements followed, and they shaped the whole architecture:
+        code must <strong>actually execute</strong>, the grade must come from
+        <strong>somebody other than the learner</strong>, and revision must be
+        <strong>scheduled, not chosen</strong>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">02</p>
+        <p class="eyebrow">How it works</p>
+      </div>
+      <h2>Two verification loops: a cheap deterministic one and an expensive language one</h2>
+      <p class="sec-note">
+        The central architectural decision is to keep them apart. Anything that can
+        be verified by comparing strings is verified by comparing strings. The
+        language model is called only where there is nothing to compare: a spoken
+        explanation.
+      </p>
+    </div>
+
+    <div class="flow">
+      <div class="lane">
+        <p class="eyebrow">Loop A · deterministic</p>
+        <h4>Run the code, diff the output</h4>
+        <ol class="steps">
+          <li><span>01</span> CodeMirror editor in the browser</li>
+          <li><span>02</span> POST the source to the Go backend</li>
+          <li><span>03</span> execution inside a sandbox</li>
+          <li><span>04</span> stdout / stderr come back</li>
+          <li><span>05</span> diff against the expected output</li>
+          <li><span>06</span> verdict: matched or not</li>
+        </ol>
+        <p>
+          Costs almost nothing, answers in seconds, cannot be wrong. <b>The response
+          arrives as a structure</b> — <code>predictCorrect</code>,
+          <code>expectedOutput</code>, <code>diff</code> — not as prose the client
+          has to parse by eye.
+        </p>
+      </div>
+      <div class="lane">
+        <p class="eyebrow">Loop B · language</p>
+        <h4>The exam and the AI judge</h4>
+        <ol class="steps">
+          <li><span>01</span> question with no hints, timer running</li>
+          <li><span>02</span> spoken, open-ended answer</li>
+          <li><span>03</span> answer sent to the judge with the rubrics</li>
+          <li><span>04</span> rubric score, up to 4 points per question</li>
+          <li><span>05</span> reference breakdown: core / deeper / trap</li>
+          <li><span>06</span> a card enters memory — by verdict, not self-rating</li>
+        </ol>
+        <p>
+          Slow and not free, so it is invoked rarely and only during exams.
+          <b>Hence the 120-second</b> <code>proxy_read_timeout</code> in nginx: the
+          usual 60-second default cut long breakdowns off mid-response.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.1</p>
+        <h3>The exercise ladder: different levels mean different components, not different wording</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Levels L0 through L5 are not a difficulty dial inside one template — they
+          are distinct modes of interaction, each with its own component:
+        </p>
+        <ul>
+          <li>
+            <strong>L0 — the lab.</strong> An editable example from the lesson, a Run
+            button, an Experiments panel (a list of “what if…” prompts delivered with
+            the exercise in an <code>experiments</code> field), and a box for
+            explaining the code in your own words. Credit is granted by an explicit
+            “mark done and continue” button.
+          </li>
+          <li>
+            <strong>L1 — predict the output.</strong> The code is read-only; the
+            learner first writes down what will be printed and only then runs it.
+            A correct prediction fires its own toast, because the value of the
+            exercise lies in the prediction, not in the act of running.
+          </li>
+          <li>
+            <strong>L3 — assemble from blocks.</strong> A purpose-built
+            <code>ParsonsBuilder</code>: the program is reassembled from shuffled
+            lines, so syntax errors stop getting in the way of testing whether the
+            learner understands the order of operations.
+          </li>
+          <li>
+            <strong>L4 / L5 — full tasks.</strong> Tracked separately in the
+            achievement system: <code>clean-l4</code> for passing on the first
+            submission, <code>boss-l5</code> for closing a stage’s final task.
+          </li>
+        </ul>
+        <p>
+          Hints are handed out in portions and counted — the exercise UI shows
+          <code>Hint 1/3</code>. That counter is not decoration: the number of hints
+          taken is what separates “solved it” from “peeked”.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.2</p>
+        <h3>Credit is granted only by an explicit button — an invariant recorded in the code</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          The easiest way to quietly ruin a learning product is to award progress for
+          scrolling past a screen. So after an audit, every call site of
+          <code>markLectureRead</code> and <code>completeExercise</code> was reviewed
+          one by one, and each turned out to hang off a button press: “read it — mark
+          done” on a lesson node, “mark done and continue” in L0, the check button in
+          L1 and L3.
+        </p>
+        <p>
+          Not a single call from <code>onBack</code>, from unmount, or from an effect.
+          The rule is written as an invariant comment in the two places where the
+          temptation is highest, so that the next edit cannot break it silently.
+        </p>
+        <p>
+          The same reasoning drove the button relabelling: “got it, next” became
+          “mark done and continue”; “read — next” became “read it — mark done”.
+          A label should name the consequence of the press, not the emotion.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.3</p>
+        <h3>Memory: the card is written by the judge’s verdict, not by the learner’s wish</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          The exam is the data source for spaced repetition. An answer the judge has
+          broken down becomes a card (“written to memory” in the UI), and misses are
+          logged from the verdict rather than from self-rating. Scheduling uses the
+          FSRS interval algorithm on the backend; the frontend holds session marks
+          (<code>lib/reviewmarks.ts</code>) and a local progress cache
+          (<code>lib/progressstore.ts</code>).
+        </p>
+        <p>
+          Readiness for a review goal is computed with a deliberately blunt formula:
+          <strong>half the weight for the share of mature cards, half for the share of
+          completed practice items</strong>. The formula is crude, but it can be read
+          aloud, and it explains why a ring shows exactly 17%. In a learning product,
+          an elegant opaque metric does more harm than a coarse legible one.
+        </p>
+        <p>
+          The exam summary reports four quantities: rubric coverage, factual errors,
+          skipped questions and time overruns. The final verdict is phrased in
+          interview terms — “would not have passed” — rather than as a percentage,
+          because a percentage is easy to forgive yourself.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.4</p>
+        <h3>Why revision is a separate application rather than a fifth tab</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Revision has a different usage pattern. The main application is a half-hour
+          session at a desk: lesson, editor, run, breakdown. Revision is ten minutes
+          on a phone at an arbitrary point in the day. Merging them into one shell
+          would force the phone to carry the whole course just to reach a queue of cards.
+        </p>
+        <p>
+          So <code>review.html</code> is a second entry point with its own
+          <code>ReviewApp</code> shell, its own nginx container and its own address on
+          the local network. The consequences that matter:
+        </p>
+        <ul>
+          <li>
+            <strong>The heavy parts are shared.</strong> The session engine
+            (<code>TrainScreen</code>, <code>ReviewScreen</code>, <code>ExamScreen</code>),
+            the design system and <code>motion</code> land in shared chunks of a
+            single Vite build. Two applications, one codebase, one
+            <code>npm run build</code>.
+          </li>
+          <li>
+            <strong>CORS never arises.</strong> nginx proxies <code>/api/</code> to the
+            backend over the internal Docker network, so the phone’s browser only ever
+            talks to one origin. No preflight requests, no
+            <code>Access-Control-*</code> headers, and no time spent debugging either.
+          </li>
+          <li>
+            <strong>Delivery differs by target.</strong> The main application is
+            compiled into the Go binary via <code>embed</code>; the revision
+            application is served as static files from nginx with gzip and a
+            thirty-day immutable cache on Vite’s hashed assets.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.5</p>
+        <h3>A Go editor in the browser, and a playground with no grades attached</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          The editor is CodeMirror 6 with the Go grammar
+          (<code>@codemirror/lang-go</code> on top of Lezer) and a custom theme in
+          <code>components/codetheme.ts</code>: highlighting is built from the
+          application’s own design tokens rather than the default <code>one-dark</code>,
+          otherwise every code block would look pasted in from another product.
+        </p>
+        <p>
+          The standalone playground appeared after a direct request: give me somewhere
+          to poke at code without being graded. What made it work:
+        </p>
+        <ul>
+          <li>
+            <strong>An entrance from everywhere.</strong> A compact pill button that
+            opens the playground sits in the lower-right corner of every code block —
+            including the read-only prediction code in L1, which previously could not
+            be touched by design.
+          </li>
+          <li>
+            <strong>Fragments are wrapped automatically.</strong> A snippet without
+            <code>package main</code> goes through <code>wrapInMain</code> and becomes
+            a compilable program. Without that, half the buttons would lead straight
+            to a compile error.
+          </li>
+          <li>
+            <strong>An empty file is a bad start.</strong> Entering with no saved draft
+            yields a starter template carrying three micro-steps in comments: run it,
+            change the text, add a <code>Println</code>. The draft lives in
+            <code>localStorage</code>, and “start over” restores the template rather
+            than blanking the buffer.
+          </li>
+          <li>
+            <strong>The “try this” panel.</strong> If the exercise ships its own
+            experiments, those are shown; if not, five universal challenges appear
+            (predict then run; break it deliberately and read the error aloud; insert
+            <code>fmt.Println</code> in the middle and trace the ordering; wrap it in a
+            loop; trigger a panic on purpose and read the stack trace).
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.6</p>
+        <h3>A backend-free mode, and a demo that cannot be mistaken for a live server</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Waiting on the backend just to look at a screen costs hours. So the client
+          carries a parallel mock layer: with <code>VITE_MOCK=1</code> (or when the
+          backend is unreachable) <code>api/client.ts</code> switches to
+          <code>api/mock.ts</code>, which has its own seeds, pure computation
+          functions (<code>computeMilestone</code>, <code>buildWeek</code>) and an
+          emulated code run.
+        </p>
+        <p>
+          Two principles keep a mock from rotting. <strong>First: one set of arrays.</strong>
+          The stats sheet and the weekly sparkline read the same source, so yesterday’s
+          figure agrees across both screens and a discrepancy in the mock surfaces as a
+          real bug. <strong>Second: honest labelling.</strong> In mock mode a sticky
+          banner sits above the interface, stating that the data is generated locally
+          and no backend is attached. A demo should never look more convincing than it is.
+        </p>
+        <p>
+          One detail shows what realism costs: the run emulator originally detected an
+          HTTP server by matching the greeting text, so a plain <code>Println</code> in
+          the playground falsely printed server output. It now matches on the
+          <code>ListenAndServe</code> call instead.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.7</p>
+        <h3>Interface discipline: races, focus, hit targets</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          A trainer is a keyboard-driven application used at speed. That produced a
+          set of decisions nobody notices while they are working:
+        </p>
+        <ul>
+          <li>
+            <strong>Double submit from mouse plus key.</strong> The
+            <code>inFlight</code> lock is a <code>useRef</code> set synchronously,
+            before the <code>await</code>, not in state. State updates a render later,
+            and the second event arrives sooner than that.
+          </li>
+          <li>
+            <strong>Hotkey collisions between phases.</strong> A 260&nbsp;ms debounce on
+            session phase changes stopped a fast double keypress from skipping a step.
+          </li>
+          <li>
+            <strong>Re-entering a checkpoint.</strong> The training screen’s
+            <code>key</code> is derived from the set of <code>cardIds</code>, so the
+            session genuinely restarts instead of resuming with state belonging to a
+            different card set.
+          </li>
+          <li>
+            <strong>Screen transitions.</strong> View Transitions with named groups:
+            only the <code>screen</code> group animates, while the tab bar and the demo
+            banner stay put. The default root cross-fade produced double exposure —
+            the learner described it as sloppy.
+          </li>
+          <li>
+            <strong>Accessibility.</strong> Focus trapping in modal sheets (remember
+            the trigger, cycle <code>Tab</code>, restore focus on close), hit targets
+            of at least 44×44&nbsp;px, <code>content-visibility: auto</code> on long
+            lists, and <code>prefers-reduced-motion</code> respected — confetti included.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREENS ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">03</p>
+        <p class="eyebrow">Screens</p>
+      </div>
+      <h2>What both loops look like in place</h2>
+      <p class="sec-note">
+        On the left, deterministic verification; on the right, the judge’s verdict
+        with a reference breakdown. Both were captured from a working build against
+        a live backend. The interface is in Russian — it was built for one
+        Russian-speaking learner.
+      </p>
+    </div>
+
+    <div class="shots">
+      <figure class="shot">
+        <img src="../../../assets/a14.jpg" width="1400" height="788" loading="lazy" decoding="async"
+             alt="Exercise screen: a highlighted Go editor, buttons to run and check, a hint counter, and a green matched result below">
+        <figcaption>
+          <b>Loop A · exercise</b>
+          A task with inline code fragments, a 21-line editor, a hint counter
+          (<i>Hint 1/3</i>) and the output-diff result (<i>Matched! 42</i>).
+          Below it, an “ask yourself” block: questions that running the code
+          will not answer.
+        </figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="../../../assets/a15.jpg" width="1400" height="875" loading="lazy" decoding="async"
+             alt="Exam screen: a red failing verdict, rubric coverage metrics, the judge's per-question score and a reference breakdown in three layers">
+        <figcaption>
+          <b>Loop B · exam</b>
+          The verdict summary, the judge’s score for each question
+          (<i>judge: 0 of 4</i>), the reference breakdown in three layers — core,
+          deeper, trap — and a “written to memory” marker wherever a card entered
+          the repetition schedule.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ CODE ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">04</p>
+        <p class="eyebrow">Code</p>
+      </div>
+      <h2>Four fragments where the structure is visible</h2>
+      <p class="sec-note">
+        Not the longest files, but the ones where a decision is legible end to end:
+        the build, navigation, transitions and delivery. Comments are translated
+        from the Russian originals.
+      </p>
+    </div>
+
+    <div class="snips">
+
+      <figure class="snip">
+        <figcaption>
+          <span class="path">web/vite.config.ts</span>
+          <span class="why">Two applications from one codebase, plus a dev proxy so the frontend runs against a live Go backend without CORS.</span>
+        </figcaption>
+        <pre><code>server: {
+  port: 5173,
+  proxy: {
+    <span class="cm">// dev: /api and /healthz go to the Go backend — no CORS.</span>
+    <span class="cm">// With no backend (or VITE_MOCK=1), client.ts switches</span>
+    <span class="cm">// itself to the built-in mock layer.</span>
+    '/api':     { target: 'http://localhost:8090', changeOrigin: true },
+    '/healthz': { target: 'http://localhost:8090', changeOrigin: true },
+  },
+},
+build: {
+  outDir: 'dist',
+  target: 'es2022',
+  <span class="cm">// CodeMirror + motion are sizeable, and this is a</span>
+  <span class="cm">// single-user app — raise the warning threshold.</span>
+  chunkSizeWarningLimit: 1200,
+  <span class="cm">// Two entry points in one build:</span>
+  <span class="cm">//  index.html  → the main app (embedded into the Go binary);</span>
+  <span class="cm">//  review.html → the revision app (served by nginx).</span>
+  <span class="cm">// Shared chunks (motion, design system, session engine)</span>
+  <span class="cm">// are reused across both.</span>
+  rollupOptions: {
+    input: { main: 'index.html', review: 'review.html' },
+  },
+},</code></pre>
+      </figure>
+
+      <figure class="snip">
+        <figcaption>
+          <span class="path">web/src/App.tsx</span>
+          <span class="why">Navigation without a router: one transition intent instead of three independent pieces of state. That lets the Today screen open a specific track node or a specific review goal without inventing a URL scheme.</span>
+        </figcaption>
+        <pre><code><span class="cm">/** Deep entry into a specific track node (deep link from Today). */</span>
+export interface PathFocus {
+  pathSlug: string;
+  stepKind: PathStepKind;
+  ref: string;
+}
+
+<span class="cm">/** A tab transition intent with optional focus on an entity. */</span>
+export interface NavIntent {
+  tab: TabId;
+  exerciseId?: string;
+  pathFocus?: PathFocus;   <span class="cm">// open a track node on the Course tab</span>
+  reviewSlug?: string;     <span class="cm">// end of a track → straight to a review goal</span>
+}
+
+const navigate = useCallback((intent: NavIntent) =&gt; {
+  withViewTransition(() =&gt; {
+    setTab(intent.tab);
+    setFocusExercise(intent.exerciseId ?? null);
+    setPathFocus(intent.pathFocus ?? null);
+    setReviewFocus(intent.reviewSlug ?? null);
+  });
+}, []);</code></pre>
+      </figure>
+
+      <figure class="snip">
+        <figcaption>
+          <span class="path">web/src/App.module.css</span>
+          <span class="why">Screen transitions. The default root cross-fade produced double exposure and made the tab bar flicker, so exactly one group animates and the remaining layers are pinned explicitly.</span>
+        </figcaption>
+        <pre><code><span class="cm">/* ONLY the screen group animates. Interface layers
+   (background, tab bar, demo banner) stay static: the default
+   root cross-fade with plus-lighter caused double exposure,
+   and the bar should never flicker at all. */</span>
+::view-transition-old(screen) { animation: vt-out .26s cubic-bezier(.32,.72,0,1) both; }
+::view-transition-new(screen) { animation: vt-in  .26s cubic-bezier(.32,.72,0,1) both; }
+
+::view-transition-old(root),        ::view-transition-new(root),
+::view-transition-old(tabbar),      ::view-transition-new(tabbar),
+::view-transition-old(demo-banner), ::view-transition-new(demo-banner) {
+  animation: none;
+}
+
+<span class="cm">/* A seatbelt for paint order. */</span>
+::view-transition-group(screen) { z-index: 1; }
+::view-transition-group(tabbar),
+::view-transition-group(demo-banner) { z-index: 10; }</code></pre>
+      </figure>
+
+      <figure class="snip">
+        <figcaption>
+          <span class="path">web/nginx.review.conf</span>
+          <span class="why">Delivery for the revision app. It proxies to the same backend over the internal Docker network, so the phone sees a single origin; the read timeout is raised to fit a judge response.</span>
+        </figcaption>
+        <pre><code>root /usr/share/nginx/html;
+index review.html;
+
+<span class="cm"># ── API → the Vector backend (the «app» service on the same network) ──</span>
+location /api/ {
+  proxy_pass http://app:8080/api/;
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_read_timeout 120s;   <span class="cm"># a judge breakdown exceeds the default</span>
+}
+
+<span class="cm"># ── Vite's hashed assets: cache them hard ──</span>
+location /assets/ {
+  expires 30d;
+  add_header Cache-Control "public, immutable";
+  try_files $uri =404;
+}
+
+<span class="cm"># ── SPA: any unknown path → review.html ──</span>
+location / { try_files $uri $uri/ /review.html; }</code></pre>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============ NUMBERS ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">05</p>
+        <p class="eyebrow">Numbers</p>
+      </div>
+      <h2>The size of the frontend</h2>
+      <p class="sec-note">
+        The module inventory was reconstructed from
+        <code>tsconfig.app.tsbuildinfo</code> — the file list TypeScript recorded
+        during the last successful incremental build. It is the project’s actual
+        graph, not an estimate.
+      </p>
+    </div>
+
+    <div class="nums">
+      <div><span class="n">84</span><p>TypeScript modules under <code>web/src</code>: 69 <code>.tsx</code> and 15 <code>.ts</code></p></div>
+      <div><span class="n">29</span><p>design-system components, from <code>Sheet</code> and <code>Toast</code> to <code>ProgressRing</code> and <code>Sparkline</code></p></div>
+      <div><span class="n">34</span><p>screen modules across 11 folders: course, reference, practice, review, Today, training</p></div>
+      <div><span class="n">13</span><p><code>lib</code> modules: contexts, sound, speech, progress, animation springs, View Transitions</p></div>
+
+      <div><span class="n">3</span><p>API-layer modules — <code>types</code>, <code>client</code>, <code>mock</code>: the contract, the transport and its stand-in</p></div>
+      <div><span class="n">2</span><p>entry points built by a single command, with shared chunks reused between them</p></div>
+      <div><span class="n">550</span><p>modules in the production Vite graph; the build finishes in about two seconds</p></div>
+      <div><span class="n">0</span><p><code>tsc</code> errors in strict mode with <code>noUncheckedIndexedAccess</code> and <code>noUnused*</code></p></div>
+
+      <div><span class="n">5</span><p>tabs in the main application: Today, Revision, Map, Course, Reference</p></div>
+      <div><span class="n">8</span><p>stages on a single track, from the first program to interview readiness</p></div>
+      <div><span class="n">12</span><p>achievements, each carrying its own how-to-earn-it text; 5 unlocked at the demo’s start</p></div>
+      <div><span class="n">4 500<small>XP</small></span><p>the top milestone on the rank scale, running from the start to interview-ready</p></div>
+
+      <div><span class="n">120<small>s</small></span><p>proxy timeout for a judge response, sized for a long rubric breakdown</p></div>
+      <div><span class="n">260<small>ms</small></span><p>debounce on session phase changes, curing the fast-hotkey collision</p></div>
+      <div><span class="n">44<small>px</small></span><p>minimum hit-target edge on the back and close controls</p></div>
+      <div><span class="n">30<small>d</small></span><p>immutable cache on Vite’s hashed assets in nginx</p></div>
+    </div>
+  </section>
+
+  <!-- ============ WHAT IS NOT HERE ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">06</p>
+        <p class="eyebrow">What is not here</p>
+      </div>
+      <h2>Limitations, technical debt and missing pieces</h2>
+      <p class="sec-note">
+        An honest list beats a polished one: it shows that the author knows the
+        boundaries of the work and is not passing a work in progress off as a
+        finished product.
+      </p>
+    </div>
+
+    <ul class="limits">
+      <li>
+        <b>There is no live demo, and there will not be one</b>
+        <p>
+          The server side executes user-submitted Go inside a sandbox and calls out to
+          an external AI judge. Neither can be served as static files from GitHub
+          Pages: both need a running process, isolation, and CPU and wall-clock limits.
+          That does not belong on public static hosting, so this page explains the
+          machine instead of pretending to be it.
+        </p>
+      </li>
+      <li>
+        <b>The sources arrived incomplete</b>
+        <p>
+          Only <code>App.tsx</code>, <code>main.tsx</code>, <code>review-main.tsx</code>
+          and the stylesheets survive under <code>web/src</code>; the
+          <code>api/</code>, <code>components/</code>, <code>lib/</code> and
+          <code>screens/</code> folders are missing, so the project does not build in
+          this state. The module inventory and its structure were reconstructed from
+          <code>tsconfig.app.tsbuildinfo</code> and the working reports — every number
+          on this page comes from there, none of them is an estimate.
+        </p>
+      </li>
+      <li>
+        <b>Not a single automated test</b>
+        <p>
+          There is no test runner in the project at all. The definition of done was
+          two build gates — <code>tsc -b</code> in strict mode and
+          <code>vite build</code> — plus manual Playwright passes over the key flows
+          in mock mode. That held for a single-user trainer, but a pure function like
+          <code>computeMilestone</code> is the first thing that should be under unit test.
+        </p>
+      </li>
+      <li>
+        <b>Half the product was not my scope</b>
+        <p>
+          The execution sandbox, the FSRS scheduler, the rubrics and judge prompts,
+          and the achievement logic all live in the Go backend, written by another
+          party. The frontend worked against an agreed contract: field types,
+          achievement identifiers and the milestone table were fixed separately.
+          What I own here is the interface and the client architecture, not the
+          verification engine.
+        </p>
+      </li>
+      <li>
+        <b>A stale comment in the build config</b>
+        <p>
+          In <code>vite.config.ts</code> the comment promises a proxy to port 8080
+          while <code>target</code> points at 8090: the backend port moved and the
+          comment did not follow. A small thing, but small things like this are what
+          later cost an hour of working out why the dev proxy is not connecting.
+        </p>
+      </li>
+      <li>
+        <b>No dedicated stats screen</b>
+        <p>
+          Tapping the weekly sparkline opens a modal sheet with a per-day breakdown
+          rather than a full analytics screen — a deliberate choice in favour of
+          honest navigation over an invented tab, though the sheet will get cramped as
+          the product grows. A couple of dead exports such as
+          <code>PLAYGROUND_DEFAULT</code> are still sitting in the same area.
+        </p>
+      </li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    <p class="eyebrow">Vector · 2026 · case study</p>
+    <div class="backs">
+      <a class="back" href="../../../en/">← Portfolio</a>
+      <a class="back" href="../../../">Каталог (RU)</a>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

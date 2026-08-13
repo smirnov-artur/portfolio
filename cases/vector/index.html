@@ -1,0 +1,1338 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vector — разбор проекта: тренажёр Go с проверкой кода и ИИ-судьёй</title>
+<meta name="description" content="Инженерный разбор Vector: две петли проверки — детерминированный запуск кода и языковой судья по рубрикам, редактор Go в браузере, интервальное повторение, две точки входа в одной сборке.">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%A7%AA%3C%2Ftext%3E%3C%2Fsvg%3E">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Vector — разбор проекта">
+<meta property="og:description" content="Тренажёр Go: запуск кода в песочнице, ИИ-судья по рубрикам, интервальное повторение. Разбор инженерных решений.">
+<meta property="og:locale" content="ru_RU">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/cases/vector/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/cases/vector/en/">
+<link rel="preload" href="../../assets/fonts/geologica-var-cyr.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../../assets/fonts/golos-var-cyr.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /* ---------- шрифты: self-hosted woff2, subset по unicode-range ----------
+     Те же три гарнитуры, что в каталоге работ: Geologica (заголовки),
+     Golos Text (проза), IBM Plex Mono (подписи, код, индексы). */
+
+  @font-face {
+    font-family: "Geologica";
+    src: url("../../assets/fonts/geologica-var-cyr.woff2") format("woff2");
+    font-weight: 100 900; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "Geologica";
+    src: url("../../assets/fonts/geologica-var-lat.woff2") format("woff2");
+    font-weight: 100 900; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "Golos Text";
+    src: url("../../assets/fonts/golos-var-cyr.woff2") format("woff2");
+    font-weight: 400 900; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "Golos Text";
+    src: url("../../assets/fonts/golos-var-lat.woff2") format("woff2");
+    font-weight: 400 900; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("../../assets/fonts/plexmono-400-cyr.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("../../assets/fonts/plexmono-400-lat.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2192, U+2193, U+2197, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
+  :root {
+    --paper: #EDEEEA;
+    --panel: #E4E6E1;
+    --ink: #12161B;
+    --ink-2: #3E4650;
+    --graphite: #59616B;
+    --rule: #D3D6CF;
+    --rule-strong: #ADB2A9;
+    --blue: #1B34C4;
+    --blue-soft: #1B34C414;
+
+    --f-display: "Geologica", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --f-body: "Golos Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, monospace;
+
+    --t-d1: clamp(2.6rem, 6.2vw, 5.5rem);
+    --t-d2: clamp(1.6rem, 3vw, 2.6rem);
+    --t-d3: clamp(1.3rem, 2.1vw, 1.85rem);
+    --t-lede: clamp(1.125rem, 1.5vw, 1.375rem);
+    --t-body: 1rem;
+    --t-small: 0.9375rem;
+    --t-label: 0.6875rem;
+
+    --gap: clamp(1rem, 2vw, 1.75rem);
+    --edge: clamp(1.25rem, 4.4vw, 4rem);
+    --s-section: clamp(3rem, 6.5vw, 5.5rem);
+
+    --t-fast: 160ms; --e-fast: cubic-bezier(0.4, 0, 0.2, 1);
+    --t-slow: 700ms; --e-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @supports (color: color(display-p3 1 1 1)) {
+    @media (color-gamut: p3) { :root { --blue: color(display-p3 0.086 0.196 0.769); } }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0E1116;
+      --panel: #151A21;
+      --ink: #E7E9E5;
+      --ink-2: #B4BAC2;
+      --graphite: #939CA6;
+      --rule: #262C34;
+      --rule-strong: #39424C;
+      --blue: #7C93FF;
+      --blue-soft: #7C93FF16;
+    }
+    @supports (color: color(display-p3 1 1 1)) {
+      @media (color-gamut: p3) { :root:not([data-theme="light"]) { --blue: color(display-p3 0.486 0.576 1); } }
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0E1116;
+    --panel: #151A21;
+    --ink: #E7E9E5;
+    --ink-2: #B4BAC2;
+    --graphite: #939CA6;
+    --rule: #262C34;
+    --rule-strong: #39424C;
+    --blue: #7C93FF;
+    --blue-soft: #7C93FF16;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: var(--t-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
+  }
+
+  img { max-width: 100%; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 var(--edge) clamp(3rem, 8vw, 6rem);
+  }
+
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    line-height: 1.45;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-feature-settings: "case" 1;
+    color: var(--graphite);
+    margin: 0;
+  }
+
+  a { color: var(--blue); }
+  a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+  /* ---------- шапка ---------- */
+
+  .masthead {
+    padding: clamp(1.4rem, 3vw, 2.4rem) 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.6rem, 4vw, 2.8rem);
+  }
+
+  .masthead-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.6rem 1.5rem;
+  }
+
+  .crumbs {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .crumbs a {
+    color: var(--ink-2);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color var(--t-fast) var(--e-fast), border-color var(--t-fast) var(--e-fast);
+  }
+  .crumbs a:hover { color: var(--blue); border-bottom-color: var(--blue); }
+  .crumbs .sep { color: var(--rule-strong); }
+  .crumbs .current { color: var(--graphite); }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: end;
+    gap: clamp(1.2rem, 3vw, 2.2rem) clamp(2rem, 5vw, 4.5rem);
+  }
+
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 500;
+    font-size: var(--t-d1);
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    margin: 0;
+    max-width: 14ch;
+  }
+  h1 em { font-style: normal; color: var(--blue); }
+
+  .lede {
+    max-width: 46ch;
+    font-size: var(--t-lede);
+    line-height: 1.4;
+    color: var(--ink-2);
+    margin: 0;
+    padding-bottom: 0.3em;
+  }
+
+  /* ---------- штамп с реквизитами ---------- */
+
+  .stamp {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule);
+  }
+  .stamp > div {
+    padding: 0.85rem clamp(0.8rem, 1.8vw, 1.4rem) 1rem 0;
+  }
+  .stamp > div + div {
+    border-left: 1px solid var(--rule);
+    padding-left: clamp(0.8rem, 1.8vw, 1.4rem);
+  }
+  .stamp p:last-child {
+    margin: 0.35rem 0 0;
+    font-size: var(--t-small);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+
+  /* ---------- секции ---------- */
+
+  section { margin-top: var(--s-section); }
+
+  .sec-head {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 0.9rem clamp(1.5rem, 4vw, 3.2rem);
+    align-items: end;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.2rem;
+    margin-bottom: clamp(1.4rem, 3vw, 2.2rem);
+    position: relative;
+  }
+  .sec-head::before {
+    content: "";
+    position: absolute;
+    top: -1px; left: 0;
+    width: 46px; height: 3px;
+    background: var(--rule-strong);
+  }
+  .sec-id {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem 1.5rem;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    margin-bottom: 0.3rem;
+  }
+  h2 {
+    font-family: var(--f-display);
+    font-size: var(--t-d2);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.04;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .sec-note {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: var(--t-small);
+    line-height: 1.5;
+    max-width: 50ch;
+  }
+
+  h3 {
+    font-family: var(--f-display);
+    font-size: var(--t-d3);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.14;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  /* ---------- проза ---------- */
+
+  .prose { max-width: 68ch; }
+  .prose p { margin: 0 0 1.05em; color: var(--ink-2); }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong { color: var(--ink); font-weight: 600; }
+  .prose ul { margin: 0 0 1.05em; padding-left: 1.15rem; color: var(--ink-2); }
+  .prose li { margin-bottom: 0.45em; }
+  .prose li::marker { color: var(--rule-strong); }
+
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.875em;
+    background: var(--blue-soft);
+    padding: 0.1em 0.34em;
+    color: var(--ink);
+    border-radius: 2px;
+  }
+
+  /* ---------- блоки-разделы «как устроено» ---------- */
+
+  .block {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--gap) clamp(1.5rem, 4vw, 3.2rem);
+    border-top: 1px solid var(--rule);
+    padding-top: 1.2rem;
+    margin-top: clamp(2rem, 4.5vw, 3.4rem);
+    position: relative;
+  }
+  .block:first-of-type { margin-top: 0; }
+  .block::before {
+    content: "";
+    position: absolute;
+    top: -1px; left: 0;
+    width: 46px; height: 3px;
+    background: var(--blue);
+  }
+  .block-head { display: flex; flex-direction: column; gap: 0.7rem; }
+  .block-head .eyebrow + h3 { margin-top: -0.1rem; }
+  .block-body { max-width: 66ch; }
+  .block-body > :first-child { margin-top: 0; }
+
+  /* ---------- спецификация ---------- */
+
+  dl.spec {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.05rem 1.25rem;
+    font-size: var(--t-small);
+    align-content: start;
+  }
+  dl.spec dt {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    padding-top: 0.5rem;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--rule);
+  }
+  dl.spec dd {
+    margin: 0;
+    padding: 0.38rem 0;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  dl.spec dt:last-of-type, dl.spec dd:last-of-type { border-bottom: 0; }
+
+  /* ---------- схема двух петель ---------- */
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(0.9rem, 2vw, 1.5rem);
+    margin: 0;
+  }
+  .lane {
+    border: 1px solid var(--rule-strong);
+    background: var(--panel);
+    padding: clamp(0.9rem, 2vw, 1.3rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+  .lane > .eyebrow { color: var(--blue); }
+  .lane h4 {
+    font-family: var(--f-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.32rem;
+    font-family: var(--f-mono);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .steps li {
+    display: grid;
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+    gap: 0.2rem;
+    padding: 0.34rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  .steps li:first-child { border-top: 0; }
+  .steps li span { color: var(--rule-strong); }
+  .lane p {
+    margin: 0;
+    font-size: var(--t-small);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .lane p b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- код ---------- */
+
+  figure.snip {
+    margin: 0;
+    border: 1px solid var(--rule-strong);
+    background: var(--panel);
+  }
+  figure.snip figcaption {
+    padding: 0.7rem clamp(0.8rem, 1.8vw, 1.1rem);
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 1rem;
+  }
+  figure.snip figcaption .path {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  figure.snip figcaption .why {
+    font-size: var(--t-small);
+    line-height: 1.4;
+    color: var(--ink-2);
+    flex: 1 1 22ch;
+  }
+  figure.snip pre {
+    margin: 0;
+    padding: clamp(0.8rem, 1.8vw, 1.1rem);
+    overflow-x: auto;
+    font-family: var(--f-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--ink);
+    tab-size: 2;
+  }
+  figure.snip pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+  .cm { color: var(--graphite); }
+
+  .snips {
+    display: grid;
+    gap: clamp(1.1rem, 2.4vw, 1.8rem);
+  }
+
+  /* ---------- скриншоты ---------- */
+
+  .shots {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(0.9rem, 2vw, 1.4rem);
+    margin: 0;
+    align-items: start;
+  }
+  .shot { margin: 0; }
+  .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #0B0E13;
+    border: 1px solid var(--rule-strong);
+  }
+  .shot figcaption {
+    margin-top: 0.6rem;
+    font-size: var(--t-small);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .shot figcaption b {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    font-weight: 400;
+    margin-bottom: 0.25rem;
+  }
+
+  /* ---------- цифры ---------- */
+
+  .nums {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--rule-strong);
+  }
+  .nums > div {
+    padding: 0.95rem clamp(0.7rem, 1.6vw, 1.2rem) 1.05rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .nums > div:not(:nth-child(4n + 1)) {
+    border-left: 1px solid var(--rule);
+    padding-left: clamp(0.7rem, 1.6vw, 1.2rem);
+  }
+  .nums .n {
+    font-family: var(--f-display);
+    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    display: block;
+  }
+  .nums .n small {
+    font-size: 0.5em;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--graphite);
+    margin-left: 0.15em;
+  }
+  .nums p {
+    margin: 0.5rem 0 0;
+    font-size: var(--t-small);
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+
+  /* ---------- ограничения ---------- */
+
+  .limits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 clamp(1.5rem, 4vw, 3.2rem);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .limits li {
+    border-top: 1px solid var(--rule);
+    padding: 0.9rem 0 1rem;
+    display: grid;
+    gap: 0.3rem;
+  }
+  .limits b {
+    font-family: var(--f-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+  .limits p {
+    margin: 0;
+    font-size: var(--t-small);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  /* ---------- подвал ---------- */
+
+  .foot {
+    margin-top: var(--s-section);
+    border-top: 1px solid var(--rule-strong);
+    padding-top: 1.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.8rem 1.5rem;
+  }
+  .backs { display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem; }
+  .back {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 10px 14px;
+    box-shadow: 4px 4px 0 var(--blue);
+    transition: background var(--t-fast) var(--e-fast), color var(--t-fast) var(--e-fast), border-color var(--t-fast) var(--e-fast);
+  }
+  .back:hover { background: var(--blue); color: var(--paper); border-color: var(--blue); }
+
+  /* ---------- адаптив ---------- */
+
+  @media (max-width: 900px) {
+    .stamp { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stamp > div:nth-child(3) { border-left: 0; padding-left: 0; }
+    .stamp > div:nth-child(-n + 2) { border-bottom: 1px solid var(--rule); }
+    .nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nums > div:not(:nth-child(4n + 1)) { border-left: 0; padding-left: 0; }
+    .nums > div:nth-child(even) { border-left: 1px solid var(--rule); padding-left: clamp(0.7rem, 1.6vw, 1.2rem); }
+  }
+
+  @media (max-width: 760px) {
+    .hero, .sec-head, .block { grid-template-columns: minmax(0, 1fr); align-items: start; }
+    .flow, .shots, .limits { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  @media (max-width: 560px) {
+    .stamp { grid-template-columns: minmax(0, 1fr); }
+    .stamp > div { border-left: 0 !important; padding-left: 0 !important; border-bottom: 1px solid var(--rule); }
+  }
+
+  @media (max-width: 420px) {
+    dl.spec { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    dl.spec dt { border-bottom: 0; padding-top: 0.7rem; white-space: normal; }
+    dl.spec dd { padding-top: 0.1rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-top">
+      <nav class="crumbs" aria-label="Хлебные крошки">
+        <a href="../../">Каталог работ</a>
+        <span class="sep">/</span>
+        <span class="current">Лист 12 · Vector</span>
+      </nav>
+      <nav class="crumbs" aria-label="Язык страницы">
+        <span class="current">RU</span>
+        <span class="sep">/</span>
+        <a href="en/" hreflang="en">EN</a>
+      </nav>
+    </div>
+
+    <div class="hero">
+      <h1>Vector — тренажёр <em>Go</em></h1>
+      <p class="lede">
+        Урок → упражнение с настоящим запуском кода → экзамен, где ответ оценивает
+        не самооценка, а разбор по рубрикам. Разбор инженерных решений: живого
+        демо нет и не может быть.
+      </p>
+    </div>
+
+    <div class="stamp">
+      <div>
+        <p class="eyebrow">Год</p>
+        <p>2026, июнь</p>
+      </div>
+      <div>
+        <p class="eyebrow">Роль</p>
+        <p>Фронтенд целиком: архитектура SPA, дизайн-система, движок сессий, mock-слой, сборка и деплой статики</p>
+      </div>
+      <div>
+        <p class="eyebrow">Стек</p>
+        <p>React 19, TypeScript 5.9 (strict), Vite 7, CodeMirror 6 с грамматикой Go, motion, nginx, Docker</p>
+      </div>
+      <div>
+        <p class="eyebrow">Вне моей зоны</p>
+        <p>Go-бэкенд, песочница исполнения, планировщик повторений и промпты судьи. Фронт писался против согласованного контракта</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ ЗАДАЧА ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">01</p>
+        <p class="eyebrow">Задача</p>
+      </div>
+      <h2>Подготовка к собеседованию разваливается в трёх местах</h2>
+      <p class="sec-note">
+        Продукт делался под конкретного человека, готовящегося к собеседованию по Go.
+        Его правки сохранились в рабочих заметках дословно — и почти каждая
+        техническая деталь ниже выросла из одной такой фразы.
+      </p>
+    </div>
+
+    <div class="prose">
+      <p>
+        <strong>Первое: читать — не значит уметь.</strong> Человек читает статью про
+        <code>net/http</code>, кивает, а на собеседовании не может написать двадцать
+        строк с мультиплексором и тестовым сервером. Между «понятно» и «пишу» лежит
+        разрыв, который закрывается только клавиатурой.
+      </p>
+      <p>
+        <strong>Второе: самооценка врёт.</strong> Курсы предлагают отметить галочкой
+        «понял». Через две недели в голове пусто, а трекер зелёный. Любая система,
+        где ученик сам ставит себе оценку, со временем превращается в генератор
+        приятных цифр.
+      </p>
+      <p>
+        <strong>Третье: забывание идёт по расписанию, а повторение — по настроению.</strong>
+        Материал, разобранный в начале подготовки, к концу исчезает, и никто не
+        подсказывает, что именно пора освежить сегодня.
+      </p>
+      <p>
+        Отсюда три жёстких требования, которые определили всю архитектуру:
+        код должен <strong>реально исполняться</strong>, оценку должен ставить
+        <strong>не ученик</strong>, а повторение должно <strong>назначаться расписанием</strong>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ КАК УСТРОЕНО ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">02</p>
+        <p class="eyebrow">Как устроено</p>
+      </div>
+      <h2>Две петли проверки: дешёвая детерминированная и дорогая языковая</h2>
+      <p class="sec-note">
+        Главное архитектурное решение — не смешивать их. Всё, что можно проверить
+        сравнением строк, проверяется сравнением строк. Языковую модель зовут только
+        туда, где сравнивать нечего: к устному объяснению.
+      </p>
+    </div>
+
+    <div class="flow">
+      <div class="lane">
+        <p class="eyebrow">Петля A · детерминированная</p>
+        <h4>Запуск кода и сверка вывода</h4>
+        <ol class="steps">
+          <li><span>01</span> редактор CodeMirror в браузере</li>
+          <li><span>02</span> POST кода на Go-бэкенд</li>
+          <li><span>03</span> исполнение в песочнице</li>
+          <li><span>04</span> stdout / stderr обратно</li>
+          <li><span>05</span> diff с ожидаемым выводом</li>
+          <li><span>06</span> вердикт: совпало / не совпало</li>
+        </ol>
+        <p>
+          Стоит копейки, отвечает за секунды, ошибиться не может. <b>Ответ приходит
+          структурой</b> <code>predictCorrect</code>, <code>expectedOutput</code>,
+          <code>diff</code> — не текстом, который надо парсить глазами.
+        </p>
+      </div>
+      <div class="lane">
+        <p class="eyebrow">Петля B · языковая</p>
+        <h4>Экзамен и ИИ-судья</h4>
+        <ol class="steps">
+          <li><span>01</span> вопрос без подсказок, засекается время</li>
+          <li><span>02</span> развёрнутый устный ответ</li>
+          <li><span>03</span> ответ уходит судье вместе с рубриками</li>
+          <li><span>04</span> счёт по рубрикам, до 4 баллов за вопрос</li>
+          <li><span>05</span> эталонный разбор: ядро / глубже / ловушка</li>
+          <li><span>06</span> карточка в память — по вердикту, не по самооценке</li>
+        </ol>
+        <p>
+          Медленно и небесплатно, поэтому зовётся редко и только на экзамене.
+          <b>Отсюда 120-секундный</b> <code>proxy_read_timeout</code> в nginx: обычный
+          дефолт в 60 с рвал соединение на длинных разборах.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.1</p>
+        <h3>Лестница упражнений: разные уровни — разные компоненты, а не разные тексты</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Уровни от L0 до L5 — это не шкала сложности внутри одного шаблона, а разные
+          режимы взаимодействия. Каждый живёт своим компонентом:
+        </p>
+        <ul>
+          <li>
+            <strong>L0 — лаборатория.</strong> Редактируемый пример из урока, кнопка
+            «Запустить», блок «Эксперименты» (список «а что если…», приходит вместе
+            с упражнением полем <code>experiments</code>) и поле для объяснения своими
+            словами. Зачёт — по кнопке «Засчитать и дальше».
+          </li>
+          <li>
+            <strong>L1 — предсказание вывода.</strong> Код только на чтение, ученик
+            сначала записывает, что напечатается, и лишь потом запускает. Совпадение
+            прогноза отмечается отдельным тостом: ценность упражнения именно в прогнозе,
+            а не в факте запуска.
+          </li>
+          <li>
+            <strong>L3 — сборка из блоков.</strong> Собственный <code>ParsonsBuilder</code>:
+            программа собирается из перемешанных строк. Синтаксис не мешает проверять,
+            понятен ли порядок операций.
+          </li>
+          <li>
+            <strong>L4 / L5 — полные задачи.</strong> Отмечены отдельно в системе
+            достижений: <code>clean-l4</code> — сдал с первой попытки, <code>boss-l5</code> —
+            закрыл финальную задачу ступени.
+          </li>
+        </ul>
+        <p>
+          Подсказки выдаются порционно и считаются: в интерфейсе упражнения счётчик
+          <code>Подсказка 1/3</code>. Это не украшение — количество взятых подсказок
+          отличает «решил» от «подсмотрел».
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.2</p>
+        <h3>Зачёт ставится только явной кнопкой — это инвариант, зафиксированный в коде</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Самый простой способ незаметно испортить обучающий продукт — начислять
+          прогресс за то, что человек долистал экран. Поэтому после аудита все
+          вызовы <code>markLectureRead</code> и <code>completeExercise</code> были
+          пересмотрены поштучно, и каждый оказался привязан к нажатию кнопки:
+          «Прочитал — засчитать» в узле урока, «Засчитать и дальше» в L0, кнопка
+          проверки в L1 и L3.
+        </p>
+        <p>
+          Ни одного вызова из <code>onBack</code>, из размонтирования компонента или
+          из эффекта. Правило записано комментарием-инвариантом прямо в двух местах,
+          где соблазн максимален, — чтобы следующая правка не сломала его молча.
+        </p>
+        <p>
+          Из той же логики выросли переименования кнопок: «Понятно, дальше» стало
+          «Засчитать и дальше», «Прочитал — дальше» стало «Прочитал — засчитать».
+          Формулировка должна называть последствие нажатия, а не эмоцию.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.3</p>
+        <h3>Память: карточку пишет вердикт судьи, а не желание ученика</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Экзамен — источник данных для интервального повторения. Ответ, разобранный
+          судьёй, превращается в карточку («записано в память»), промахи уходят
+          в журнал по вердикту, а не по самооценке. Расписание — интервальный алгоритм
+          FSRS на бэкенде; на фронте живут отметки сессии (<code>lib/reviewmarks.ts</code>)
+          и локальный кэш прогресса (<code>lib/progressstore.ts</code>).
+        </p>
+        <p>
+          Готовность к цели ревью считается нарочито простой формулой: <strong>половина
+          веса за долю зрелых карточек, половина — за долю сделанных практик</strong>.
+          Формула тупая, зато её можно прочитать вслух и объяснить, почему кольцо
+          показывает именно 17%. Красивая непрозрачная метрика в обучающем продукте
+          вреднее грубой понятной.
+        </p>
+        <p>
+          Сводка экзамена считает четыре величины: покрытие рубрик, фактические
+          ошибки, пропуски и превышение времени. Итоговый вердикт формулируется
+          в терминах собеседования — «Не сдал бы», — а не в процентах, потому что
+          процент легко себе простить.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.4</p>
+        <h3>Почему «Повторение» — отдельное приложение, а не пятая вкладка</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          У повторения другой сценарий использования. Основное приложение — это
+          получасовая сессия за столом: урок, редактор, запуск, разбор. Повторение —
+          это десять минут с телефона в произвольный момент дня. Смешивать их в одной
+          оболочке значит заставлять телефон тащить весь курс ради очереди карточек.
+        </p>
+        <p>
+          Поэтому <code>review.html</code> — вторая точка входа со своей оболочкой
+          <code>ReviewApp</code>, своим контейнером nginx и своим адресом в локальной
+          сети. Важные следствия:
+        </p>
+        <ul>
+          <li>
+            <strong>Тяжёлое переиспользуется.</strong> Движок сессии
+            (<code>TrainScreen</code>, <code>ReviewScreen</code>, <code>ExamScreen</code>),
+            дизайн-система и <code>motion</code> — общие чанки одной сборки Vite.
+            Два приложения, одна кодовая база, один <code>npm run build</code>.
+          </li>
+          <li>
+            <strong>CORS не возникает вовсе.</strong> nginx проксирует <code>/api/</code>
+            на бэкенд по внутренней сети Docker, поэтому браузер телефона обращается
+            ровно к одному адресу. Ни preflight-запросов, ни заголовков
+            <code>Access-Control-*</code>, ни отладки того и другого.
+          </li>
+          <li>
+            <strong>Раздача разная.</strong> Основное приложение вкомпилировано
+            в Go-бинарь через <code>embed</code>; приложение повторения раздаётся
+            статикой из nginx с гзипом и тридцатидневным иммутабельным кэшем
+            на хешированные ассеты Vite.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.5</p>
+        <h3>Редактор Go в браузере и песочница без оценок</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Редактор — CodeMirror 6 с грамматикой Go (<code>@codemirror/lang-go</code>
+          поверх Lezer) и собственной темой в <code>components/codetheme.ts</code>:
+          подсветка построена на токенах приложения, а не на дефолтном
+          <code>one-dark</code>, иначе код-блок выглядел бы вставкой из другого продукта.
+        </p>
+        <p>
+          Отдельная песочница появилась после прямой просьбы: дать место, где можно
+          трогать код без оценок. Решения, которые её вытянули:
+        </p>
+        <ul>
+          <li>
+            <strong>Вход отовсюду.</strong> В правом нижнем углу любого код-блока —
+            компактная кнопка-пилюля «В песочницу», в том числе у кода предсказания
+            в L1, где раньше его нельзя было потрогать принципиально.
+          </li>
+          <li>
+            <strong>Фрагменты оборачиваются автоматически.</strong> Кусок без
+            <code>package main</code> прогоняется через <code>wrapInMain</code> и
+            становится компилируемой программой. Иначе половина кнопок вела бы
+            к ошибке компиляции.
+          </li>
+          <li>
+            <strong>Пустой файл — плохой старт.</strong> Вход без черновика отдаёт
+            стартовый шаблон с тремя микро-шагами в комментариях («запусти», «поменяй
+            текст», «добавь Println»). Черновик хранится в <code>localStorage</code>,
+            кнопка «Начать заново» возвращает шаблон, а не пустоту.
+          </li>
+          <li>
+            <strong>Панель «Попробуй».</strong> Если у упражнения есть свои
+            эксперименты — показываются они; если нет — пять универсальных челленджей
+            (предскажи и запусти; сломай нарочно и прочитай ошибку вслух; вставь
+            <code>fmt.Println</code> в середину и проследи порядок; оберни в цикл;
+            вызови панику осознанно и прочитай stack trace).
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.6</p>
+        <h3>Режим без бэкенда: демо, которое нельзя перепутать с живым сервером</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Ждать бэкенд, чтобы посмотреть экран, — потерянные часы. Поэтому в клиенте
+          есть параллельный mock-слой: <code>api/client.ts</code> при
+          <code>VITE_MOCK=1</code> (или при недоступном бэкенде) переключается на
+          <code>api/mock.ts</code> с собственными сидами, чистыми функциями расчёта
+          (<code>computeMilestone</code>, <code>buildWeek</code>) и эмуляцией запуска кода.
+        </p>
+        <p>
+          Два принципа, без которых mock быстро протухает. <strong>Первый: одни и те
+          же массивы.</strong> Экран статистики и спарклайн недели читают один источник,
+          поэтому «вчера» на двух экранах совпадает — расхождение в моке ловится
+          как настоящий баг. <strong>Второй: честная маркировка.</strong> В mock-режиме
+          поверх интерфейса висит липкий баннер «Демо-режим · данные сгенерированы
+          локально, бэкенд не подключён». Демо не должно выглядеть убедительнее, чем оно есть.
+        </p>
+        <p>
+          Мелочь, показывающая цену реализма: эмулятор запуска сначала распознавал
+          HTTP-сервер по тексту приветствия, и обычный <code>Println</code> в песочнице
+          ложно печатал вывод сервера. Стало — по вызову <code>ListenAndServe</code>.
+        </p>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-head">
+        <p class="eyebrow">2.7</p>
+        <h3>Дисциплина интерфейса: гонки, фокус, зоны нажатия</h3>
+      </div>
+      <div class="block-body prose">
+        <p>
+          Тренажёр — приложение с горячими клавишами, которым пользуются быстро.
+          Отсюда набор решений, которые не видно, пока они работают:
+        </p>
+        <ul>
+          <li>
+            <strong>Двойной сабмит мышью и клавишей.</strong> Замок
+            <code>inFlight</code> на <code>useRef</code> ставится синхронно — до
+            <code>await</code>, а не в состоянии. Состояние обновится через рендер,
+            а второе событие приходит раньше.
+          </li>
+          <li>
+            <strong>Конфликт хоткеев фаз.</strong> Дебаунс 260 мс на смену фазы
+            сессии: быстрый двойной хват клавиш переставал перепрыгивать через шаг.
+          </li>
+          <li>
+            <strong>Повторный вход в чекпоинт.</strong> <code>key</code> на экране
+            тренировки собирается из состава <code>cardIds</code> — сессия честно
+            начинается заново, а не продолжает предыдущую с чужим состоянием.
+          </li>
+          <li>
+            <strong>Переходы между экранами.</strong> View Transitions с именованными
+            группами: анимируется только группа <code>screen</code>, а таб-бар
+            и баннер демо-режима замерли. Дефолтный кроссфейд корня давал двойную
+            экспозицию — ученик описал это как «неаккуратные переходы».
+          </li>
+          <li>
+            <strong>Доступность.</strong> Focus-trap в модальных листах (запоминание
+            триггера, цикл <code>Tab</code>, возврат фокуса при закрытии), зоны нажатия
+            от 44×44 px, <code>content-visibility: auto</code> на длинных списках,
+            <code>prefers-reduced-motion</code> — включая отключение конфетти.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ЭКРАНЫ ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">03</p>
+        <p class="eyebrow">Экраны</p>
+      </div>
+      <h2>Как обе петли выглядят на месте</h2>
+      <p class="sec-note">
+        Слева — детерминированная проверка, справа — вердикт судьи с эталонным
+        разбором. Оба экрана сняты в рабочей сборке против живого бэкенда.
+      </p>
+    </div>
+
+    <div class="shots">
+      <figure class="shot">
+        <img src="../../assets/a14.jpg" width="1400" height="788" loading="lazy" decoding="async"
+             alt="Упражнение «HTTP без боли»: редактор Go с подсветкой, кнопки «Запустить и проверить», «Подсказка 1/3», «Сбросить», ниже зелёная отметка «Совпало! 42»">
+        <figcaption>
+          <b>Петля A · упражнение</b>
+          Задание с инлайновыми фрагментами кода, редактор на 21 строку, счётчик
+          подсказок и результат сверки вывода. Ниже — блок «Спроси себя»:
+          вопросы, на которые запуск ответа не даёт.
+        </figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="../../assets/a15.jpg" width="1400" height="875" loading="lazy" decoding="async"
+             alt="Экран экзамена: вердикт «Не сдал бы», метрики покрытия рубрик, счёт судьи по вопросу и эталонный разбор с блоками «Ядро», «Глубже», «Ловушка»">
+        <figcaption>
+          <b>Петля B · экзамен</b>
+          Сводка вердикта, счёт судьи по каждому вопросу, эталонный разбор
+          в трёх слоях — ядро, глубже, ловушка — и отметка «записано в память»
+          там, где карточка ушла в расписание повторений.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ КОД ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">04</p>
+        <p class="eyebrow">Код</p>
+      </div>
+      <h2>Четыре фрагмента, в которых видно устройство</h2>
+      <p class="sec-note">
+        Не самые длинные файлы, а те, где решение видно целиком: сборка, навигация,
+        переходы и раздача.
+      </p>
+    </div>
+
+    <div class="snips">
+
+      <figure class="snip">
+        <figcaption>
+          <span class="path">web/vite.config.ts</span>
+          <span class="why">Два приложения из одной кодовой базы. Плюс dev-прокси, чтобы фронт работал против живого Go-бэкенда без CORS.</span>
+        </figcaption>
+        <pre><code>server: {
+  port: 5173,
+  proxy: {
+    <span class="cm">// dev: /api и /healthz уходят на Go-бэкенд — без CORS.</span>
+    <span class="cm">// Если бэкенда нет (или VITE_MOCK=1), client.ts сам</span>
+    <span class="cm">// переключается на встроенный mock-слой.</span>
+    '/api':     { target: 'http://localhost:8090', changeOrigin: true },
+    '/healthz': { target: 'http://localhost:8090', changeOrigin: true },
+  },
+},
+build: {
+  outDir: 'dist',
+  target: 'es2022',
+  <span class="cm">// CodeMirror + motion весят прилично, а приложение</span>
+  <span class="cm">// однопользовательское — поднимаем порог предупреждения.</span>
+  chunkSizeWarningLimit: 1200,
+  <span class="cm">// Две точки входа в одной сборке:</span>
+  <span class="cm">//  index.html  → основное приложение (его embed-ит Go-бинарь);</span>
+  <span class="cm">//  review.html → приложение «Повторение» (его раздаёт nginx).</span>
+  <span class="cm">// Общие чанки (motion, дизайн-система, движок сессии)</span>
+  <span class="cm">// переиспользуются между ними.</span>
+  rollupOptions: {
+    input: { main: 'index.html', review: 'review.html' },
+  },
+},</code></pre>
+      </figure>
+
+      <figure class="snip">
+        <figcaption>
+          <span class="path">web/src/App.tsx</span>
+          <span class="why">Навигация без роутера: одно намерение перехода вместо трёх независимых состояний. Так «Сегодня» может открыть конкретный узел дорожки или конкретную цель ревью, не изобретая URL-схему.</span>
+        </figcaption>
+        <pre><code><span class="cm">/** Глубокий вход на конкретный узел дорожки (deep-link из «Сегодня»). */</span>
+export interface PathFocus {
+  pathSlug: string;
+  stepKind: PathStepKind;
+  ref: string;
+}
+
+<span class="cm">/** Намерение перехода между вкладками с опциональным фокусом. */</span>
+export interface NavIntent {
+  tab: TabId;
+  exerciseId?: string;
+  pathFocus?: PathFocus;   <span class="cm">// открыть узел дорожки на вкладке «Курс»</span>
+  reviewSlug?: string;     <span class="cm">// финал дорожки → сразу цель в «Повторении»</span>
+}
+
+const navigate = useCallback((intent: NavIntent) =&gt; {
+  withViewTransition(() =&gt; {
+    setTab(intent.tab);
+    setFocusExercise(intent.exerciseId ?? null);
+    setPathFocus(intent.pathFocus ?? null);
+    setReviewFocus(intent.reviewSlug ?? null);
+  });
+}, []);</code></pre>
+      </figure>
+
+      <figure class="snip">
+        <figcaption>
+          <span class="path">web/src/App.module.css</span>
+          <span class="why">Переходы экранов. Дефолтный кроссфейд корня давал двойную экспозицию, а таб-бар мигал: анимируется ровно одна группа, остальные слои прибиты явно.</span>
+        </figcaption>
+        <pre><code><span class="cm">/* Анимируется ТОЛЬКО группа screen. Слои интерфейса
+   (фон, таб-бар, баннер демо) статичны: дефолтный кроссфейд
+   root с plus-lighter давал двойную экспозицию, а бар
+   вообще не должен мигать. */</span>
+::view-transition-old(screen) { animation: vt-out .26s cubic-bezier(.32,.72,0,1) both; }
+::view-transition-new(screen) { animation: vt-in  .26s cubic-bezier(.32,.72,0,1) both; }
+
+::view-transition-old(root),        ::view-transition-new(root),
+::view-transition-old(tabbar),      ::view-transition-new(tabbar),
+::view-transition-old(demo-banner), ::view-transition-new(demo-banner) {
+  animation: none;
+}
+
+<span class="cm">/* Ремень безопасности к порядку пейнта. */</span>
+::view-transition-group(screen) { z-index: 1; }
+::view-transition-group(tabbar),
+::view-transition-group(demo-banner) { z-index: 10; }</code></pre>
+      </figure>
+
+      <figure class="snip">
+        <figcaption>
+          <span class="path">web/nginx.review.conf</span>
+          <span class="why">Раздача приложения «Повторение». Прокси на тот же бэкенд по внутренней сети Docker — телефон видит один origin. Таймаут поднят под ответ судьи.</span>
+        </figcaption>
+        <pre><code>root /usr/share/nginx/html;
+index review.html;
+
+<span class="cm"># ── API → бэкенд Vector (сервис app в той же docker-сети) ──</span>
+location /api/ {
+  proxy_pass http://app:8080/api/;
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_read_timeout 120s;   <span class="cm"># разбор судьи не укладывается в дефолт</span>
+}
+
+<span class="cm"># ── хешированные ассеты Vite: кэш надолго ──</span>
+location /assets/ {
+  expires 30d;
+  add_header Cache-Control "public, immutable";
+  try_files $uri =404;
+}
+
+<span class="cm"># ── SPA: любой неизвестный путь → review.html ──</span>
+location / { try_files $uri $uri/ /review.html; }</code></pre>
+      </figure>
+
+    </div>
+  </section>
+
+  <!-- ============ ЦИФРЫ ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">05</p>
+        <p class="eyebrow">Цифры</p>
+      </div>
+      <h2>Объём фронтенда</h2>
+      <p class="sec-note">
+        Состав модулей восстановлен из <code>tsconfig.app.tsbuildinfo</code> — списка
+        файлов, который TypeScript записал при последней успешной инкрементальной
+        сборке. Это фактический граф проекта, а не оценка на глаз.
+      </p>
+    </div>
+
+    <div class="nums">
+      <div><span class="n">84</span><p>модуля TypeScript в зоне <code>web/src</code>: 69 <code>.tsx</code> и 15 <code>.ts</code></p></div>
+      <div><span class="n">29</span><p>компонентов дизайн-системы — от <code>Sheet</code> и <code>Toast</code> до <code>ProgressRing</code> и <code>Sparkline</code></p></div>
+      <div><span class="n">34</span><p>модуля экранов в 11 папках: курс, справка, практика, ревью, «Сегодня», тренировка</p></div>
+      <div><span class="n">13</span><p>модулей <code>lib</code>: контексты, звук, речь, прогресс, пружины анимации, View Transitions</p></div>
+
+      <div><span class="n">3</span><p>модуля API-слоя: <code>types</code>, <code>client</code>, <code>mock</code> — контракт, транспорт и его двойник</p></div>
+      <div><span class="n">2</span><p>точки входа собираются одной командой; общие чанки переиспользуются</p></div>
+      <div><span class="n">550</span><p>модулей в графе Vite на проде, прод-сборка укладывается примерно в две секунды</p></div>
+      <div><span class="n">0</span><p>ошибок <code>tsc</code> в строгом режиме с <code>noUncheckedIndexedAccess</code> и <code>noUnused*</code></p></div>
+
+      <div><span class="n">5</span><p>вкладок основного приложения: Сегодня, Повторение, Карта, Курс, Справка</p></div>
+      <div><span class="n">8</span><p>этапов единой дорожки — от первой программы до готовности к собеседованию</p></div>
+      <div><span class="n">12</span><p>достижений с описанием «как получить» у каждого; 5 открыто на старте демо</p></div>
+      <div><span class="n">4 500<small>XP</small></span><p>верхняя веха шкалы званий — от «Старта» до «Готов к собесу»</p></div>
+
+      <div><span class="n">120<small>с</small></span><p>таймаут прокси на ответ судьи — под длинный разбор с рубриками</p></div>
+      <div><span class="n">260<small>мс</small></span><p>дебаунс смены фазы сессии: лечит конфликт быстрых горячих клавиш</p></div>
+      <div><span class="n">44<small>px</small></span><p>минимальная сторона зоны нажатия у кнопок возврата и закрытия</p></div>
+      <div><span class="n">30<small>дн</small></span><p>иммутабельный кэш на хешированные ассеты Vite в nginx</p></div>
+    </div>
+  </section>
+
+  <!-- ============ ЗА КАДРОМ ============ -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-id">
+        <p class="eyebrow">06</p>
+        <p class="eyebrow">Что осталось за кадром</p>
+      </div>
+      <h2>Ограничения, техдолг и то, чего здесь нет</h2>
+      <p class="sec-note">
+        Честный список важнее глянца: он показывает, что автор знает границы своей
+        работы и не выдаёт заготовку за законченный продукт.
+      </p>
+    </div>
+
+    <ul class="limits">
+      <li>
+        <b>Живого демо нет и не будет</b>
+        <p>
+          Серверная часть исполняет присланный пользователем код Go в песочнице
+          и ходит к внешнему ИИ-судье. Ни то, ни другое не раздаётся статикой
+          с GitHub Pages: нужен работающий процесс, изоляция и лимиты по CPU и
+          времени. Класть такое в публичный статический хостинг нельзя, поэтому
+          страница объясняет устройство, а не притворяется приложением.
+        </p>
+      </li>
+      <li>
+        <b>Исходники присланы неполно</b>
+        <p>
+          В <code>web/src</code> сохранились только <code>App.tsx</code>,
+          <code>main.tsx</code>, <code>review-main.tsx</code> и стили; папки
+          <code>api/</code>, <code>components/</code>, <code>lib/</code> и
+          <code>screens/</code> отсутствуют. Проект в таком виде не собирается.
+          Состав модулей и их назначение восстановлены из
+          <code>tsconfig.app.tsbuildinfo</code> и рабочих отчётов — все цифры
+          на этой странице оттуда, ни одна не оценочная.
+        </p>
+      </li>
+      <li>
+        <b>Ни одного автотеста</b>
+        <p>
+          Тест-раннера в проекте нет вовсе. Критерием готовности были два гейта
+          сборки — <code>tsc -b</code> в строгом режиме и <code>vite build</code> —
+          плюс ручные прогоны ключевых сценариев в mock-режиме через Playwright.
+          Для однопользовательского тренажёра это работало, но чистая функция
+          вроде <code>computeMilestone</code> просится под юнит-тесты в первую очередь.
+        </p>
+      </li>
+      <li>
+        <b>Половина продукта — не моя зона</b>
+        <p>
+          Песочница исполнения, планировщик FSRS, рубрики и промпты судьи, начисление
+          достижений — всё это Go-бэкенд, который писала другая сторона. Фронт
+          работал против согласованного контракта: типы полей, идентификаторы
+          достижений и таблица вех фиксировались отдельно. Здесь я отвечаю
+          за интерфейс и клиентскую архитектуру, а не за движок проверки.
+        </p>
+      </li>
+      <li>
+        <b>Расхождение в конфиге</b>
+        <p>
+          В <code>vite.config.ts</code> комментарий обещает прокси на порт 8080,
+          а <code>target</code> указывает на 8090: порт бэкенда переезжал, комментарий
+          за ним не пошёл. Мелочь, но именно из таких мелочей потом складывается
+          час на выяснение, почему dev-прокси «не работает».
+        </p>
+      </li>
+      <li>
+        <b>Отдельного экрана статистики нет</b>
+        <p>
+          Спарклайн недели открывает модальный лист с разбивкой по дням, а не полноценный
+          экран аналитики. Это осознанный выбор в пользу честной навигации вместо
+          выдуманной вкладки, но при росте продукта лист станет тесен.
+          Там же осталась пара мёртвых экспортов вроде <code>PLAYGROUND_DEFAULT</code>.
+        </p>
+      </li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    <p class="eyebrow">Vector · 2026 · разбор проекта</p>
+    <div class="backs">
+      <a class="back" href="../../">← Каталог работ</a>
+      <a class="back" href="../../en/">Portfolio (EN)</a>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>
