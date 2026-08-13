@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<!-- vau-stranitsa · силуэт: витрина-конфигуратор, сцена слева + панель справа · предмет: неоновая вывеска из гнутой стеклянной трубки · система: смета из измеренной геометрии (метры по кривой, гибы, электроды, акрил, БП) + JSON заказа · техника: центровые пути глифов → TubeGeometry, шейдер трубки с горячим концом, перекат цвета волной, точечные источники вдоль трубки, bloom + грейд + SMAA -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neon sign configurator — bent while you type</title>
+<meta name="description" content="A product configurator for custom neon signs: the buyer types, the glass tube is bent in front of them, and the price is measured off that tube — metres on the curve, heats per bend, electrodes per run.">
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="https://smirnov-artur.github.io/portfolio/" target="_blank" rel="noopener">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">Smirnov</span>
+    <span class="brand-sub">product configurators</span>
+  </a>
+  <p class="top-note">Demo build. Rates are ours, for demonstration — the shop plugs in its own.</p>
+</header>
+
+<main>
+<section class="hero">
+  <div class="stage-wrap">
+    <canvas id="stage"></canvas>
+    <div class="fallback">
+      <p>This browser will not open a 3D context, so the sign cannot be shown.<br>
+      The pricing below still works: it is arithmetic on the same measured geometry.</p>
+    </div>
+
+    <div class="hero-copy">
+      <h1><span data-reveal>A neon sign,</span> <span data-reveal class="d1">bent while you type.</span></h1>
+      <p data-reveal class="d2">Every letter is one length of glass. Nothing is picked from a size chart —
+        the tube is measured on its own curve and the invoice is written from that measurement.</p>
+    </div>
+
+    <dl class="ticker" aria-label="Live measurement of the sign">
+      <div><dt>Tube</dt><dd id="m-len">—</dd></div>
+      <div><dt>Bends</dt><dd id="m-bends">—</dd></div>
+      <div><dt>Runs</dt><dd id="m-runs">—</dd></div>
+      <div><dt>Load</dt><dd id="m-watts">—</dd></div>
+      <div><dt>Overall</dt><dd id="m-size">—</dd></div>
+      <div class="live"><span class="pulse" aria-hidden="true"></span><dd>measured now</dd></div>
+    </dl>
+    <p class="drag-hint">drag to look along the glass</p>
+  </div>
+
+  <aside class="panel">
+    <div id="controls"></div>
+
+    <div class="quote-head">
+      <h2>What it costs, and why</h2>
+      <p>Every line carries the arithmetic that produced it.</p>
+    </div>
+    <div id="quote" class="quote"></div>
+    <div class="total">
+      <span>Total, before tax and shipping</span>
+      <strong id="total">—</strong>
+    </div>
+    <div class="actions">
+      <button id="cart" class="cta" type="button">Add to cart</button>
+      <button id="copy" class="ghost" type="button">Copy JSON</button>
+    </div>
+    <p class="fine">Demo rates. Lead time, tax and delivery are the shop's own fields — this page hands over the geometry and the breakdown.</p>
+  </aside>
+</section>
+
+<section class="strip" id="how">
+  <h2 data-reveal>Where the number comes from</h2>
+  <div class="cards">
+    <article data-reveal class="d1">
+      <h3>Measured on the curve</h3>
+      <p>The centre line of every letter is sampled and its true arc length is summed. A wide round
+        <b>W</b> costs more glass than a condensed one at the same height, and the total shows it
+        to the centimetre.</p>
+    </article>
+    <article data-reveal class="d2">
+      <h3>A bend is a heat</h3>
+      <p>Walking the finished tube, turning angle is banked and a bend is booked every 60 degrees,
+        plus one wherever the tube reverses direction. That is what a bender actually charges for.</p>
+    </article>
+    <article data-reveal class="d3">
+      <h3>Glass has a minimum radius</h3>
+      <p>8 mm tube will not take a corner tighter than 17 mm, 12 mm will not go below 27 mm.
+        Choose the thicker bore and the corners of the letters visibly round off — because they must.</p>
+    </article>
+    <article data-reveal class="d4">
+      <h3>Power follows length</h3>
+      <p>Load is metres times watts per metre for that bore; the transformer is then taken from the
+        ladder with 25 per cent headroom. Change one letter and the unit can step up a size.</p>
+    </article>
+  </div>
+
+  <div class="rates-wrap" data-reveal>
+    <h3>Demo rate card</h3>
+    <table class="rates">
+      <thead><tr><th>Item</th><td>Rate</td><td>Basis</td></tr></thead>
+      <tbody id="rates"></tbody>
+    </table>
+    <p class="fine">These are placeholders chosen to be plausible, not a quote. In a live store they come
+      from the shop's own price list, and the arithmetic above does not change.</p>
+  </div>
+</section>
+
+<section class="strip" id="payload-wrap">
+  <h2 data-reveal>What the store receives</h2>
+  <p class="lead d1" data-reveal>Press <b>Add to cart</b> and the configuration leaves as one object:
+    options the buyer chose, geometry we measured, and the price broken into the lines that produced it.
+    The preview link restores the exact sign.</p>
+  <pre id="payload" class="payload">Press “Add to cart” and the order payload appears here.</pre>
+</section>
+
+<section class="strip" id="fit">
+  <h2 data-reveal>Notes for a platform partner</h2>
+  <div class="cards two">
+    <article data-reveal>
+      <h3>No build step, no external hosts</h3>
+      <p>One folder of static files. It runs from a CDN, from a theme directory, or straight off a disk —
+        every asset, font included, is inside the folder. Nothing is fetched at runtime.</p>
+    </article>
+    <article data-reveal class="d1">
+      <h3>The configuration is the URL</h3>
+      <p>Text, lettering, glow, bore, height, backing and mounting live in the query string, so support,
+        the shop floor and the buyer all look at the same sign.</p>
+    </article>
+    <article data-reveal class="d2">
+      <h3>Priced from geometry, not from a table</h3>
+      <p>The same approach carries over to anything cut, bent, welded or printed to order: measure the
+        thing that was configured, then bill the operations it needs.</p>
+    </article>
+    <article data-reveal class="d3">
+      <h3>Written for an integration</h3>
+      <p>Rates, the alphabet and the option lists sit in two plain files at the top of the source.
+        Swapping them for a shop's own catalogue is an afternoon, not a rewrite.</p>
+    </article>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <p class="foot-line">Built as a working demonstration of e-commerce personalisation — one page, one scene, one invoice.</p>
+  <ul class="links">
+    <li><a href="https://t.me/smirnovarturr" target="_blank" rel="noopener">Telegram @smirnovarturr</a></li>
+    <li><a href="mailto:paladei702@gmail.com">paladei702@gmail.com</a></li>
+    <li><a href="https://smirnov-artur.github.io/portfolio/" target="_blank" rel="noopener">Portfolio</a></li>
+  </ul>
+</footer>
+
+<script src="three-neon.js"></script>
+<script src="strokes.js"></script>
+<script src="bend.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
