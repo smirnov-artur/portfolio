@@ -107,7 +107,7 @@
   var STYLES = {
     marquee:   { label: 'Marquee Caps',  set: 'block',  widthScale: 1.00, fillet: 0.10, slant: 0.00, caps: true,  join: false,
                  note: 'Uppercase only, the way a shop bends a storefront sign.' },
-    wide:      { label: 'Wide Round',    set: 'block',  widthScale: 1.20, fillet: 0.19, slant: 0.00, caps: true,  join: false,
+    wide:      { label: 'Wide Round',    set: 'block',  widthScale: 1.18, fillet: 0.13, slant: 0.00, caps: true,  join: false,
                  note: 'Wide bowls, generous bend radii — the softest to bend.' },
     condensed: { label: 'Condensed',     set: 'block',  widthScale: 0.76, fillet: 0.05, slant: 0.00, caps: true,  join: false,
                  note: 'Narrow. More tube per centimetre of width, tighter bends.' },
