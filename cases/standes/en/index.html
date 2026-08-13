@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STANDES — engineering case study</title>
+<meta name="description" content="How a 3D retail-shelving configurator is built: one dimensional model driving the scene, the quote and the cutting plan, priced snapping candidates instead of thresholds, and two builds — Russian and English — from one source.">
+<meta name="robots" content="index, follow">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/cases/standes/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/cases/standes/en/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%97%84%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>
+/* ---------- portfolio typefaces: self-hosted woff2, subset by unicode-range ---------- */
+@font-face{font-family:"Geologica";src:url("../../../assets/fonts/geologica-var-cyr.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Geologica";src:url("../../../assets/fonts/geologica-var-lat.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Golos Text";src:url("../../../assets/fonts/golos-var-cyr.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Golos Text";src:url("../../../assets/fonts/golos-var-lat.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";src:url("../../../assets/fonts/plexmono-400-cyr.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"IBM Plex Mono";src:url("../../../assets/fonts/plexmono-400-lat.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --paper:#EDEEEA; --panel:#E4E6E1;
+  --ink:#12161B; --ink-2:#3E4650; --graphite:#59616B;
+  --rule:#D3D6CF; --rule-strong:#ADB2A9;
+  --blue:#1B34C4; --blue-soft:#1B34C414;
+
+  --f-display:"Geologica","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-body:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono","SFMono-Regular",Menlo,monospace;
+
+  --t-d1:clamp(2.2rem,5.4vw,4.4rem);
+  --t-d2:clamp(1.5rem,2.8vw,2.35rem);
+  --t-d3:clamp(1.15rem,1.8vw,1.55rem);
+  --t-lede:clamp(1.1rem,1.5vw,1.35rem);
+  --t-body:1rem; --t-small:0.9375rem; --t-label:0.6875rem;
+
+  --edge:clamp(1.25rem,4.4vw,4rem);
+  --s-section:clamp(3rem,6.5vw,5.5rem);
+  --s-block:clamp(1.4rem,2.8vw,2.25rem);
+}
+@supports (color: color(display-p3 1 1 1)){
+  @media (color-gamut:p3){ :root{ --blue:color(display-p3 0.086 0.196 0.769); } }
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1116; --panel:#151A21;
+    --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+    --rule:#262C34; --rule-strong:#39424C;
+    --blue:#7C93FF; --blue-soft:#7C93FF16;
+  }
+  @supports (color: color(display-p3 1 1 1)){
+    @media (color-gamut:p3){ :root:not([data-theme="light"]){ --blue:color(display-p3 0.486 0.576 1); } }
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1116; --panel:#151A21;
+  --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+  --rule:#262C34; --rule-strong:#39424C;
+  --blue:#7C93FF; --blue-soft:#7C93FF16;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--f-body); font-size:var(--t-body); line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+img{max-width:100%;height:auto;display:block}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--edge)}
+
+.eyebrow{
+  font-family:var(--f-mono); font-size:var(--t-label); line-height:1.45;
+  letter-spacing:0.16em; text-transform:uppercase;
+  font-feature-settings:"case" 1; color:var(--graphite); margin:0;
+}
+
+/* ---------- sheet header ---------- */
+.topbar{
+  border-bottom:1px solid var(--rule);
+  padding:1rem 0; display:flex; gap:1rem; flex-wrap:wrap;
+  justify-content:space-between; align-items:baseline;
+}
+.topbar a{color:var(--blue);text-decoration:none;border-bottom:1px solid transparent}
+.topbar a:hover{border-bottom-color:var(--blue)}
+
+.masthead{padding:clamp(2.2rem,5vw,4rem) 0 clamp(1.6rem,3.5vw,2.6rem);border-bottom:1px solid var(--rule-strong)}
+.masthead-id{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:space-between;margin-bottom:clamp(1.2rem,3vw,2.2rem)}
+h1{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d1); line-height:1.02; letter-spacing:-0.02em;
+  margin:0 0 clamp(1rem,2vw,1.5rem); max-width:16ch;
+}
+.lede{
+  font-size:var(--t-lede); line-height:1.5; color:var(--ink-2);
+  max-width:56ch; margin:0 0 clamp(1.6rem,3.5vw,2.4rem);
+}
+
+dl.spec{
+  margin:0; display:grid; grid-template-columns:max-content minmax(0,1fr);
+  gap:0.05rem 1.25rem; font-size:var(--t-small); align-content:start;
+}
+dl.spec dt{
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--graphite);
+  padding-top:0.55rem; white-space:nowrap; border-bottom:1px solid var(--rule);
+}
+dl.spec dd{
+  margin:0; padding:0.42rem 0; border-bottom:1px solid var(--rule);
+  color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+dl.spec dt:last-of-type, dl.spec dd:last-of-type{border-bottom:0}
+
+/* ---------- demo buttons ---------- */
+.demos{display:flex;flex-wrap:wrap;gap:0.65rem;margin-top:clamp(1.6rem,3.5vw,2.4rem)}
+.demos a{
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.12em;text-transform:uppercase;
+  text-decoration:none;padding:0.85rem 1.15rem;border:1px solid var(--ink);
+  background:var(--ink);color:var(--paper);
+  transition:background .16s,color .16s,border-color .16s;
+}
+.demos a:hover,.demos a:focus-visible{background:transparent;color:var(--ink)}
+.demos a.ghost{background:transparent;color:var(--ink);border-color:var(--rule-strong)}
+.demos a.ghost:hover,.demos a.ghost:focus-visible{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+/* ---------- sections ---------- */
+section{padding:var(--s-section) 0;border-bottom:1px solid var(--rule)}
+.sec-head{display:grid;grid-template-columns:minmax(0,1fr);gap:0.6rem;margin-bottom:var(--s-block)}
+h2{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d2); line-height:1.1; letter-spacing:-0.015em;
+  margin:0; max-width:22ch;
+}
+h3{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d3); line-height:1.2; letter-spacing:-0.01em;
+  margin:0 0 0.5rem;
+}
+p{margin:0 0 1rem;max-width:68ch}
+p:last-child{margin-bottom:0}
+.prose{color:var(--ink-2)}
+.prose strong{color:var(--ink);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:var(--s-block) clamp(1.5rem,3.5vw,3.5rem)}
+
+/* ---------- pipeline ---------- */
+.pipe{list-style:none;margin:0;padding:0;display:grid;gap:0;counter-reset:st}
+.pipe li{
+  counter-increment:st; border-top:1px solid var(--rule);
+  padding:1.1rem 0 1.1rem 3.2rem; position:relative;
+}
+.pipe li:last-child{border-bottom:1px solid var(--rule)}
+.pipe li::before{
+  content:counter(st,decimal-leading-zero);
+  position:absolute; left:0; top:1.25rem;
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.1em; color:var(--blue);
+}
+.pipe b{display:block;font-family:var(--f-display);font-weight:500;font-size:1.0625rem;margin-bottom:0.15rem}
+.pipe span{color:var(--ink-2);font-size:var(--t-small)}
+.pipe code{font-family:var(--f-mono);font-size:0.8125em;color:var(--graphite)}
+
+/* ---------- note cards ---------- */
+.note{border-left:2px solid var(--blue);padding:0.1rem 0 0.1rem 1.1rem;margin:1.4rem 0;max-width:64ch}
+.note p{font-size:var(--t-small);color:var(--ink-2)}
+
+.grid-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:var(--s-block)}
+.grid-notes > div{background:var(--paper);padding:clamp(1.1rem,2.2vw,1.6rem)}
+.grid-notes h3{font-size:1.0625rem}
+.grid-notes p{font-size:var(--t-small);color:var(--ink-2)}
+
+/* ---------- code ---------- */
+figure.code{margin:var(--s-block) 0 0;border:1px solid var(--rule);background:var(--panel)}
+figure.code figcaption{
+  padding:0.75rem clamp(0.9rem,2vw,1.25rem);
+  border-bottom:1px solid var(--rule);
+  display:flex;gap:1rem;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+}
+figure.code figcaption b{font-family:var(--f-body);font-weight:600;font-size:var(--t-small);color:var(--ink)}
+figure.code figcaption .path{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.08em;color:var(--graphite)}
+figure.code pre{
+  margin:0; padding:clamp(0.9rem,2vw,1.25rem);
+  overflow-x:auto; font-family:var(--f-mono); font-size:0.8125rem;
+  line-height:1.7; color:var(--ink); tab-size:4;
+}
+figure.code .why{
+  padding:0 clamp(0.9rem,2vw,1.25rem) 1rem;
+  font-size:var(--t-small); color:var(--ink-2); max-width:66ch;
+}
+.cm{color:var(--graphite)}
+.kw{color:var(--blue)}
+.st{color:var(--ink-2)}
+
+/* ---------- figures ---------- */
+.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.figures > div{background:var(--paper);padding:clamp(1rem,2vw,1.4rem)}
+.figures .n{
+  font-family:var(--f-display);font-weight:500;
+  font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1;letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums;display:block;margin-bottom:0.45rem;
+}
+.figures .n small{font-size:0.44em;letter-spacing:0.02em;color:var(--graphite);font-weight:400}
+.figures p{font-size:var(--t-small);color:var(--ink-2);margin:0}
+
+table.tbl{border-collapse:collapse;width:100%;font-size:var(--t-small);font-variant-numeric:tabular-nums}
+.scroller{overflow-x:auto;margin-top:var(--s-block);border:1px solid var(--rule)}
+table.tbl th,table.tbl td{text-align:left;padding:0.6rem 0.9rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.tbl th{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.1em;text-transform:uppercase;color:var(--graphite);font-weight:400}
+table.tbl tr:last-child td{border-bottom:0}
+table.tbl td:first-child{white-space:normal;min-width:14rem}
+
+/* ---------- plain list ---------- */
+ul.plain{list-style:none;margin:0;padding:0}
+ul.plain li{
+  border-top:1px solid var(--rule); padding:1rem 0 1rem 1.6rem; position:relative;
+  color:var(--ink-2); font-size:var(--t-small); max-width:74ch;
+}
+ul.plain li:last-child{border-bottom:1px solid var(--rule)}
+ul.plain li::before{content:"—";position:absolute;left:0;top:1rem;color:var(--rule-strong)}
+ul.plain b{color:var(--ink);font-weight:600}
+ul.plain code, .prose code, .pipe li code{font-family:var(--f-mono);font-size:0.85em}
+
+figure.shot{margin:var(--s-block) 0 0}
+figure.shot img{border:1px solid var(--rule);background:var(--panel)}
+figure.shot figcaption{margin-top:0.7rem;font-size:var(--t-small);color:var(--graphite)}
+
+footer{padding:var(--s-section) 0 clamp(3rem,6vw,5rem)}
+.backs{display:flex;gap:1.5rem;flex-wrap:wrap}
+.backs a{
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink);text-decoration:none;border:1px solid var(--rule-strong);padding:0.85rem 1.15rem;
+  transition:border-color .16s,color .16s,background .16s;
+}
+.backs a:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+@media (max-width:640px){
+  dl.spec{grid-template-columns:minmax(0,1fr);gap:0}
+  dl.spec dt{border-bottom:0;padding-top:0.8rem;white-space:normal}
+  dl.spec dd{padding-top:0.1rem}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<div class="topbar">
+  <p class="eyebrow">Sheet 01 · case study</p>
+  <p class="eyebrow"><a href="../../../en/">← Portfolio</a> &nbsp;·&nbsp; <a href="../">Русская версия</a></p>
+</div>
+
+<header class="masthead">
+  <div class="masthead-id">
+    <p class="eyebrow">3D configurator · WebGL</p>
+    <p class="eyebrow">2026</p>
+  </div>
+  <h1>STANDES</h1>
+  <p class="lede">
+    The shopper sets the floor area, picks bays from a library and drags them into place —
+    units snap to each other face to face, corner to corner and top to bottom. While that
+    happens, the same geometry produces a bill of materials, a mass, a sheet cutting plan
+    and a price.
+  </p>
+  <dl class="spec">
+    <dt>Role</dt><dd>sole developer: domain model, 3D scene, interface, exports, both locales</dd>
+    <dt>Stack</dt><dd>React 19 · TypeScript 5.9 · Vite 7 · three.js · React Three Fiber · zustand + immer + zundo · Tailwind 4</dd>
+    <dt>Size</dt><dd>25,548 lines of TS/TSX across 71 files, with no external 3D model or texture</dd>
+    <dt>Build types</dt><dd>cabinet carcass (MFC, plywood) · steel frame · retail gondola</dd>
+    <dt>Editions</dt><dd>two independent builds from one source: Russian in ₽, English in $</dd>
+    <dt>Status</dt><dd>working demo, open in a browser; the price list is placeholder data</dd>
+  </dl>
+  <div class="demos">
+    <a href="https://smirnov-artur.github.io/standes/en/" target="_blank" rel="noopener">Open the configurator</a>
+    <a class="ghost" href="https://smirnov-artur.github.io/standes/" target="_blank" rel="noopener">Russian edition</a>
+  </div>
+</header>
+
+<!-- ============ 01 THE PROBLEM ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">01 · The problem</p>
+    <h2>Shop fittings are bought sight unseen</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        A shop owner buys shelving once every few years and almost never pictures the result.
+        They know the floor area and roughly the budget; the supplier knows the product range.
+        Between them sits a sales rep who assembles the layout verbally, prices it in a
+        spreadsheet and emails an invoice. A 200 mm error in an aisle, or a bay that turns out
+        too tall, surfaces on installation day — after the steel has been cut.
+      </p>
+      <p>
+        A conventional shelving calculator does not solve this, because it prices one bay.
+        The buyer is asking a different question: <strong>how many bays fit my floor, and what
+        will it look like</strong>.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        That gives one tool two very different users. The buyer wants ready-made bays, floor
+        area in square metres and a running total — nothing else. The supplier's rep wants
+        upright thickness, perforation pitch, shelf tilt, bay mass, a line-by-line bill of
+        materials and a CSV export.
+      </p>
+      <p>
+        So the configurator has <strong>two modes over one scene</strong>: customer and sales.
+        Not two builds and not two datasets — one model with two interfaces on top of it.
+        The switch sits in the top right corner.
+      </p>
+    </div>
+  </div>
+
+  <figure class="shot">
+    <img src="../../../assets/a4.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="STANDES customer mode: seven bays lined up along the wall of a 50 m² floor, running total on the right">
+    <figcaption>
+      Customer mode. Seven bays dropped one after another lined themselves up along the wall:
+      8,060 mm of run, 35 shelves, ₽104,682. The only controls are floor area and the bay library.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============ 02 HOW IT WORKS ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">02 · How it works</p>
+    <h2>One dimensional model feeds the scene, the quote and the cutting plan</h2>
+  </div>
+  <p class="prose">
+    The decisive architectural call was made on day one: <strong>dimensions are computed in
+    exactly one place</strong>. The module <code>domain/frame.ts</code> knows where every cell
+    sits, what a part's effective thickness is and how high off the floor a unit stands.
+    The part breakdown, the snapping solver, the inspector and the library thumbnails all ask
+    it. They cannot drift apart, because there is nowhere else to do the arithmetic.
+  </p>
+
+  <ol class="pipe">
+    <li>
+      <b>Project → units</b>
+      <span>
+        A project is a room and a list of units. A unit is described not by geometry but by
+        <em>intent</em>: columns, rows, build type, materials, cell contents. The model holds
+        no coordinates at all.
+      </span>
+    </li>
+    <li>
+      <b>Unit → parts</b>
+      <span>
+        <code>geometry.ts</code> expands that intent into a part list: 30 roles, from side
+        panel and shelf to perforated upright, bracket, front lip and price rail. Every part
+        carries its size, centre, material and flags — glass, perforation, edge banding.
+      </span>
+    </li>
+    <li>
+      <b>Parts → scene</b>
+      <span>
+        The same list goes to three.js. Materials are procedural: veneer, metal, perforation
+        and floor tile are drawn onto a canvas at startup. There is not a single external
+        texture or model in the project — the build ships no assets.
+      </span>
+    </li>
+    <li>
+      <b>Parts → bill of materials</b>
+      <span>
+        <code>bom.ts</code> folds the same parts into priced lines: area, edge-banding length,
+        mass from material density, hardware, cost. The quote does not "roughly match" the
+        model — it is built out of it.
+      </span>
+    </li>
+    <li>
+      <b>Parts → cutting plan</b>
+      <span>
+        Sheet parts go to <code>cutlist.ts</code>: MaxRects packing with guillotine cuts, kerf
+        and edge margin, and a per-sheet map with yield and offcuts.
+      </span>
+    </li>
+  </ol>
+
+  <div class="note">
+    <p>
+      Units are kept strictly apart: <strong>the entire domain model is in millimetres, the
+      three.js scene is in metres</strong>, and conversion happens only at the render boundary
+      through a single <code>mm()</code> helper. A dull rule, but it is precisely what removes
+      the whole class of bugs where a shelving bay suddenly comes out the size of a house.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 03 THE HARD PART ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">03 · The hard part</p>
+    <h2>Magnets that do not argue with the user</h2>
+  </div>
+  <p class="prose">
+    Snapping looks trivial right up to the first implementation. The naive approach — walk the
+    neighbours, find the nearest face within a threshold, pull the unit onto it — falls apart
+    immediately: for a bay in the corner of a room, the wall snap, the neighbour snap and the
+    grid are all simultaneously valid, and threshold logic picks whichever the person did not mean.
+  </p>
+
+  <div class="grid-notes">
+    <div>
+      <h3>Candidates instead of thresholds</h3>
+      <p>
+        The solver does not take the first acceptable joint. It <strong>generates every
+        candidate</strong> of six kinds — face to face, corner to corner, to a wall, to the
+        grid, a rotation nudge, and stacking on top — and prices each one. Then it sorts by
+        price and takes the first that does not collide with anything.
+      </p>
+    </div>
+    <div>
+      <h3>Price, not priority</h3>
+      <p>
+        The price is the distance from the point under the cursor plus a penalty for the kind
+        of joint and for any rotation. The ordering then falls out on its own:
+        <code>face 0 &lt; stack 40 &lt; corner 60 &lt; wall 120 &lt; grid 400 &lt; angle 500</code>.
+        The grid is a last resort rather than a competitor to a real joint.
+      </p>
+    </div>
+    <div>
+      <h3>Matching bays stick harder</h3>
+      <p>
+        Equal height takes 40 off the price, equal depth another 40. Bays of the same size run
+        themselves into a line, while joining mismatched ones asks you to aim more precisely.
+        That is exactly what the first screenshot shows: seven bays in a row, no manual nudging.
+      </p>
+    </div>
+    <div>
+      <h3>Rotation costs money</h3>
+      <p>
+        A face joint permits up to 50° of correction, but every degree costs 4 mm of price.
+        A slightly skewed unit reaches its neighbour and straightens out; one turned 45° does
+        not, because that is no longer "nearly joined" — it is a different intent.
+      </p>
+    </div>
+    <div>
+      <h3>Gravity in the same pass</h3>
+      <p>
+        Units stack, and height is not a separate mode. A side joint carries the unit's current
+        elevation, <code>stack</code> takes the neighbour's top, and if the proposed position
+        has nothing underneath, the unit <strong>drops to the floor as part of the same
+        snap</strong>. Bays never hang in mid-air.
+      </p>
+    </div>
+    <div>
+      <h3>Support is measured by area</h3>
+      <p>
+        An upper unit holds if it covers at least 55 % of the smaller of the two footprints.
+        That single rule rules out both "large on top of small" and a bay perched on the corner
+        of its neighbour — without a special case for either.
+      </p>
+    </div>
+  </div>
+
+  <div class="note">
+    <p>
+      Two tricks keep the solver cheap. Neighbours are coarsely rejected by bounding circles,
+      so candidates are never even built for a unit the magnet could not reach. And collision
+      is tested one candidate at a time in price order, returning on the first clear one,
+      instead of an honest all-against-all filter.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 04 CODE ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">04 · Code</p>
+    <h2>Four places where the decision is visible whole</h2>
+  </div>
+
+  <figure class="code">
+    <figcaption>
+      <b>The solver: gather candidates, drop what floats, take the cheapest</b>
+      <span class="path">src/domain/snapping.ts · solveSnap</span>
+    </figcaption>
+<pre><span class="kw">const</span> cands: SnapCandidate[] = []
+<span class="kw">if</span> (settings.magnets) {
+  <span class="kw">for</span> (<span class="kw">const</span> n <span class="kw">of</span> near) {
+    faceMates(unit, n.u, settings, cands)
+    cornerMates(unit, n, settings, cands)
+  }
+}
+<span class="kw">if</span> (settings.stack)  <span class="kw">for</span> (<span class="kw">const</span> n <span class="kw">of</span> near) stackMates(unit, n.u, settings, cands)
+<span class="kw">if</span> (settings.walls)  wallSnaps(unit, room, settings, cands)
+<span class="kw">if</span> (settings.grid)   cands.push(gridSnap(unit, settings))
+
+<span class="cm">// gravity: a side joint keeps the elevation, but if the proposed spot has</span>
+<span class="cm">// nothing underneath, the unit slides to the floor along with the snap</span>
+<span class="kw">if</span> (myElev &gt; 0) {
+  <span class="kw">for</span> (<span class="kw">const</span> c <span class="kw">of</span> cands) {
+    <span class="kw">if</span> (c.kind === <span class="st">'stack'</span>) <span class="kw">continue</span>
+    <span class="kw">if</span> (!supportedAt(unit, c.pos, c.rotY, myElev, near)) c.elevation = 0
+  }
+}
+
+<span class="kw">if</span> (!cands.length) <span class="kw">return</span> fall()
+
+cands.sort((a, b) =&gt; a.cost - b.cost)
+<span class="kw">if</span> (!settings.collide) <span class="kw">return</span> cands[0]
+<span class="kw">for</span> (<span class="kw">const</span> c <span class="kw">of</span> cands) <span class="kw">if</span> (!candidateHits(unit, myR, c, near)) <span class="kw">return</span> c
+<span class="kw">return</span> fall()</pre>
+    <p class="why">
+      Twenty lines that contain the entire behaviour of the magnets. Note the order: every
+      option is built first, gravity is then applied to each, and only after that does the
+      choice happen. Had gravity run after the choice, a unit would first stick to its
+      neighbour and then fall in a separate motion — two events instead of one, and undo
+      would have to be hand-written.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Support: 55 % of area instead of a dozen special cases</b>
+      <span class="path">src/domain/snapping.ts · supportedAt</span>
+    </figcaption>
+<pre><span class="kw">function</span> supportedAt(u, pos, rotY, elev, near): <span class="kw">boolean</span> {
+  <span class="kw">if</span> (elev &lt;= 0) <span class="kw">return</span> <span class="kw">true</span>          <span class="cm">// on the floor — always</span>
+  <span class="kw">const</span> probe = moved(u, pos, rotY, elev)
+  <span class="kw">const</span> myArea = footprintArea(u)
+  <span class="kw">for</span> (<span class="kw">const</span> n <span class="kw">of</span> near) {
+    <span class="cm">// the neighbour's top must line up with this unit's underside</span>
+    <span class="kw">if</span> (Math.abs(unitTopY(n.u) - elev) &gt; SUPPORT_EPS) <span class="kw">continue</span>
+    <span class="kw">if</span> (overlapArea(probe, n.u) &gt;=
+        Math.min(myArea, footprintArea(n.u)) * MIN_SUPPORT_RATIO) <span class="kw">return</span> <span class="kw">true</span>
+  }
+  <span class="kw">return</span> <span class="kw">false</span>
+}</pre>
+    <p class="why">
+      <code>Math.min</code> is the whole point. Take the upper unit's area and a small bay may
+      legitimately perch on the corner of a large one. Take the lower unit's and a large bay can
+      never sit on a small one, even where that makes sense. The minimum of the two produces a
+      rule that matches physical intuition: <strong>the smaller of the two must rest on most of
+      itself</strong>. Overlap is computed on rotated footprints, so the rule holds for bays at
+      an angle too.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Thickness may only ever be reduced</b>
+      <span class="path">src/domain/geometry.ts · buildableThickness</span>
+    </figcaption>
+<pre><span class="cm">/** Nearest catalogue thickness, but DOWNWARDS only:</span>
+<span class="cm">    a part may never outgrow the slot it sits in. */</span>
+<span class="kw">function</span> buildableThickness(materialId: <span class="kw">string</span>, t: <span class="kw">number</span>): <span class="kw">number</span> {
+  <span class="kw">const</span> list = getMaterial(materialId).thicknesses
+  <span class="kw">if</span> (!list.length) <span class="kw">return</span> t
+  <span class="kw">let</span> best = -Infinity
+  <span class="kw">for</span> (<span class="kw">const</span> th <span class="kw">of</span> list) <span class="kw">if</span> (th &lt;= t + 0.01 &amp;&amp; th &gt; best) best = th
+  <span class="kw">return</span> Number.isFinite(best) ? best : t
+}</pre>
+    <p class="why">
+      The user sets shelf thickness with a slider and will happily ask for 18 mm where glass
+      only comes in 10. Rounding to nearest would give 20 mm — the part would stop fitting its
+      slot, and the cutting plan would be built from sheets nobody sells. Rounding strictly
+      down breaks the expectation ("I typed 18 and got 10"), but the result is always physically
+      buildable. The constraint is shown next to the field: the material's available thicknesses
+      sit there as buttons.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Post-processing breaks somebody else's renderer</b>
+      <span class="path">src/three/Lighting.tsx · AutoClearGuard</span>
+    </figcaption>
+<pre><span class="cm">/**
+ * postprocessing sets renderer.autoClear = false inside EffectComposer.setRenderer.
+ * drei's ContactShadows bakes its shadow with a plain gl.render() — so without the
+ * buffer being cleared, every frame is drawn ON TOP of the previous one.
+ */</span>
+<span class="kw">function</span> AutoClearGuard() {
+  <span class="kw">const</span> gl = useThree((s) =&gt; s.gl)
+  useFrame(() =&gt; { <span class="kw">if</span> (!gl.autoClear) gl.autoClear = <span class="kw">true</span> })
+  <span class="kw">return</span> <span class="kw">null</span>
+}</pre>
+    <p class="why">
+      The symptom looked like witchcraft: dragging a unit left a wet-looking trail on the floor
+      that vanished the moment you let go. Neither the shadow code nor the drag code was wrong —
+      two libraries simply had different ideas about who owns the shared
+      <code>WebGLRenderer</code>. The guard is mounted <strong>before</strong>
+      <code>&lt;ContactShadows&gt;</code>: <code>useFrame</code> callbacks run in subscription
+      order, and the flag has to be restored before the shadow starts drawing. The same bug,
+      found slightly later, also explained the ghost imprints units left on the floor.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 05 NUMBERS ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">05 · What came out</p>
+    <h2>Measured on the demo that is one click away</h2>
+  </div>
+
+  <div class="figures">
+    <div><span class="n">25,548</span><p>lines of TypeScript across 71 files: domain, scene, interface, exports, both locales</p></div>
+    <div><span class="n">327</span><p>parts in a ten-unit scene — the scene, the quote and the cutting plan all read one list</p></div>
+    <div><span class="n">60 <small>fps</small></span><p>while dragging: positions live in a separate layer, so neither the store nor the quote is touched per frame</p></div>
+    <div><span class="n">6</span><p>kinds of magnet: face, corner, wall, grid, rotation nudge, stack-on-top</p></div>
+    <div><span class="n">30</span><p>part roles — from side panel and hanging rail to perforated upright, bracket and price rail</p></div>
+    <div><span class="n">0</span><p>external 3D models or textures: all graphics are procedural, the build ships no assets</p></div>
+  </div>
+
+  <figure class="shot">
+    <img src="../../../assets/s1.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Sales mode: scene tree of seven bays, retail gondola inspector, 272 parts, 500 kg">
+    <figcaption>
+      Sales mode on the same scene. The retail inspector: upright width, base and shelf depth,
+      tilt, front lip, header, price rail, perforation. At the bottom, a warning — "2,000 mm
+      tall, fix to the wall": safety rules are checked against the model.
+    </figcaption>
+  </figure>
+
+  <figure class="shot">
+    <img src="../../../assets/s2.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Bill of materials: 29 lines, 272 parts, 39.37 m², 500 kg, ₽104,682 total">
+    <figcaption>
+      The bill of materials for that layout: 29 lines, 39.37 m², 500 kg. Materials ₽98,934 plus
+      hardware ₽5,748. Grouping switches between flat list, by material and by role, with a CSV
+      export alongside.
+    </figcaption>
+  </figure>
+
+  <figure class="shot">
+    <img src="../../../assets/s3.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Cutting plan: 12 plywood sheets 2440×1220, 47 % average yield, 25.59 m² of offcuts">
+    <figcaption>
+      The cutting plan appears once the project contains sheet parts. Twelve plywood sheets at
+      2440×1220×15, 47 % average yield, 25.59 m² of offcuts. Kerf and edge margin are set above
+      and re-pack the map immediately.
+    </figcaption>
+  </figure>
+
+  <div class="scroller">
+    <table class="tbl">
+      <thead>
+        <tr><th>What is computed</th><th>From</th><th>Goes to</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Bill of materials lines</td><td>parts + materials</td><td>screen, CSV, print sheet</td></tr>
+        <tr><td>Mass</td><td>part volume × material density</td><td>quote, shipping</td></tr>
+        <tr><td>Cutting plan</td><td>sheet parts + sheet format</td><td>screen, CSV</td></tr>
+        <tr><td>Price</td><td>area, edge banding, hardware, price list</td><td>customer total and quote</td></tr>
+        <tr><td>Scene</td><td>the same part list</td><td>WebGL, GLB, PNG</td></tr>
+        <tr><td>Whole project</td><td>room + units</td><td>JSON file, compressed share link</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose" style="margin-top:1rem;font-size:var(--t-small)">
+    Not one row of that table recomputes geometry. All six outputs are built on a single
+    expansion of a unit into parts.
+  </p>
+</section>
+
+<!-- ============ 06 TWO EDITIONS ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">06 · Two editions</p>
+    <h2>Russian and English are separate sites from one source</h2>
+  </div>
+  <p class="prose">
+    There is deliberately no language switch inside the app. The Russian and English editions
+    are two addresses, two builds and <strong>two independent price lists</strong>. No exchange
+    rate exists anywhere in the code: a material's price is a pair
+    <code>{ rub, usd }</code>, and the dollar figure is edited for the export market rather
+    than derived by dividing the rouble one.
+  </p>
+
+  <figure class="code">
+    <figcaption>
+      <b>The locale arrives as a global constant of its own</b>
+      <span class="path">vite.config.ts</span>
+    </figcaption>
+<pre><span class="kw">const</span> locale = (process.env.VITE_LOCALE ?? <span class="st">'ru'</span>).toLowerCase() === <span class="st">'en'</span> ? <span class="st">'en'</span> : <span class="st">'ru'</span>
+
+<span class="kw">return</span> {
+  base,
+  define: {
+    __STANDES_LOCALE__:   JSON.stringify(locale),
+    __STANDES_CURRENCY__: JSON.stringify(currency),
+  },
+  build: { outDir: locale === <span class="st">'en'</span> ? <span class="st">'dist-en'</span> : <span class="st">'dist'</span> },
+}</pre>
+    <p class="why">
+      The first attempt passed the locale through <code>import.meta.env.VITE_LOCALE</code> — and
+      the English build silently came out Russian. Vite assembles <code>import.meta.env</code>
+      from <code>.env</code> files by its own rules and substitutes it <em>before</em> the user's
+      <code>define</code>, so the environment variable never reached runtime. A name of its own,
+      <code>__STANDES_LOCALE__</code>, collides with nothing and is stripped by the minifier
+      together with the dead branch.
+    </p>
+  </figure>
+
+  <div class="note">
+    <p>
+      One flaw in this scheme only surfaced after publication, while this case study was being
+      written. Both editions live in subfolders of one domain (<code>/standes/</code> and
+      <code>/standes/en/</code>), which means they share a single <code>localStorage</code> —
+      the English edition was opening with a project built on the Russian one. Storage keys are
+      now namespaced by locale: <code>standes:en:project</code> against
+      <code>standes:ru:project</code>.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 07 LIMITS ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">07 · What is not there</p>
+    <h2>The limits of a demo</h2>
+  </div>
+  <p class="prose">
+    This is a working tool but not a delivered product: it has no client who has checked the
+    price list and the product range. Below is what is more honest said out loud.
+  </p>
+
+  <ul class="plain">
+    <li>
+      <b>The price list is placeholder data.</b> The orders of magnitude come from the market,
+      but the specific numbers are mine. The rouble and dollar lists are independent and there
+      is no rate in the code; before real use both are filled in from a supplier's price list —
+      one table in <code>materials.ts</code> plus hardware in <code>bom.ts</code>.
+    </li>
+    <li>
+      <b>Enquiries go nowhere.</b> The demo has no backend, and "we'll call you back" would be
+      a lie. The enquiry is stored in <code>localStorage</code> and copied to the clipboard as
+      ready-to-send text — the success screen says so plainly.
+    </li>
+    <li>
+      <b>47 % average yield on a mixed project.</b> That is an honest figure for MaxRects
+      packing with guillotine cuts across heterogeneous parts, not an optimum: a real cutting
+      shop merges orders and rotates parts. Grain direction is available as a toggle but off by
+      default — on a real order the result is worth checking by eye.
+    </li>
+    <li>
+      <b>The bill of materials exports as a print page, not a PDF.</b> <code>Ctrl+P</code> →
+      "Save as PDF". There is deliberately no PDF library in the project: it would weigh more
+      than the whole rest of the export layer combined.
+    </li>
+    <li>
+      <b>There are no automated tests.</b> Geometry and snapping were verified with standalone
+      scripts: pairwise volumetric intersection of every part, foot support, thickness against
+      the catalogue, snap arithmetic. Those scripts found more than my eyes would have — a
+      plinth protruding from the base, sheet thicknesses that do not exist, feet floating in
+      mid-air, z-fighting between a shelf and its upright — but they are one-off checks, not a
+      suite that guards against regressions.
+    </li>
+    <li>
+      <b>The bundle is heavy:</b> 1.9 MB for the main chunk, 609 KB gzipped. That is the price
+      of three.js with post-processing. Only genuinely lazy things are split out — GLB, PNG and
+      the print sheet load on demand.
+    </li>
+    <li>
+      <b>No touch gestures.</b> The interface assumes a mouse and keyboard: drag with modifiers,
+      hotkeys, orbit on the wheel. On a phone the scene opens and rotates, but building a layout
+      there is uncomfortable.
+    </li>
+  </ul>
+
+  <div class="note" style="margin-top:var(--s-block)">
+    <p>
+      If this went further, the order would be: a price list and product range from a real
+      supplier, enquiries into a CRM instead of the clipboard, and a fixture set for the
+      geometry — those one-off scripts rewritten as tests. A configurator without a real price
+      list always looks finished on the project it was built against.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p class="eyebrow" style="margin-bottom:1.2rem">Next</p>
+  <div class="backs">
+    <a href="https://smirnov-artur.github.io/standes/en/" target="_blank" rel="noopener">Open the configurator ↗</a>
+    <a href="../../../en/">← Portfolio</a>
+    <a href="../">Русская версия кейса</a>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

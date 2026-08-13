@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STANDES — разбор проекта</title>
+<meta name="description" content="Как устроен 3D-конфигуратор торговых стеллажей: одна размерная модель на сцену, смету и раскрой, магниты со стоимостью вместо порогов и две сборки — русская и английская — из одного исходника.">
+<meta name="robots" content="index, follow">
+<link rel="alternate" hreflang="ru" href="https://smirnov-artur.github.io/portfolio/cases/standes/">
+<link rel="alternate" hreflang="en" href="https://smirnov-artur.github.io/portfolio/cases/standes/en/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%97%84%3C%2Ftext%3E%3C%2Fsvg%3E">
+<style>
+/* ---------- шрифты портфолио: self-hosted woff2, subset по unicode-range ---------- */
+@font-face{font-family:"Geologica";src:url("../../assets/fonts/geologica-var-cyr.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Geologica";src:url("../../assets/fonts/geologica-var-lat.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Golos Text";src:url("../../assets/fonts/golos-var-cyr.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Golos Text";src:url("../../assets/fonts/golos-var-lat.woff2") format("woff2");font-weight:400 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";src:url("../../assets/fonts/plexmono-400-cyr.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"IBM Plex Mono";src:url("../../assets/fonts/plexmono-400-lat.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2192,U+2193,U+2197,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --paper:#EDEEEA; --panel:#E4E6E1;
+  --ink:#12161B; --ink-2:#3E4650; --graphite:#59616B;
+  --rule:#D3D6CF; --rule-strong:#ADB2A9;
+  --blue:#1B34C4; --blue-soft:#1B34C414;
+
+  --f-display:"Geologica","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-body:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono","SFMono-Regular",Menlo,monospace;
+
+  --t-d1:clamp(2.2rem,5.4vw,4.4rem);
+  --t-d2:clamp(1.5rem,2.8vw,2.35rem);
+  --t-d3:clamp(1.15rem,1.8vw,1.55rem);
+  --t-lede:clamp(1.1rem,1.5vw,1.35rem);
+  --t-body:1rem; --t-small:0.9375rem; --t-label:0.6875rem;
+
+  --edge:clamp(1.25rem,4.4vw,4rem);
+  --s-section:clamp(3rem,6.5vw,5.5rem);
+  --s-block:clamp(1.4rem,2.8vw,2.25rem);
+}
+@supports (color: color(display-p3 1 1 1)){
+  @media (color-gamut:p3){ :root{ --blue:color(display-p3 0.086 0.196 0.769); } }
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1116; --panel:#151A21;
+    --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+    --rule:#262C34; --rule-strong:#39424C;
+    --blue:#7C93FF; --blue-soft:#7C93FF16;
+  }
+  @supports (color: color(display-p3 1 1 1)){
+    @media (color-gamut:p3){ :root:not([data-theme="light"]){ --blue:color(display-p3 0.486 0.576 1); } }
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1116; --panel:#151A21;
+  --ink:#E7E9E5; --ink-2:#B4BAC2; --graphite:#939CA6;
+  --rule:#262C34; --rule-strong:#39424C;
+  --blue:#7C93FF; --blue-soft:#7C93FF16;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--f-body); font-size:var(--t-body); line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+img{max-width:100%;height:auto;display:block}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--edge)}
+
+.eyebrow{
+  font-family:var(--f-mono); font-size:var(--t-label); line-height:1.45;
+  letter-spacing:0.16em; text-transform:uppercase;
+  font-feature-settings:"case" 1; color:var(--graphite); margin:0;
+}
+
+/* ---------- шапка листа ---------- */
+.topbar{
+  border-bottom:1px solid var(--rule);
+  padding:1rem 0; display:flex; gap:1rem; flex-wrap:wrap;
+  justify-content:space-between; align-items:baseline;
+}
+.topbar a{color:var(--blue);text-decoration:none;border-bottom:1px solid transparent}
+.topbar a:hover{border-bottom-color:var(--blue)}
+
+.masthead{padding:clamp(2.2rem,5vw,4rem) 0 clamp(1.6rem,3.5vw,2.6rem);border-bottom:1px solid var(--rule-strong)}
+.masthead-id{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:space-between;margin-bottom:clamp(1.2rem,3vw,2.2rem)}
+h1{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d1); line-height:1.02; letter-spacing:-0.02em;
+  margin:0 0 clamp(1rem,2vw,1.5rem); max-width:16ch;
+}
+.lede{
+  font-size:var(--t-lede); line-height:1.5; color:var(--ink-2);
+  max-width:56ch; margin:0 0 clamp(1.6rem,3.5vw,2.4rem);
+}
+
+dl.spec{
+  margin:0; display:grid; grid-template-columns:max-content minmax(0,1fr);
+  gap:0.05rem 1.25rem; font-size:var(--t-small); align-content:start;
+}
+dl.spec dt{
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.12em; text-transform:uppercase; color:var(--graphite);
+  padding-top:0.55rem; white-space:nowrap; border-bottom:1px solid var(--rule);
+}
+dl.spec dd{
+  margin:0; padding:0.42rem 0; border-bottom:1px solid var(--rule);
+  color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+dl.spec dt:last-of-type, dl.spec dd:last-of-type{border-bottom:0}
+
+/* ---------- кнопки демо ---------- */
+.demos{display:flex;flex-wrap:wrap;gap:0.65rem;margin-top:clamp(1.6rem,3.5vw,2.4rem)}
+.demos a{
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.12em;text-transform:uppercase;
+  text-decoration:none;padding:0.85rem 1.15rem;border:1px solid var(--ink);
+  background:var(--ink);color:var(--paper);
+  transition:background .16s,color .16s,border-color .16s;
+}
+.demos a:hover,.demos a:focus-visible{background:transparent;color:var(--ink)}
+.demos a.ghost{background:transparent;color:var(--ink);border-color:var(--rule-strong)}
+.demos a.ghost:hover,.demos a.ghost:focus-visible{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+/* ---------- разделы ---------- */
+section{padding:var(--s-section) 0;border-bottom:1px solid var(--rule)}
+.sec-head{display:grid;grid-template-columns:minmax(0,1fr);gap:0.6rem;margin-bottom:var(--s-block)}
+h2{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d2); line-height:1.1; letter-spacing:-0.015em;
+  margin:0; max-width:22ch;
+}
+h3{
+  font-family:var(--f-display); font-weight:500;
+  font-size:var(--t-d3); line-height:1.2; letter-spacing:-0.01em;
+  margin:0 0 0.5rem;
+}
+p{margin:0 0 1rem;max-width:68ch}
+p:last-child{margin-bottom:0}
+.prose{color:var(--ink-2)}
+.prose strong{color:var(--ink);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:var(--s-block) clamp(1.5rem,3.5vw,3.5rem)}
+
+/* ---------- конвейер ---------- */
+.pipe{list-style:none;margin:0;padding:0;display:grid;gap:0;counter-reset:st}
+.pipe li{
+  counter-increment:st; border-top:1px solid var(--rule);
+  padding:1.1rem 0 1.1rem 3.2rem; position:relative;
+}
+.pipe li:last-child{border-bottom:1px solid var(--rule)}
+.pipe li::before{
+  content:counter(st,decimal-leading-zero);
+  position:absolute; left:0; top:1.25rem;
+  font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:0.1em; color:var(--blue);
+}
+.pipe b{display:block;font-family:var(--f-display);font-weight:500;font-size:1.0625rem;margin-bottom:0.15rem}
+.pipe span{color:var(--ink-2);font-size:var(--t-small)}
+.pipe code{font-family:var(--f-mono);font-size:0.8125em;color:var(--graphite)}
+
+/* ---------- карточки-заметки ---------- */
+.note{border-left:2px solid var(--blue);padding:0.1rem 0 0.1rem 1.1rem;margin:1.4rem 0;max-width:64ch}
+.note p{font-size:var(--t-small);color:var(--ink-2)}
+
+.grid-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:var(--s-block)}
+.grid-notes > div{background:var(--paper);padding:clamp(1.1rem,2.2vw,1.6rem)}
+.grid-notes h3{font-size:1.0625rem}
+.grid-notes p{font-size:var(--t-small);color:var(--ink-2)}
+
+/* ---------- код ---------- */
+figure.code{margin:var(--s-block) 0 0;border:1px solid var(--rule);background:var(--panel)}
+figure.code figcaption{
+  padding:0.75rem clamp(0.9rem,2vw,1.25rem);
+  border-bottom:1px solid var(--rule);
+  display:flex;gap:1rem;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+}
+figure.code figcaption b{font-family:var(--f-body);font-weight:600;font-size:var(--t-small);color:var(--ink)}
+figure.code figcaption .path{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.08em;color:var(--graphite)}
+figure.code pre{
+  margin:0; padding:clamp(0.9rem,2vw,1.25rem);
+  overflow-x:auto; font-family:var(--f-mono); font-size:0.8125rem;
+  line-height:1.7; color:var(--ink); tab-size:4;
+}
+figure.code .why{
+  padding:0 clamp(0.9rem,2vw,1.25rem) 1rem;
+  font-size:var(--t-small); color:var(--ink-2); max-width:66ch;
+}
+.cm{color:var(--graphite)}
+.kw{color:var(--blue)}
+.st{color:var(--ink-2)}
+
+/* ---------- цифры ---------- */
+.figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.figures > div{background:var(--paper);padding:clamp(1rem,2vw,1.4rem)}
+.figures .n{
+  font-family:var(--f-display);font-weight:500;
+  font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1;letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums;display:block;margin-bottom:0.45rem;
+}
+.figures .n small{font-size:0.44em;letter-spacing:0.02em;color:var(--graphite);font-weight:400}
+.figures p{font-size:var(--t-small);color:var(--ink-2);margin:0}
+
+table.tbl{border-collapse:collapse;width:100%;font-size:var(--t-small);font-variant-numeric:tabular-nums}
+.scroller{overflow-x:auto;margin-top:var(--s-block);border:1px solid var(--rule)}
+table.tbl th,table.tbl td{text-align:left;padding:0.6rem 0.9rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.tbl th{font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.1em;text-transform:uppercase;color:var(--graphite);font-weight:400}
+table.tbl tr:last-child td{border-bottom:0}
+table.tbl td:first-child{white-space:normal;min-width:14rem}
+
+/* ---------- честный список ---------- */
+ul.plain{list-style:none;margin:0;padding:0}
+ul.plain li{
+  border-top:1px solid var(--rule); padding:1rem 0 1rem 1.6rem; position:relative;
+  color:var(--ink-2); font-size:var(--t-small); max-width:74ch;
+}
+ul.plain li:last-child{border-bottom:1px solid var(--rule)}
+ul.plain li::before{content:"—";position:absolute;left:0;top:1rem;color:var(--rule-strong)}
+ul.plain b{color:var(--ink);font-weight:600}
+ul.plain code, .prose code, .pipe li code{font-family:var(--f-mono);font-size:0.85em}
+
+figure.shot{margin:var(--s-block) 0 0}
+figure.shot img{border:1px solid var(--rule);background:var(--panel)}
+figure.shot figcaption{margin-top:0.7rem;font-size:var(--t-small);color:var(--graphite)}
+
+footer{padding:var(--s-section) 0 clamp(3rem,6vw,5rem)}
+.backs{display:flex;gap:1.5rem;flex-wrap:wrap}
+.backs a{
+  font-family:var(--f-mono);font-size:var(--t-label);letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink);text-decoration:none;border:1px solid var(--rule-strong);padding:0.85rem 1.15rem;
+  transition:border-color .16s,color .16s,background .16s;
+}
+.backs a:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+
+@media (max-width:640px){
+  dl.spec{grid-template-columns:minmax(0,1fr);gap:0}
+  dl.spec dt{border-bottom:0;padding-top:0.8rem;white-space:normal}
+  dl.spec dd{padding-top:0.1rem}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<div class="topbar">
+  <p class="eyebrow">Лист 04 · разбор проекта</p>
+  <p class="eyebrow"><a href="../../">← Каталог работ</a> &nbsp;·&nbsp; <a href="en/">English</a></p>
+</div>
+
+<header class="masthead">
+  <div class="masthead-id">
+    <p class="eyebrow">3D-конфигуратор · WebGL</p>
+    <p class="eyebrow">2026</p>
+  </div>
+  <h1>STANDES</h1>
+  <p class="lede">
+    Покупатель задаёт размер торгового зала, набирает секции из библиотеки и расставляет
+    их мышью — стеллажи примагничиваются друг к другу гранями, углами и крышками.
+    Пока он это делает, из той же геометрии считаются спецификация, масса, раскрой листа
+    и цена.
+  </p>
+  <dl class="spec">
+    <dt>Роль</dt><dd>единственный разработчик: домен, 3D-сцена, интерфейс, экспорт, обе локали</dd>
+    <dt>Стек</dt><dd>React 19 · TypeScript 5.9 · Vite 7 · three.js · React Three Fiber · zustand + immer + zundo · Tailwind 4</dd>
+    <dt>Объём</dt><dd>25 548 строк TS/TSX в 71 файле, без единой внешней 3D-модели и текстуры</dd>
+    <dt>Конструкции</dt><dd>корпусный стеллаж (ЛДСП, фанера) · стальной каркас · торговое оборудование</dd>
+    <dt>Версии</dt><dd>две независимые сборки из одного исходника: русская в ₽, английская в $</dd>
+    <dt>Статус</dt><dd>рабочее демо, открыто в браузере; цены — каталог-заглушка под подстановку</dd>
+  </dl>
+  <div class="demos">
+    <a href="https://smirnov-artur.github.io/standes/" target="_blank" rel="noopener">Открыть конфигуратор</a>
+    <a class="ghost" href="https://smirnov-artur.github.io/standes/en/" target="_blank" rel="noopener">English version</a>
+  </div>
+</header>
+
+<!-- ============ 01 ЗАДАЧА ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">01 · Задача</p>
+    <h2>Торговое оборудование продаётся вслепую</h2>
+  </div>
+  <div class="cols">
+    <div class="prose">
+      <p>
+        Владелец магазина покупает стеллажи один раз на несколько лет и почти никогда не
+        представляет результат. Он знает площадь зала и примерный бюджет; поставщик знает
+        сортамент. Между ними — менеджер, который на словах собирает расстановку, считает
+        её в таблице и присылает счёт. Ошибка в проходе на 200 мм или в высоте секции
+        вскрывается на монтаже, когда металл уже нарезан.
+      </p>
+      <p>
+        Обычный «калькулятор стеллажа» эту проблему не решает: он считает одну секцию.
+        Вопрос покупателя другой — <strong>сколько секций влезет в мой зал и как это будет
+        выглядеть</strong>.
+      </p>
+    </div>
+    <div class="prose">
+      <p>
+        Отсюда два разных пользователя у одного инструмента. Покупателю нужны готовые секции,
+        площадь зала в квадратных метрах и итоговая сумма — и ничего больше. Менеджеру
+        поставщика нужны толщина стойки, шаг перфорации, наклон полки, масса секции,
+        спецификация по позициям и выгрузка в CSV.
+      </p>
+      <p>
+        Поэтому у конфигуратора <strong>два режима на одной сцене</strong>: клиентский и
+        менеджерский. Это не две сборки и не два набора данных — одна модель, два интерфейса
+        поверх неё. Переключатель в правом верхнем углу.
+      </p>
+    </div>
+  </div>
+
+  <figure class="shot">
+    <img src="../../assets/a4.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Клиентский режим STANDES: семь секций выстроены вдоль стены зала 50 м², справа итог 104 682 ₽">
+    <figcaption>
+      Клиентский режим. Семь секций, поставленных подряд, сами встали в линию по стене:
+      8 060 мм, 35 полок, 104 682 ₽. Из органов управления — площадь зала и библиотека секций.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============ 02 КАК УСТРОЕНО ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">02 · Как устроено</p>
+    <h2>Одна размерная модель на сцену, смету и раскрой</h2>
+  </div>
+  <p class="prose">
+    Главное архитектурное решение принято в первый день: <strong>размеры считаются в одном
+    месте</strong>. Модуль <code>domain/frame.ts</code> знает, где находится каждая ячейка,
+    какая у детали эффективная толщина и на какой высоте стоит юнит. К нему обращаются
+    и разбор на детали, и магниты, и инспектор, и превью в библиотеке. Разойтись они
+    физически не могут — считать негде.
+  </p>
+
+  <ol class="pipe">
+    <li>
+      <b>Проект → юниты</b>
+      <span>
+        Проект — это комната и список стеллажей. Юнит описан не геометрией, а
+        <em>намерением</em>: колонки, ряды, тип конструкции, материалы, содержимое ячеек.
+        Ни одной координаты в модели нет.
+      </span>
+    </li>
+    <li>
+      <b>Юнит → детали</b>
+      <span>
+        <code>geometry.ts</code> разворачивает намерение в список деталей: 30 ролей от боковины
+        и полки до перфорированной стойки, кронштейна, отбортовки и ценникодержателя. Каждая
+        деталь несёт габарит, центр, материал и признаки — стекло, перфорация, кромка.
+      </span>
+    </li>
+    <li>
+      <b>Детали → сцена</b>
+      <span>
+        Тот же список идёт в three.js. Материалы процедурные: шпон, металл, перфорация и
+        плитка пола рисуются на канвасе при старте. Внешних текстур и моделей в проекте нет
+        совсем — сборка не тянет ассеты.
+      </span>
+    </li>
+    <li>
+      <b>Детали → смета</b>
+      <span>
+        <code>bom.ts</code> сворачивает те же детали в позиции: площадь, длина кромки, масса
+        по плотности материала, фурнитура, цена. Смета не «примерно соответствует» модели —
+        она из неё и построена.
+      </span>
+    </li>
+    <li>
+      <b>Детали → раскрой</b>
+      <span>
+        Листовые детали уходят в <code>cutlist.ts</code>: упаковка MaxRects с гильотинным
+        резом, учёт пропила и отступа от края, карта листа с выходом и отходами.
+      </span>
+    </li>
+  </ol>
+
+  <div class="note">
+    <p>
+      Единицы разведены жёстко: <strong>вся доменная модель в миллиметрах, сцена three.js —
+      в метрах</strong>, перевод только на границе рендера через одну функцию <code>mm()</code>.
+      Это скучное правило, но именно оно избавляет от целого класса ошибок, где стеллаж
+      внезапно оказывается размером с дом.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 03 ТРУДНАЯ ЧАСТЬ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">03 · Трудная часть</p>
+    <h2>Магниты, которые не спорят с пользователем</h2>
+  </div>
+  <p class="prose">
+    Примагничивание кажется простой задачей ровно до первой реализации. Наивный подход —
+    перебрать соседей, найти ближайшую грань в пределах порога и притянуть — разваливается
+    сразу: у стеллажа в углу зала одновременно валидны стык со стеной, стык с соседом и
+    сетка, и пороговая логика выбирает не то, что имел в виду человек.
+  </p>
+
+  <div class="grid-notes">
+    <div>
+      <h3>Кандидаты вместо порогов</h3>
+      <p>
+        Решатель не выбирает первый подходящий стык. Он <strong>строит все кандидаты</strong>
+        шести типов — грань в грань, угол в угол, к стене, по сетке, доворот, установка сверху —
+        и назначает каждому цену. Дальше сортировка по цене и первый, который никуда не
+        врезается.
+      </p>
+    </div>
+    <div>
+      <h3>Цена, а не приоритет</h3>
+      <p>
+        Цена — это расстояние от точки под курсором плюс штраф за тип и за доворот.
+        Порядок получается сам собой: <code>face 0 &lt; stack 40 &lt; corner 60 &lt;
+        wall 120 &lt; grid 400 &lt; angle 500</code>. Сетка — последний резерв, а не
+        конкурент нормальному стыку.
+      </p>
+    </div>
+    <div>
+      <h3>Родные стыки липнут охотнее</h3>
+      <p>
+        Совпадение высоты даёт −40 к цене, совпадение глубины — ещё −40. Секции одного
+        типоразмера собираются в ряд почти сами, а стыковка разнокалиберных требует
+        подвести курсор точнее. Именно так это выглядит на первом скриншоте: семь секций
+        встали в линию без единой правки.
+      </p>
+    </div>
+    <div>
+      <h3>Доворот стоит денег</h3>
+      <p>
+        Стык грань-в-грань разрешает доворот до 50°, но каждый градус стоит 4 мм цены.
+        Слегка повёрнутый стеллаж дотягивается до соседа и выравнивается; развёрнутый на
+        45° — нет, потому что это уже не «почти состыковано», а другое намерение.
+      </p>
+    </div>
+    <div>
+      <h3>Гравитация в том же проходе</h3>
+      <p>
+        Стеллажи ставятся друг на друга, и высота — не отдельный режим. Боковой стык несёт
+        текущую высоту юнита, <code>stack</code> — крышку соседа, а если в предложенной точке
+        под юнитом пусто, он <strong>падает на пол вместе с примагничиванием</strong>.
+        Висящих в воздухе секций не бывает.
+      </p>
+    </div>
+    <div>
+      <h3>Опора считается площадью</h3>
+      <p>
+        Верхний юнит держится, если перекрывает нижний хотя бы на 55 % меньшей из двух
+        площадей. Это правило запрещает и «большое на маленькое», и стеллаж, стоящий
+        уголком на краю соседа, — без отдельной проверки на каждый случай.
+      </p>
+    </div>
+  </div>
+
+  <div class="note">
+    <p>
+      Стоимость решателя удерживают два приёма. Соседи грубо отсеиваются по описанным
+      окружностям — для юнита, до которого магнит не дотянется, кандидаты вообще не
+      строятся. И проверка на пересечение идёт по одному кандидату в порядке цены, с
+      выходом на первом свободном, вместо честного «все против всех».
+    </p>
+  </div>
+</section>
+
+<!-- ============ 04 КОД ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">04 · Код</p>
+    <h2>Четыре места, где решение видно целиком</h2>
+  </div>
+
+  <figure class="code">
+    <figcaption>
+      <b>Решатель: собрать кандидатов, уронить лишнее, взять самого дешёвого</b>
+      <span class="path">src/domain/snapping.ts · solveSnap</span>
+    </figcaption>
+<pre><span class="kw">const</span> cands: SnapCandidate[] = []
+<span class="kw">if</span> (settings.magnets) {
+  <span class="kw">for</span> (<span class="kw">const</span> n <span class="kw">of</span> near) {
+    faceMates(unit, n.u, settings, cands)
+    cornerMates(unit, n, settings, cands)
+  }
+}
+<span class="kw">if</span> (settings.stack)  <span class="kw">for</span> (<span class="kw">const</span> n <span class="kw">of</span> near) stackMates(unit, n.u, settings, cands)
+<span class="kw">if</span> (settings.walls)  wallSnaps(unit, room, settings, cands)
+<span class="kw">if</span> (settings.grid)   cands.push(gridSnap(unit, settings))
+
+<span class="cm">// гравитация: боковой стык высоту не меняет, но если в новой точке под</span>
+<span class="cm">// юнитом пусто — он съезжает на пол вместе с примагничиванием</span>
+<span class="kw">if</span> (myElev &gt; 0) {
+  <span class="kw">for</span> (<span class="kw">const</span> c <span class="kw">of</span> cands) {
+    <span class="kw">if</span> (c.kind === <span class="st">'stack'</span>) <span class="kw">continue</span>
+    <span class="kw">if</span> (!supportedAt(unit, c.pos, c.rotY, myElev, near)) c.elevation = 0
+  }
+}
+
+<span class="kw">if</span> (!cands.length) <span class="kw">return</span> fall()
+
+cands.sort((a, b) =&gt; a.cost - b.cost)
+<span class="kw">if</span> (!settings.collide) <span class="kw">return</span> cands[0]
+<span class="kw">for</span> (<span class="kw">const</span> c <span class="kw">of</span> cands) <span class="kw">if</span> (!candidateHits(unit, myR, c, near)) <span class="kw">return</span> c
+<span class="kw">return</span> fall()</pre>
+    <p class="why">
+      Двадцать строк, в которых лежит всё поведение магнитов. Обратите внимание на порядок:
+      сначала строятся <em>все</em> варианты, потом применяется гравитация к каждому, и только
+      потом идёт выбор. Если бы гравитация считалась после выбора, стеллаж сначала прилипал бы
+      к соседу, а потом отдельным движением падал — два события вместо одного, и undo пришлось бы
+      писать вручную.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Опора: 55 % площади вместо десятка частных правил</b>
+      <span class="path">src/domain/snapping.ts · supportedAt</span>
+    </figcaption>
+<pre><span class="kw">function</span> supportedAt(u, pos, rotY, elev, near): <span class="kw">boolean</span> {
+  <span class="kw">if</span> (elev &lt;= 0) <span class="kw">return</span> <span class="kw">true</span>          <span class="cm">// на полу — всегда</span>
+  <span class="kw">const</span> probe = moved(u, pos, rotY, elev)
+  <span class="kw">const</span> myArea = footprintArea(u)
+  <span class="kw">for</span> (<span class="kw">const</span> n <span class="kw">of</span> near) {
+    <span class="cm">// крышка соседа должна совпасть с низом юнита</span>
+    <span class="kw">if</span> (Math.abs(unitTopY(n.u) - elev) &gt; SUPPORT_EPS) <span class="kw">continue</span>
+    <span class="kw">if</span> (overlapArea(probe, n.u) &gt;=
+        Math.min(myArea, footprintArea(n.u)) * MIN_SUPPORT_RATIO) <span class="kw">return</span> <span class="kw">true</span>
+  }
+  <span class="kw">return</span> <span class="kw">false</span>
+}</pre>
+    <p class="why">
+      <code>Math.min</code> здесь — вся суть. Если брать площадь верхнего юнита, маленькая
+      секция законно встанет уголком на край большой. Если нижнего — большая секция не встанет
+      на маленькую никогда, даже когда это осмысленно. Минимум из двух даёт правило, которое
+      совпадает с физической интуицией: <strong>меньший из двух должен опираться большей
+      частью себя</strong>. Пересечение считается по повёрнутым пятнам застройки, поэтому
+      правило работает и для секций под углом.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Толщину можно только уменьшать</b>
+      <span class="path">src/domain/geometry.ts · buildableThickness</span>
+    </figcaption>
+<pre><span class="cm">/** Ближайшая каталожная толщина, но ТОЛЬКО вниз:</span>
+<span class="cm">    деталь не имеет права вылезти из своего гнезда. */</span>
+<span class="kw">function</span> buildableThickness(materialId: <span class="kw">string</span>, t: <span class="kw">number</span>): <span class="kw">number</span> {
+  <span class="kw">const</span> list = getMaterial(materialId).thicknesses
+  <span class="kw">if</span> (!list.length) <span class="kw">return</span> t
+  <span class="kw">let</span> best = -Infinity
+  <span class="kw">for</span> (<span class="kw">const</span> th <span class="kw">of</span> list) <span class="kw">if</span> (th &lt;= t + 0.01 &amp;&amp; th &gt; best) best = th
+  <span class="kw">return</span> Number.isFinite(best) ? best : t
+}</pre>
+    <p class="why">
+      Пользователь задаёт толщину полки ползунком и легко ставит 18 мм там, где стекло
+      бывает только 10. Округление «к ближайшему» дало бы 20 мм — и деталь перестала бы
+      влезать в гнездо, а раскрой состоял бы из листов, которых не существует в продаже.
+      Округление строго вниз ломает ожидание («я поставил 18, а стало 10»), зато результат
+      всегда физически собираем. Ограничение показано в интерфейсе рядом с полем — доступные
+      толщины материала стоят кнопками.
+    </p>
+  </figure>
+
+  <figure class="code">
+    <figcaption>
+      <b>Постобработка ломает чужой рендер</b>
+      <span class="path">src/three/Lighting.tsx · AutoClearGuard</span>
+    </figcaption>
+<pre><span class="cm">/**
+ * postprocessing в EffectComposer.setRenderer ставит renderer.autoClear = false.
+ * drei ContactShadows печёт тень обычным gl.render() — и без очистки буфера
+ * каждый кадр дорисовывается ПОВЕРХ предыдущего.
+ */</span>
+<span class="kw">function</span> AutoClearGuard() {
+  <span class="kw">const</span> gl = useThree((s) =&gt; s.gl)
+  useFrame(() =&gt; { <span class="kw">if</span> (!gl.autoClear) gl.autoClear = <span class="kw">true</span> })
+  <span class="kw">return</span> <span class="kw">null</span>
+}</pre>
+    <p class="why">
+      Симптом выглядел как мистика: при перетаскивании стеллаж оставлял на полу мокрый след,
+      который исчезал, стоило отпустить кнопку. Ни в коде теней, ни в коде драга ошибки не было —
+      две библиотеки просто по-разному распоряжаются одним <code>WebGLRenderer</code>.
+      Сторож стоит <strong>до</strong> <code>&lt;ContactShadows&gt;</code>: <code>useFrame</code>
+      выполняется в порядке подписки, и флаг нужно вернуть раньше, чем тень начнёт рисоваться.
+      Тот же баг, найденный чуть позже, объяснил и «призрачные отпечатки» стеллажей на полу.
+    </p>
+  </figure>
+</section>
+
+<!-- ============ 05 ЦИФРЫ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">05 · Что получилось</p>
+    <h2>Измерено на демо, которое открыто по ссылке</h2>
+  </div>
+
+  <div class="figures">
+    <div><span class="n">25 548</span><p>строк TypeScript в 71 файле: домен, сцена, интерфейс, экспорт, две локали</p></div>
+    <div><span class="n">327</span><p>деталей в сцене из десяти стеллажей — сцена, смета и раскрой считаются с одного списка</p></div>
+    <div><span class="n">60 <small>fps</small></span><p>при перетаскивании: позиции идут в отдельный слой, стор и смета на кадрах не трогаются</p></div>
+    <div><span class="n">6</span><p>типов магнитов: грань, угол, стена, сетка, доворот, установка сверху</p></div>
+    <div><span class="n">30</span><p>ролей деталей — от боковины и штанги до перфостойки, кронштейна и ценникодержателя</p></div>
+    <div><span class="n">0</span><p>внешних 3D-моделей и текстур: вся графика процедурная, сборка не тянет ассеты</p></div>
+  </div>
+
+  <figure class="shot">
+    <img src="../../assets/s1.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Менеджерский режим: дерево сцены из семи секций, инспектор торгового стеллажа, 272 детали, 500 кг">
+    <figcaption>
+      Менеджерский режим на той же сцене. Инспектор торгового стеллажа: ширина стойки,
+      глубина базы и полок, наклон, отбортовка, карниз, ценникодержатель, перфорация.
+      Внизу — предупреждение «высота 2000 мм, закрепите к стене»: правила безопасности
+      проверяются на модели.
+    </figcaption>
+  </figure>
+
+  <figure class="shot">
+    <img src="../../assets/s2.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Спецификация: 29 позиций, 272 детали, 39,37 м², 500 кг, итого 104 682 ₽">
+    <figcaption>
+      Спецификация той же расстановки: 29 позиций, 39,37 м², 500 кг. Материалы 98 934 ₽ плюс
+      фурнитура 5 748 ₽. Группировка переключается — список, по материалам, по ролям;
+      рядом выгрузка в CSV.
+    </figcaption>
+  </figure>
+
+  <figure class="shot">
+    <img src="../../assets/s3.jpg" width="1400" height="760" loading="lazy" decoding="async"
+         alt="Карта раскроя: 12 листов фанеры 2440×1220, средний выход 47 %, отходы 25,59 м²">
+    <figcaption>
+      Раскрой появляется, когда в проекте есть листовые детали. Двенадцать листов фанеры
+      2440×1220×15, средний выход 47 %, отходы 25,59 м². Пропил и отступ от края задаются
+      сверху и сразу пересчитывают карту.
+    </figcaption>
+  </figure>
+
+  <div class="scroller">
+    <table class="tbl">
+      <thead>
+        <tr><th>Что считается</th><th>Откуда берётся</th><th>Куда уходит</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Позиции спецификации</td><td>детали + материалы</td><td>экран, CSV, печатная форма</td></tr>
+        <tr><td>Масса</td><td>объём детали × плотность материала</td><td>смета, транспорт</td></tr>
+        <tr><td>Карта раскроя</td><td>листовые детали + формат листа</td><td>экран, CSV</td></tr>
+        <tr><td>Цена</td><td>площадь, кромка, метизы, прайс</td><td>клиентский итог и смета</td></tr>
+        <tr><td>Сцена</td><td>тот же список деталей</td><td>WebGL, GLB, PNG</td></tr>
+        <tr><td>Проект целиком</td><td>комната + юниты</td><td>JSON-файл, ссылка со сжатием</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose" style="margin-top:1rem;font-size:var(--t-small)">
+    Ни одна строка этой таблицы не пересчитывает геометрию заново — все шесть выходов
+    построены на одном разборе юнита на детали.
+  </p>
+</section>
+
+<!-- ============ 06 ДВЕ ВЕРСИИ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">06 · Две версии</p>
+    <h2>Русская и английская — разные сайты, один исходник</h2>
+  </div>
+  <p class="prose">
+    Переключателя языка внутри приложения нет намеренно. Русская и английская версии —
+    это два адреса, две сборки и <strong>два независимых прайса</strong>. Курса валют в коде
+    нет вообще: цена материала описана парой <code>{ rub, usd }</code>, и долларовое значение
+    правится под экспортный рынок, а не получается делением рублёвого.
+  </p>
+
+  <figure class="code">
+    <figcaption>
+      <b>Язык приходит собственной глобальной константой</b>
+      <span class="path">vite.config.ts</span>
+    </figcaption>
+<pre><span class="kw">const</span> locale = (process.env.VITE_LOCALE ?? <span class="st">'ru'</span>).toLowerCase() === <span class="st">'en'</span> ? <span class="st">'en'</span> : <span class="st">'ru'</span>
+
+<span class="kw">return</span> {
+  base,
+  define: {
+    __STANDES_LOCALE__:   JSON.stringify(locale),
+    __STANDES_CURRENCY__: JSON.stringify(currency),
+  },
+  build: { outDir: locale === <span class="st">'en'</span> ? <span class="st">'dist-en'</span> : <span class="st">'dist'</span> },
+}</pre>
+    <p class="why">
+      Первая попытка прокидывала язык через <code>import.meta.env.VITE_LOCALE</code> — и
+      английская сборка молча выходила русской. Vite собирает <code>import.meta.env</code> из
+      <code>.env</code>-файлов по своим правилам и подставляет его <em>раньше</em>
+      пользовательского <code>define</code>, так что переменная из окружения до рантайма не
+      доезжала. Собственное имя <code>__STANDES_LOCALE__</code> не конфликтует ни с чем и
+      вырезается минификатором вместе с мёртвой веткой.
+    </p>
+  </figure>
+
+  <div class="note">
+    <p>
+      Один дефект этой схемы вскрылся уже после публикации, при подготовке этого разбора.
+      Обе версии лежат в подпапках одного домена (<code>/standes/</code> и
+      <code>/standes/en/</code>), а значит делят один <code>localStorage</code> — английская
+      версия открывалась с проектом, собранным на русской. Ключи хранилища теперь разведены
+      по локали: <code>standes:en:project</code> против <code>standes:ru:project</code>.
+    </p>
+  </div>
+</section>
+
+<!-- ============ 07 ЧТО ЗА КАДРОМ ============ -->
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">07 · Что осталось за кадром</p>
+    <h2>Границы демо</h2>
+  </div>
+  <p class="prose">
+    Это работающий инструмент, но не сданный продукт: у него нет заказчика, который проверил
+    бы прайс и сортамент. Ниже — то, что честнее назвать вслух.
+  </p>
+
+  <ul class="plain">
+    <li>
+      <b>Цены — каталог-заглушка.</b> Порядок величин взят с рынка, но конкретные числа
+      подставлены мной. Рублёвый и долларовый прайсы независимы, курса в коде нет;
+      перед реальным использованием оба заполняются из прайс-листа поставщика — это одна
+      таблица в <code>materials.ts</code> и фурнитура в <code>bom.ts</code>.
+    </li>
+    <li>
+      <b>Заявка никуда не отправляется.</b> Бэкенда у демо нет, и писать «мы вам перезвоним»
+      было бы враньём. Заявка складывается в <code>localStorage</code> и копируется в буфер
+      обмена готовым текстом — экран успеха говорит об этом прямо.
+    </li>
+    <li>
+      <b>Средний выход раскроя 47 % на смешанном проекте.</b> Это честная цифра упаковщика
+      MaxRects с гильотинным резом на разнородных деталях, а не оптимум: настоящий раскройщик
+      объединяет заказы и крутит детали. Направление волокон есть тумблером, но по умолчанию
+      выключено — на реальном заказе результат стоит проверить глазами.
+    </li>
+    <li>
+      <b>Спецификация экспортируется печатной страницей, а не PDF.</b> <code>Ctrl+P</code> →
+      «Сохранить как PDF». Библиотеки генерации PDF в проекте нет сознательно: она весит
+      больше, чем весь остальной экспорт вместе взятый.
+    </li>
+    <li>
+      <b>Автотестов нет.</b> Геометрия и магниты проверялись отдельными скриптами: попарное
+      пересечение объёмов всех деталей, опора ножек, соответствие толщин каталогу, арифметика
+      привязок. Скрипты нашли больше, чем нашёл бы я глазами, — плинтус, вылезавший из базы,
+      несуществующие толщины листа, ножки в воздухе, z-fighting полки о стойку, — но это
+      разовые проверки, а не набор тестов, который защищает от регрессий.
+    </li>
+    <li>
+      <b>Сборка тяжёлая:</b> 1,9 МБ основного чанка, 609 КБ в gzip. Это цена three.js с
+      постобработкой. Разбито на чанки только то, что реально ленивое — GLB, PNG и печатная
+      форма грузятся по требованию.
+    </li>
+    <li>
+      <b>Мобильных жестов нет.</b> Интерфейс рассчитан на мышь и клавиатуру: перетаскивание
+      с модификаторами, горячие клавиши, орбита колесом. На телефоне сцена откроется и
+      будет вращаться, но собирать расстановку там неудобно.
+    </li>
+  </ul>
+
+  <div class="note" style="margin-top:var(--s-block)">
+    <p>
+      Если продолжать, порядок такой: прайс и сортамент от живого поставщика, отправка заявки
+      в CRM вместо буфера обмена, и набор фикстур на геометрию — те самые разовые скрипты,
+      переписанные в тесты. Конфигуратор без настоящего прайса всегда выглядит рабочим
+      на том проекте, на котором его собирали.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p class="eyebrow" style="margin-bottom:1.2rem">Дальше</p>
+  <div class="backs">
+    <a href="https://smirnov-artur.github.io/standes/" target="_blank" rel="noopener">Открыть конфигуратор ↗</a>
+    <a href="../../">← Каталог работ</a>
+    <a href="en/">This case in English</a>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>
