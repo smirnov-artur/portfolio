@@ -348,7 +348,7 @@ footer{padding:var(--s-section) 0 clamp(3rem,6vw,5rem)}
     <li>
       <b>Unit → parts</b>
       <span>
-        <code>geometry.ts</code> expands that intent into a part list: 30 roles, from side
+        <code>geometry.ts</code> expands that intent into a part list: 26 roles, from side
         panel and shelf to perforated upright, bracket, front lip and price rail. Every part
         carries its size, centre, material and flags — glass, perforation, edge banding.
       </span>
@@ -602,7 +602,7 @@ cands.sort((a, b) =&gt; a.cost - b.cost)
     <div><span class="n">327</span><p>parts in a ten-unit scene — the scene, the quote and the cutting plan all read one list</p></div>
     <div><span class="n">60 <small>fps</small></span><p>while dragging: positions live in a separate layer, so neither the store nor the quote is touched per frame</p></div>
     <div><span class="n">6</span><p>kinds of magnet: face, corner, wall, grid, rotation nudge, stack-on-top</p></div>
-    <div><span class="n">30</span><p>part roles — from side panel and hanging rail to perforated upright, bracket and price rail</p></div>
+    <div><span class="n">26</span><p>part roles — from side panel and hanging rail to perforated upright, bracket and price rail</p></div>
     <div><span class="n">0</span><p>external 3D models or textures: all graphics are procedural, the build ships no assets</p></div>
   </div>
 
@@ -751,7 +751,7 @@ cands.sort((a, b) =&gt; a.cost - b.cost)
       suite that guards against regressions.
     </li>
     <li>
-      <b>The bundle is heavy:</b> 1.9 MB for the main chunk, 609 KB gzipped. That is the price
+      <b>The bundle is heavy:</b> 1.9 MB for the main chunk, 624 KB gzipped. That is the price
       of three.js with post-processing. Only genuinely lazy things are split out — GLB, PNG and
       the print sheet load on demand.
     </li>
