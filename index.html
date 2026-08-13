@@ -871,7 +871,29 @@
     .masthead, .plate, .flagships-head { opacity: 1 !important; visibility: visible !important; transform: none !important; }
     .zoom-hint, dialog, .tg-chip { display: none !important; }
   }
-</style>
+
+    /* Ссылка на живое демо в карточке кейса.
+       Скриншот показывает результат, ссылка даёт его потрогать. */
+    .live-demo {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-top: 0.9rem;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--f-mono);
+      font-size: var(--t-label);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: background var(--t-fast) var(--e-out), color var(--t-fast) var(--e-out);
+    }
+    .live-demo:hover,
+    .live-demo:focus-visible { background: transparent; color: var(--ink); }
+    .live-demo .lang { opacity: 0.55; text-transform: none; letter-spacing: 0.04em; }
+  </style>
 
 <div class="wrap">
 
@@ -1165,6 +1187,9 @@
           <dt>Экспорт</dt><dd>AR-просмотр, рендер, скриншот, сводка позиций, отправка ТЗ</dd>
           <dt>Стек</dt><dd>Three.js</dd>
         </dl>
+        <a class="live-demo" href="https://smirnov-artur.github.io/standes/" target="_blank" rel="noopener">
+          Открыть конфигуратор <span class="lang">— живое демо</span>
+        </a>
       </div>
       <figure class="screen">
         <div class="shots">

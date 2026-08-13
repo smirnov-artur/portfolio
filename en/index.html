@@ -891,7 +891,29 @@
     .masthead, .plate, .flagships-head { opacity: 1 !important; visibility: visible !important; transform: none !important; }
     .zoom-hint, dialog, .tg-chip { display: none !important; }
   }
-</style>
+
+    /* Live-demo link on a case card: the screenshot shows the result,
+       the link lets you actually touch it. */
+    .live-demo {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-top: 0.9rem;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--f-mono);
+      font-size: var(--t-label);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: background var(--t-fast) var(--e-out), color var(--t-fast) var(--e-out);
+    }
+    .live-demo:hover,
+    .live-demo:focus-visible { background: transparent; color: var(--ink); }
+    .live-demo .lang { opacity: 0.55; text-transform: none; letter-spacing: 0.04em; }
+  </style>
 <link rel="stylesheet" href="../css/motion.css">
 <script defer src="../js/motion.js"></script>
 </head>
@@ -1106,6 +1128,9 @@
           <dt>Export</dt><dd>AR view, render, screenshot, item summary, send as brief</dd>
           <dt>Stack</dt><dd>Three.js</dd>
         </dl>
+        <a class="live-demo" href="https://smirnov-artur.github.io/standes/en/" target="_blank" rel="noopener">
+          Open the configurator <span class="lang">— live demo</span>
+        </a>
       </div>
       <figure class="screen">
         <div class="shots">
